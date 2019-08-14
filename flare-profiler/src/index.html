@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+  </head>
+  <body>
+    <div id="test"></div>
+  </body>
+
+  <script>
+  import Vue from 'vue';
+  import Test from './test';
+
+  const app = new Vue(Test).$mount('#test');
+
+  app.text = "Electron Forge with Vue.js!";
+  app.message="How is the weather today?"
+
+  </script>
+</html>
