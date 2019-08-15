@@ -1,4 +1,8 @@
 .idea
+*.iml
+target
+classes
+*.class
 
 # Logs
 logs
