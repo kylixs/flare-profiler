@@ -1,11 +1,11 @@
-extern crate jvmti;
+extern crate flareagent;
 
 use std::env;
 use std::fs::File;
 //use std::io::{stdout};
 
-use jvmti::bytecode::*;
-use jvmti::bytecode::printer::*;
+use flareagent::bytecode::*;
+use flareagent::bytecode::printer::*;
 
 fn main2() {
     let class = Classfile::new();
@@ -58,10 +58,10 @@ fn show_methods(class: Classfile, class_name: String ) {
     class.methods.iter().map(|method| {
         method.attributes.iter().map(|a| {
             match a {
-                &jvmti::bytecode::Attribute::Code { max_stack: _, max_locals: _, code: _, exception_table: _, ref attributes } => {
+                &flareagent::bytecode::Attribute::Code { max_stack: _, max_locals: _, code: _, exception_table: _, ref attributes } => {
                     attributes.iter().map(|b| {
                         match b {
-                            &jvmti::bytecode::Attribute::LineNumberTable(ref table) => {
+                            &flareagent::bytecode::Attribute::LineNumberTable(ref table) => {
                                 if table.len() > 1 {
                                     let first = table[0].line_number;
                                     let last = table[table.len() - 1].line_number;

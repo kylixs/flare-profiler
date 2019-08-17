@@ -1,7 +1,7 @@
 [package]
-name = "jvmti"
-version = "0.4.0"
-authors = [ "Alex Pecsi <xea@blacklight.so>" ]
+name = "flare-agent"
+version = "0.1.0"
+authors = [ "Kylixs <gongdewei@gmail.com>" ]
 description = "JVM Monitoring and profiling agent"
 keywords = [ "java", "jvm", "jvmti", "debugger" ]
 
@@ -9,7 +9,7 @@ keywords = [ "java", "jvm", "jvmti", "debugger" ]
 [lib]
 #crate_type = [ "cdylib", "dylib", "rlib" ]
 crate-type = ["lib", "dylib", "staticlib"]
-name="jvmti"
+name="flareagent"
 path="src/lib.rs"
 
 [[bin]]

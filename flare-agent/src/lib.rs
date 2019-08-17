@@ -13,6 +13,8 @@ extern crate serde_json;
 extern crate serde;
 //extern crate jni;
 //extern crate jvmti_sys;
+extern crate resp;
+
 
 use agent::Agent;
 use bytecode::printer::ClassfilePrinter;

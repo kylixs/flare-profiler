@@ -1,13 +1,23 @@
+extern crate resp;
+
 use std::thread;
 use std::net::{TcpListener, TcpStream, Shutdown};
 use std::io::{Read, Write};
+use resp::{Value, Decoder};
+use std::io::BufReader;
+
 
 fn handle_client(mut stream: TcpStream) {
     let mut data = [0 as u8; 50]; // using 50 byte buffer
     while match stream.read(&mut data) {
         Ok(size) => {
             // echo everything!
-            stream.write(&data[0..size]).unwrap();
+            //stream.write(&data[0..size]).unwrap();
+            println!("client: {}", String::from_utf8_lossy(&data[0..size]));
+            let mut decoder = Decoder::new(BufReader::new(&data[0..size]));
+            let cmdValue = decoder.decode().unwrap();
+            println!("parse: {:?}", cmdValue);
+
             true
         },
         Err(_) => {
