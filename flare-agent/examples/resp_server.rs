@@ -1,24 +1,53 @@
 extern crate resp;
+#[macro_use]
+extern crate lazy_static;
 
 use std::thread;
 use std::net::{TcpListener, TcpStream, Shutdown};
 use std::io::{Read, Write};
 use resp::{Value, Decoder};
 use std::io::BufReader;
+use std::sync::{Mutex,Arc,RwLock};
 
+
+lazy_static! {
+    static ref RUNNING_SERVER: Mutex<bool> = Mutex::new(false);
+}
+
+fn set_server_running(val: bool) {
+    let mut a = RUNNING_SERVER.lock().unwrap();
+    *a = val;
+}
+
+fn is_server_running() -> bool {
+    *RUNNING_SERVER.lock().unwrap()
+}
 
 fn handle_client(mut stream: TcpStream) {
     let mut data = [0 as u8; 50]; // using 50 byte buffer
     while match stream.read(&mut data) {
         Ok(size) => {
-            // echo everything!
-            //stream.write(&data[0..size]).unwrap();
-            println!("client: {}", String::from_utf8_lossy(&data[0..size]));
-            let mut decoder = Decoder::new(BufReader::new(&data[0..size]));
-            let cmdValue = decoder.decode().unwrap();
-            println!("parse: {:?}", cmdValue);
-
-            true
+            if size <= 0 {
+                stream.shutdown(Shutdown::Both);
+                println!("connection is error");
+                false
+            } else {
+                // echo everything!
+                //stream.write(&data[0..size]).unwrap();
+                println!("client: {}", String::from_utf8_lossy(&data[0..size]));
+                let mut decoder = Decoder::new(BufReader::new(&data[0..size]));
+                match decoder.decode() {
+                    Ok(cmdValue) => {
+                        println!("parse cmd: {:?}", cmdValue);
+                    },
+                    Err(e) => {
+                        println!("parse cmd failed: {:?}", e);
+                    }
+                }
+                set_server_running(false);
+                println!("Closing server ...");
+                true
+            }
         },
         Err(_) => {
             println!("An error occurred, terminating connection with {}", stream.peer_addr().unwrap());
@@ -29,10 +58,14 @@ fn handle_client(mut stream: TcpStream) {
 }
 
 fn main() {
+    set_server_running(true);
     let listener = TcpListener::bind("0.0.0.0:3333").unwrap();
     // accept connections and process them, spawning a new thread for each one
     println!("Server listening on port 3333");
     for stream in listener.incoming() {
+        if !is_server_running() {
+            break;
+        }
         match stream {
             Ok(stream) => {
                 println!("New connection: {}", stream.peer_addr().unwrap());
@@ -49,4 +82,5 @@ fn main() {
     }
     // close the socket server
     drop(listener);
+    println!("Server is closed.");
 }

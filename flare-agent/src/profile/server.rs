@@ -4,6 +4,14 @@ use std::io::{Read, Write};
 use resp::{Value, Decoder};
 use std::io::BufReader;
 use std::collections::HashMap;
+use std::sync::{Mutex,Arc,RwLock};
+
+
+lazy_static! {
+    //static ref TREE_ARENA: Mutex<TreeArena> = Mutex::new(TreeArena::new());
+    static ref SERVER_ENABLE: Mutex<bool> = Mutex::new(false);
+//    static ref SAMPLER: Mutex<Sampler> = Mutex::new(Sampler::new());
+}
 
 pub fn start_server() {
     let listener = TcpListener::bind("0.0.0.0:3333").unwrap();
@@ -26,6 +34,10 @@ pub fn start_server() {
     }
     // close the socket server
     drop(listener);
+}
+
+pub fn stop_server() {
+
 }
 
 fn handle_client(mut stream: TcpStream) {
