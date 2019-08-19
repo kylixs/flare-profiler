@@ -11,7 +11,6 @@ use serde_json::Result;
 use profile::tree::{TreeArena, NodeId};
 use std::collections::hash_map::Entry;
 use time::Duration;
-use super::server::*;
 
 #[derive(Serialize, Deserialize)]
 pub struct SampleResult {
@@ -34,7 +33,7 @@ pub struct SampleThreadData {
 pub struct Sampler {
     method_cache: HashMap<MethodId, MethodInfo>,
     threads : Vec<ThreadId>,
-    running: bool,
+    enabled: bool,
     tree_arena: TreeArena
 }
 
@@ -49,27 +48,17 @@ impl Sampler {
         Sampler {
             method_cache: HashMap::new(),
             threads: vec![],
-            running: false,
+            enabled: false,
             tree_arena: TreeArena::new()
         }
     }
 
-    pub fn start(&mut self) {
-        if(!self.running) {
-            self.running = true;
-            start_server();
-        }
+    pub fn set_enable(&mut self, val: bool) {
+        self.enabled = val;
     }
 
-    pub fn stop(&mut self) {
-        if(self.running){
-            self.running = false;
-            stop_server();
-        }
-    }
-
-    pub fn is_running(&self) -> bool {
-        self.running
+    pub fn is_enable(&self) -> bool {
+        self.enabled
     }
 
     pub fn on_thread_start(&mut self, thread: ThreadId) {
@@ -109,15 +98,42 @@ impl Sampler {
                     println!("get_thread_cpu_time error");
                 }
 
-                //TODO check and add stacktrace to sending queue
-
                 let call_tree = self.tree_arena.get_call_tree(&thread_info);
                 call_tree.reset_top_call_stack_node();
                 if call_tree.total_duration == cpu_time {
                     continue;
                 }
 
+                let mut call_methods :Vec<JavaMethod> = vec![];
+                for stack_frame in &stack_info.frame_buffer {
+                    call_methods.push(stack_frame.method);
+                }
+                //save nodes in temp vec, process it after build call tree, avoid second borrow muttable *self
+                let mut naming_nodes: Vec<(NodeId, JavaMethod)> = vec![];
 
+                //reverse call
+                for method_id in call_methods.iter().rev() {
+                    if !call_tree.begin_call(method_id) {
+                        naming_nodes.push((call_tree.get_top_node().data.node_id, method_id.clone()));
+                    }
+                }
+
+                call_tree.end_last_call(cpu_time);
+                //println!("add call stack: {} cpu_time:{}", thread_info.name, cpu_time);
+
+                //get method call_name of node
+                let mut node_methods: Vec<(NodeId, String)> = vec![];
+                for (node_id, method_id) in naming_nodes {
+                    let method_info = self.get_method_info(jvm_env, method_id);
+                    let call_name = format!("{}.{}()", &method_info.class.name, &method_info.method.name);
+                    node_methods.push((node_id, call_name));
+                }
+
+                //set node's call_name
+                let call_tree = self.tree_arena.get_call_tree(&thread_info);
+                for (node_id, call_name) in node_methods {
+                    call_tree.get_mut_node(&node_id).data.name = call_name;
+                }
             }else {
                 //warn!("Thread UNKNOWN [{:?}]: (cpu_time = {})", stack_info.thread, cpu_time);
             }

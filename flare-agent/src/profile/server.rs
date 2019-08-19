@@ -8,16 +8,32 @@ use std::sync::{Mutex,Arc,RwLock};
 
 
 lazy_static! {
-    //static ref TREE_ARENA: Mutex<TreeArena> = Mutex::new(TreeArena::new());
-    static ref SERVER_ENABLE: Mutex<bool> = Mutex::new(false);
-//    static ref SAMPLER: Mutex<Sampler> = Mutex::new(Sampler::new());
+    static ref RUNNING_SERVER: Mutex<bool> = Mutex::new(false);
+}
+
+fn set_server_running(val: bool) {
+    let mut a = RUNNING_SERVER.lock().unwrap();
+    *a = val;
+}
+
+fn is_server_running() -> bool {
+    *RUNNING_SERVER.lock().unwrap()
+}
+
+pub fn stop_server() {
+    set_server_running(false);
+    //make a new connection force tcp listener exit accept() blocking
+    TcpStream::connect("localhost:3333");
 }
 
 pub fn start_server() {
     let listener = TcpListener::bind("0.0.0.0:3333").unwrap();
     // accept connections and process them, spawning a new thread for each one
-    println!("Server listening on port 3333");
+    println!("Flare agent server listening on port 3333");
     for stream in listener.incoming() {
+        if !is_server_running() {
+            break;
+        }
         match stream {
             Ok(stream) => {
                 println!("New connection: {}", stream.peer_addr().unwrap());
@@ -34,10 +50,7 @@ pub fn start_server() {
     }
     // close the socket server
     drop(listener);
-}
-
-pub fn stop_server() {
-
+    println!("Flare agent server is shutdown.");
 }
 
 fn handle_client(mut stream: TcpStream) {
@@ -83,8 +96,11 @@ fn dispatch_request(clientRequest: &Value) {
     //dispatch by cmd str
     if let Some((cmd, cmd_options)) = cmd_vec_result {
         match cmd.as_str() {
-            "start-sample" => {
-                handle_start_sample_cmd(&cmd_options);
+            "resume-sample" => {
+                handle_resume_sample_cmd(&cmd_options);
+            },
+            "pause-sample" => {
+                handle_pause_sample_cmd(&cmd_options);
             },
             "stop-sample" => {
                 handle_stop_sample_cmd(&cmd_options);
@@ -116,12 +132,16 @@ fn parse_request_options(request: &Vec<Value>) -> HashMap<String, Value> {
     result
 }
 
-fn handle_start_sample_cmd(cmd_options: &HashMap<String, Value>) {
+fn handle_resume_sample_cmd(cmd_options: &HashMap<String, Value>) {
+    //resume
+}
 
+fn handle_pause_sample_cmd(cmd_options: &HashMap<String, Value>) {
+    //pause
 }
 
 fn handle_stop_sample_cmd(cmd_options: &HashMap<String, Value>) {
-
+    stop_server();
 }
 
 fn handle_subscribe_events_cmd(cmd_options: &HashMap<String, Value>) {

@@ -280,7 +280,8 @@ impl JVMTI for JVMTIEnvironment {
                         let mut stack_trace = JavaStackTrace{
                             thread: stack_info.thread,
                             state: stack_info.state,
-                            frame_buffer: vec![]
+                            frame_buffer: vec![],
+                            cpu_time: 0
                         };
 
                         let stack_frames = unsafe { std::slice::from_raw_parts(stack_info.frame_buffer,stack_info.frame_count as usize) };
@@ -370,6 +371,7 @@ impl JVMTI for JVMTIEnvironment {
 pub struct JavaStackTrace {
     pub thread: JavaThread,
     pub state: JavaInt,
+    pub cpu_time: i64,
     pub frame_buffer: Vec<JavaStackFrame>
 }
 

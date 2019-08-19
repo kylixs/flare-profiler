@@ -23,6 +23,12 @@ fn is_server_running() -> bool {
     *RUNNING_SERVER.lock().unwrap()
 }
 
+fn close_server() {
+    set_server_running(false);
+    //make a new connection force tcp listener exit accept() blocking
+    TcpStream::connect("localhost:3333");
+}
+
 fn handle_client(mut stream: TcpStream) {
     let mut data = [0 as u8; 50]; // using 50 byte buffer
     while match stream.read(&mut data) {
@@ -37,15 +43,22 @@ fn handle_client(mut stream: TcpStream) {
                 println!("client: {}", String::from_utf8_lossy(&data[0..size]));
                 let mut decoder = Decoder::new(BufReader::new(&data[0..size]));
                 match decoder.decode() {
-                    Ok(cmdValue) => {
-                        println!("parse cmd: {:?}", cmdValue);
+                    Ok(requestCmd) => {
+                        println!("parse cmd: {:?}", requestCmd);
+                        match requestCmd {
+                            Value::String(cmd) => {
+                                if cmd.trim() == "shutdown" {
+                                    println!("Shutting down server ...");
+                                    close_server();
+                                }
+                            },
+                            _ => { }
+                        }
                     },
                     Err(e) => {
                         println!("parse cmd failed: {:?}", e);
                     }
                 }
-                set_server_running(false);
-                println!("Closing server ...");
                 true
             }
         },
@@ -82,5 +95,5 @@ fn main() {
     }
     // close the socket server
     drop(listener);
-    println!("Server is closed.");
+    println!("Server is shutdown.");
 }

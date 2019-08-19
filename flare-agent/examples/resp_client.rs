@@ -10,16 +10,17 @@ fn main() {
         Ok(mut stream) => {
             println!("Successfully connected to server in port 3333");
 
-//            let msg = b"Hello!";
-//
-//            stream.write(msg).unwrap();
-//            println!("Sent Hello, awaiting reply...");
             let cmdValue = Value::Array(vec![Value::String("start-sample".to_string()),
                                           Value::String("interval".to_string()),
                                           Value::Integer(20)]);
 
             let cmd = cmdValue.encode();
+            let size = stream.write(cmd.as_slice()).unwrap();
+            println!("Sent cmd, awaiting reply: {}", cmdValue.to_encoded_string().unwrap());
 
+
+            let cmdValue = Value::String("shutdown".to_string());
+            let cmd = cmdValue.encode();
             let size = stream.write(cmd.as_slice()).unwrap();
             println!("Sent cmd, awaiting reply: {}", cmdValue.to_encoded_string().unwrap());
 

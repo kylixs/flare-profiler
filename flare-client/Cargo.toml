@@ -1,0 +1,31 @@
+[package]
+name = "flare-client"
+version = "0.1.0"
+authors = [ "Kylixs <gongdewei@gmail.com>" ]
+description = "JVM Monitoring and profiling agent"
+keywords = [ "java", "jvm", "jvmti", "debugger" ]
+
+
+[lib]
+#crate_type = [ "cdylib", "dylib", "rlib" ]
+crate-type = ["lib", "dylib", "staticlib"]
+name="flareclient"
+path="src/lib.rs"
+
+#[[bin]]
+#name = "main"
+#doc = false
+#path = "src/main.rs"
+
+[dependencies]
+libc = "0.2.*"
+time = "0.1.*"
+lazy_static = "0.2.*"
+toml = "0.4.*"
+serde = "1.0.*"
+serde_derive = "1.0.*"
+serde_json = "1.0"
+chrono = "0.4.7"
+log = "0.4"
+env_logger = "0.6.2"
+resp = "1.0.2"

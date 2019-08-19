@@ -16,6 +16,28 @@ extern crate serde;
 extern crate resp;
 
 
+pub mod agent;
+pub mod bytecode;
+pub mod capabilities;
+pub mod class;
+pub mod config;
+pub mod context;
+//pub mod emulator;
+pub mod environment;
+pub mod error;
+pub mod event;
+pub mod event_handler;
+pub mod instrumentation;
+pub mod mem;
+pub mod method;
+pub mod native;
+pub mod options;
+pub mod runtime;
+pub mod thread;
+pub mod util;
+pub mod version;
+mod profile;
+
 use agent::Agent;
 use bytecode::printer::ClassfilePrinter;
 use bytecode::classfile::Constant;
@@ -41,27 +63,7 @@ use environment::Environment;
 use environment::jni::JNIEnvironment;
 use std::path::Path;
 
-pub mod agent;
-pub mod bytecode;
-pub mod capabilities;
-pub mod class;
-pub mod config;
-pub mod context;
-//pub mod emulator;
-pub mod environment;
-pub mod error;
-pub mod event;
-pub mod event_handler;
-pub mod instrumentation;
-pub mod mem;
-pub mod method;
-pub mod native;
-pub mod options;
-pub mod runtime;
-pub mod thread;
-pub mod util;
-pub mod version;
-mod profile;
+
 
 /*
  * TODO The functions below are essentially parts of an actual client implementation. Because this
@@ -75,16 +77,18 @@ lazy_static! {
     static ref SAMPLER: Mutex<Sampler> = Mutex::new(Sampler::new());
 }
 
-fn is_trace_enable() -> bool {
-//    *TRACE_ENABLE.lock().unwrap()
-    SAMPLER.lock().unwrap().is_enable()
+fn is_trace_running() -> bool {
+    SAMPLER.lock().unwrap().is_running()
 }
 
-fn set_trace_enable(enable:bool) {
-    static_context().set_trace_enable(enable);
-//    let mut trace_enable = TRACE_ENABLE.lock().unwrap();
-//    *trace_enable =  enable;
-    SAMPLER.lock().unwrap().set_enable(enable);
+fn start_trace() {
+    static_context().set_trace_enable(true);
+    SAMPLER.lock().unwrap().start();
+}
+
+fn stop_trace() {
+    static_context().set_trace_enable(false);
+    SAMPLER.lock().unwrap().stop();
 }
 
 fn nowTime() -> String {
@@ -313,23 +317,22 @@ pub extern fn Agent_OnAttach(vm: JavaVMPtr, options: MutString, reserved: VoidPt
         static_context().set_config(config);
     }
 
-
+///                let mut agent = Agent::new(vm);
+///                init_agent(&mut agent);
+///                let jvmti = &agent.environment;
+///               let caps = jvmti.get_capabilities();
+///                println!("caps: {}", caps);
+///                jvmti.get_all_stacktraces();
 
     if let Some(val) = options.custom_args.get("trace") {
         match val.as_ref() {
             "on" => {
                 println!("Starting JVMTI agent ..");
-                if(is_trace_enable()){
+                if(is_trace_running()){
                     println!("Trace agent already running, do nothing.");
                     return 0;
                 }
-
-//                let mut agent = Agent::new(vm);
-//                init_agent(&mut agent);
-//                let jvmti = &agent.environment;
-//                let caps = jvmti.get_capabilities();
-//                println!("caps: {}", caps);
-//                jvmti.get_all_stacktraces();
+                start_trace();
 
                 let vm_ptr = vm as usize;
                 //TODO how to pass vm or agent to thread safely?
@@ -342,51 +345,42 @@ pub extern fn Agent_OnAttach(vm: JavaVMPtr, options: MutString, reserved: VoidPt
                     init_agent(&mut agent);
                     let jvmti = &agent.jvm_env;
 
-                    set_trace_enable(true);
                     let mut samples=0;
-                    while is_trace_enable() {
+                    while is_trace_running() {
                         samples += 1;
-//                        println!("[{}] get sample: {}", nowTime(), samples);
                         let t0 = time::now();
                         match jvmti.get_all_stacktraces() {
                             Ok(stack_traces) => {
                                 let t1 = time::now();
-//                                let output = SAMPLER.lock().unwrap().format_stack_traces(jvmti, &stack_traces);
                                 SAMPLER.lock().unwrap().add_stack_traces(jvmti, &stack_traces);
                                 let t2 = time::now();
-
-//                                println!("jvmti get all stack traces, size: {}, cost: {}ms", stack_traces.len(),  (t1-t0).num_microseconds().unwrap() as f64 / 1000.0);
-//                                println!("process all stack traces, cost: {}ms", (t2-t1).num_microseconds().unwrap() as f64 / 1000.0);
-//                                println!("---------------------------------------");
                             },
                             Err(e) => {
                                 println!("get all stack traces failed, error: {:?}", e);
                             }
                         }
 
-                        if samples % 250 == 0 {
-                            let t4 = time::now();
-                            let file_path = Path::new("flare-data.txt");
-                            println!("[{}] writing to file: {}", nowTime(), file_path.display());
-                            let mut file = std::fs::File::create(file_path).expect("create failed");
-                            //file.write_all(&output.as_bytes()).expect("write failed");
-                            SAMPLER.lock().unwrap().write_all_call_trees(&mut file, true);
-                            let t5 = time::now();
-                            println!("[{}] print all stack traces, cost: {}ms", nowTime(), (t5-t4).num_microseconds().unwrap() as f64 / 1000.0);
-                        }
+//                        if samples % 250 == 0 {
+//                            let t4 = time::now();
+//                            let file_path = Path::new("flare-data.txt");
+//                            println!("[{}] writing to file: {}", nowTime(), file_path.display());
+//                            let mut file = std::fs::File::create(file_path).expect("create failed");
+//                            //file.write_all(&output.as_bytes()).expect("write failed");
+//                            SAMPLER.lock().unwrap().write_all_call_trees(&mut file, true);
+//                            let t5 = time::now();
+//                            println!("[{}] print all stack traces, cost: {}ms", nowTime(), (t5-t4).num_microseconds().unwrap() as f64 / 1000.0);
+//                        }
 
+                        //sample interval
                         std::thread::sleep(std::time::Duration::from_millis(20));
                     }
-                    set_trace_enable(false);
+                    stop_trace();
                     println!("Trace agent is stopped.");
                 });
             },
             _ => {
                 println!("Shutting down JVMTI agent ..");
-                set_trace_enable(false);
-
-                //TREE_ARENA.lock().unwrap().print_all();
-                //TREE_ARENA.lock().unwrap().clear();
+                stop_trace();
             }
         }
 
