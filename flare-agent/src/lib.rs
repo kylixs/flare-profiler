@@ -77,16 +77,27 @@ lazy_static! {
     static ref SAMPLER: Mutex<Sampler> = Mutex::new(Sampler::new());
 }
 
+static mut TRACE_RUNNING: bool = false;
+
+
 fn is_trace_running() -> bool {
-    SAMPLER.lock().unwrap().is_running()
+    //avoid dead lock in gc event callback function
+    //SAMPLER.lock().unwrap().is_running()
+    unsafe { TRACE_RUNNING }
 }
 
 fn start_trace() {
+    unsafe {
+        TRACE_RUNNING = true;
+    }
     static_context().set_trace_enable(true);
     SAMPLER.lock().unwrap().start();
 }
 
 fn stop_trace() {
+    unsafe  {
+        TRACE_RUNNING = false;
+    }
     static_context().set_trace_enable(false);
     SAMPLER.lock().unwrap().stop();
 }
