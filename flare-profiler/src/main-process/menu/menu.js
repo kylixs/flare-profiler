@@ -18,8 +18,27 @@ const template = [
                 }
             },
             {
+                label: '显示图表',
+                click: (item, focusedWindow) => {
+                    focusedWindow.webContents.send("show-echarts","show-echarts");
+                }
+            },
+            {
                 label: '文件',
                 submenu: [
+
+                    {
+                        label:'新建文件',
+                        click:(item, focusedWindow) => {
+                            focusedWindow.webContents.send('add-file', 'add-file');
+                        }
+                    },
+                    {
+                        label:'新建文件夹',
+                        click:(item, focusedWindow) => {
+                            focusedWindow.webContents.send('add-directory', 'add-directory');
+                        }
+                    },
                     {
                         label:'选择文件',
                         click:(item, focusedWindow) => {
@@ -34,12 +53,6 @@ const template = [
                             dialog.showOpenDialog({'properties':['openDirectory','multiSelections']},(filePaths => {
                                 focusedWindow.webContents.send('open-file-directory-path', filePaths);
                             }))
-                        }
-                    },
-                    {
-                        label:'新建',
-                        click:(item, focusedWindow) => {
-                            focusedWindow.webContents.send('add-file', 'add-file');
                         }
                     },
                 ]
