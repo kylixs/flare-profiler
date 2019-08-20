@@ -28,6 +28,9 @@ function initialize () {
         mainWindow = new BrowserWindow(windowOptions)
         mainWindow.loadURL(path.join('file://', __dirname, '/index.html'))
 
+        // 设置应用图标
+        mainWindow.setIcon(path.join(__dirname, '/view/assets/images/favorite.png'))
+
         // Launch fullscreen with DevTools open, usage: npm run debug
         if (debug) {
             mainWindow.webContents.openDevTools()

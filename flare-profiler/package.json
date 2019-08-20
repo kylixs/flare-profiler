@@ -47,15 +47,16 @@
     }
   },
   "dependencies": {
+    "axios": "^0.18.0",
+    "echarts": "^4.2.1",
     "electron-compile": "^6.4.4",
     "electron-devtools-installer": "^2.2.4",
     "electron-squirrel-startup": "^1.0.0",
-    "vue": "^2.6.10",
     "element-ui": "^2.11.0",
+    "vue": "^2.6.10",
     "vue-json-viewer": "^2.0.6",
     "vue-router": "^3.0.1",
-    "vuex": "^3.0.1",
-    "axios": "^0.18.0"
+    "vuex": "^3.0.1"
   },
   "devDependencies": {
     "babel-plugin-transform-async-to-generator": "^6.24.1",
@@ -75,7 +76,6 @@
     "url-loader": "^1.0.1",
     "vue-html-loader": "^1.2.4",
     "vue-loader": "^15.2.4",
-    "vue-style-loader": "^4.1.0",
-    "vue-template-compiler": "^2.5.16"
+    "vue-style-loader": "^4.1.0"
   }
 }
