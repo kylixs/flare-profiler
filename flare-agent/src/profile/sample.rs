@@ -2,7 +2,7 @@
 use super::super::environment::jvmti::*;
 use method::{MethodId, MethodSignature};
 use std::collections::*;
-use native::JavaMethod;
+use native::{JavaMethod, JavaLong};
 use class::ClassSignature;
 use thread::{ThreadId, Thread};
 use environment::Environment;
@@ -12,6 +12,8 @@ use profile::tree::{TreeArena, NodeId};
 use std::collections::hash_map::Entry;
 use time::Duration;
 use super::server::*;
+use chrono::Local;
+//use std::sync::mpsc::{Sender, Receiver};
 
 #[derive(Serialize, Deserialize)]
 pub struct SampleResult {
@@ -20,44 +22,62 @@ pub struct SampleResult {
     thread_count: i32,
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct SampleThreadData {
-    id: i32,
-    name: String,
-    priority: i32,
-    daemon: bool,
-    state: String,
-    cpu_time: f64,
-    stacktrace: Vec<String>
+#[derive(Serialize, Deserialize, Clone)]
+pub struct ThreadData {
+    pub id: JavaLong,
+    pub name: String,
+    pub priority: u32,
+    pub daemon: bool,
+    pub state: String,
+    pub cpu_time: i64,
+    pub sample_time: i64,
+    pub stacktrace: Vec<String>
+}
+
+impl ThreadData {
+    pub fn new(id: JavaLong, name: String) -> ThreadData {
+        ThreadData {
+            id: id,
+            name: name,
+            priority: 0,
+            daemon: false,
+            state: "".to_string(),
+            cpu_time: 0,
+            sample_time: 0,
+            stacktrace: vec![]
+        }
+    }
 }
 
 pub struct Sampler {
-    method_cache: HashMap<MethodId, MethodInfo>,
-    threads : Vec<ThreadId>,
+    method_cache: HashMap<usize, MethodInfo>,
     running: bool,
-    tree_arena: TreeArena
+    threads_map: HashMap<JavaLong, ThreadData>
 }
 
 pub struct MethodInfo {
     method_id: MethodId,
     method: MethodSignature,
-    class: ClassSignature
+    class: ClassSignature,
+    full_name: String
 }
 
 impl Sampler {
     pub fn new() -> Sampler {
         Sampler {
             method_cache: HashMap::new(),
-            threads: vec![],
             running: false,
-            tree_arena: TreeArena::new()
+            threads_map: HashMap::new()
         }
     }
 
     pub fn start(&mut self) {
         if(!self.running) {
             self.running = true;
-            start_server();
+            //running server in new thread
+            std::thread::spawn( move|| {
+                start_server();
+            });
         }
     }
 
@@ -83,18 +103,9 @@ impl Sampler {
 //        }
     }
 
-    pub fn write_all_call_trees(&self, writer: &mut std::io::Write, compact: bool) {
-        for (thread_id, call_tree) in self.tree_arena.get_all_call_trees() {
-            let tree_name = &call_tree.get_root_node().data.name;
-            writer.write_fmt(format_args!("Thread: {}, {}, {}\n", &call_tree.thread_id, tree_name, call_tree.total_duration as f64/1000_000.0));
-
-            writer.write_all(call_tree.format_call_tree(compact).as_bytes());
-            writer.write_all("\n".as_bytes());
-        }
-    }
-
     pub fn add_stack_traces(&mut self, jvm_env: &Box<Environment>, stack_traces: &Vec<JavaStackTrace>) {
         //merge to call stack tree
+        let now_time = Local::now().timestamp_millis();
         for (i, stack_info) in stack_traces.iter().enumerate() {
             if let Ok(thread_info) = jvm_env.get_thread_info(&stack_info.thread) {
                 let mut cpu_time: i64 = 0_i64;
@@ -110,13 +121,33 @@ impl Sampler {
                 }
 
                 //TODO check and add stacktrace to sending queue
+                let mut is_new = false;
+                let mut thread_data = self.threads_map.entry(thread_info.thread_id).or_insert_with(||{
+                    is_new = true;
+                    let mut thd = ThreadData::new(thread_info.thread_id, thread_info.name);
+                    thd.priority = thread_info.priority;
+                    thd.daemon = thread_info.is_daemon;
+                    thd.cpu_time = cpu_time;
+                    thd
+                });
 
-                let call_tree = self.tree_arena.get_call_tree(&thread_info);
-                call_tree.reset_top_call_stack_node();
-                if call_tree.total_duration == cpu_time {
+                //ignore inactive thread
+                if !is_new && thread_data.cpu_time == cpu_time {
                     continue;
                 }
+                //update thread cpu time
+                thread_data.cpu_time = cpu_time;
+                thread_data.sample_time = now_time;
 
+                let mut thread_data = thread_data.clone();
+                //translate method call
+                for stack_frame in &stack_info.frame_buffer {
+                    let method_info = self.get_method_info(jvm_env, stack_frame.method);
+                    thread_data.stacktrace.push(method_info.full_name.clone());
+                }
+
+                //add into sending queue
+                add_thread_data(thread_data);
 
             }else {
                 //warn!("Thread UNKNOWN [{:?}]: (cpu_time = {})", stack_info.thread, cpu_time);
@@ -153,15 +184,17 @@ impl Sampler {
     }
 
     fn get_method_info(&mut self, jvm_env: &Box<Environment>, method: JavaMethod) -> &MethodInfo {
-        let method_id = MethodId { native_id: method };
-        self.method_cache.entry(method_id).or_insert_with(|| {
+        self.method_cache.entry(method as usize).or_insert_with(|| {
+            let method_id = MethodId { native_id: method };
             let method = jvm_env.get_method_name(&method_id).unwrap();
             let class_id = jvm_env.get_method_declaring_class(&method_id).unwrap();
             let class = jvm_env.get_class_signature(&class_id).unwrap();
+            let full_name =  format!("{}.{}()", class.name, method.name);
             MethodInfo {
                 method_id: method_id,
                 method,
-                class
+                class,
+                full_name: full_name
             }
         })
         //self.method_cache.get(&method_id).unwrap()

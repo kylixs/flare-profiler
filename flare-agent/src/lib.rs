@@ -98,7 +98,7 @@ fn nowTime() -> String {
 }
 
 fn on_method_entry(event: MethodInvocationEvent) {
-    if !is_trace_enable() {
+    if !is_trace_running() {
         return;
     }
     let shall_record = match static_context().config.read() {
@@ -115,7 +115,7 @@ fn on_method_entry(event: MethodInvocationEvent) {
 }
 
 fn on_method_exit(event: MethodInvocationEvent) {
-    if !is_trace_enable() {
+    if !is_trace_running() {
         return;
     }
     match static_context().method_exit(&event.thread.id) {
@@ -132,7 +132,7 @@ fn on_method_exit(event: MethodInvocationEvent) {
 }
 
 fn on_thread_start(thread: Thread) {
-    if !is_trace_enable() {
+    if !is_trace_running() {
         return;
     }
     println!("[{}] thread start [{}] [{}]", nowTime(), thread.id, thread.name);
@@ -141,7 +141,7 @@ fn on_thread_start(thread: Thread) {
 }
 
 fn on_thread_end(thread: Thread) {
-    if !is_trace_enable() {
+    if !is_trace_running() {
         return;
     }
     println!("[{}] thread end [{}] [{}]", nowTime(), thread.id, thread.name);
@@ -156,21 +156,21 @@ fn on_thread_end(thread: Thread) {
 }
 
 fn on_monitor_wait(thread: Thread) {
-    if !is_trace_enable() {
+    if !is_trace_running() {
         return;
     }
     println!("[{}] [W1-{}]", nowTime(), thread.name);
 }
 
 fn on_monitor_waited(thread: Thread) {
-    if !is_trace_enable() {
+    if !is_trace_running() {
         return;
     }
     println!("[{}] [W2-{}]", nowTime(), thread.name);
 }
 
 fn on_monitor_contended_enter(thread: Thread) {
-    if !is_trace_enable() {
+    if !is_trace_running() {
         return;
     }
     println!("[{}] [C1-{}]", nowTime(), thread.name);
@@ -179,7 +179,7 @@ fn on_monitor_contended_enter(thread: Thread) {
 }
 
 fn on_monitor_contended_entered(thread: Thread) {
-    if !is_trace_enable() {
+    if !is_trace_running() {
         return;
     }
     println!("[{}] [C2-{}]", nowTime(), thread.name);
@@ -191,7 +191,7 @@ fn on_monitor_contended_entered(thread: Thread) {
 }
 
 fn on_class_file_load(mut event: ClassFileLoadEvent) -> Option<Vec<u8>> {
-    if !is_trace_enable() { return None; }
+    if !is_trace_running() { return None; }
     let shall_transform = match static_context().config.read() {
         Ok(cfg) => (*cfg).entry_points.iter().any(|item| item.starts_with(event.class_name.as_str())), //event.class_name.as_str() == item),
         _ => false
@@ -237,28 +237,28 @@ fn on_class_file_load(mut event: ClassFileLoadEvent) -> Option<Vec<u8>> {
 }
 
 fn on_garbage_collection_start() {
-    if !is_trace_enable() {
+    if !is_trace_running() {
         return;
     }
     println!("[{}] GC Start: {:?}", nowTime(), std::time::Instant::now());
 }
 
 fn on_garbage_collection_finish() {
-    if !is_trace_enable() {
+    if !is_trace_running() {
         return;
     }
     println!("[{}] GC Finish: {:?}", nowTime(), std::time::Instant::now());
 }
 
 fn on_object_alloc(event: ObjectAllocationEvent) {
-    if !is_trace_enable() {
+    if !is_trace_running() {
         return;
     }
     println!("[{}] [{}] Object allocation: (size: {})", nowTime(), event.thread.name, event.size);
 }
 
 fn on_object_free() {
-    if !is_trace_enable() {
+    if !is_trace_running() {
         return;
     }
     println!("[{}] Object free", nowTime());
@@ -283,10 +283,9 @@ pub extern fn Agent_OnLoad(vm: JavaVMPtr, options: MutString, reserved: VoidPtr)
         static_context().set_config(config);
     }
 
-    set_trace_enable(false);
-
     let mut agent = Agent::new(vm);
     init_agent(&mut agent);
+    start_trace();
 
     return 0;
 }
@@ -317,12 +316,12 @@ pub extern fn Agent_OnAttach(vm: JavaVMPtr, options: MutString, reserved: VoidPt
         static_context().set_config(config);
     }
 
-///                let mut agent = Agent::new(vm);
-///                init_agent(&mut agent);
-///                let jvmti = &agent.environment;
-///               let caps = jvmti.get_capabilities();
-///                println!("caps: {}", caps);
-///                jvmti.get_all_stacktraces();
+//                let mut agent = Agent::new(vm);
+//                init_agent(&mut agent);
+//                let jvmti = &agent.environment;
+//               let caps = jvmti.get_capabilities();
+//                println!("caps: {}", caps);
+//                jvmti.get_all_stacktraces();
 
     if let Some(val) = options.custom_args.get("trace") {
         match val.as_ref() {
@@ -332,12 +331,12 @@ pub extern fn Agent_OnAttach(vm: JavaVMPtr, options: MutString, reserved: VoidPt
                     println!("Trace agent already running, do nothing.");
                     return 0;
                 }
-                start_trace();
 
                 let vm_ptr = vm as usize;
                 //TODO how to pass vm or agent to thread safely?
                 let handle = std::thread::spawn( move||{
                     println!("Trace agent is running ...");
+                    start_trace();
                     let vm = vm_ptr as JavaVMPtr;
                     println!("create agent ..");
                     let mut agent = Agent::new_attach(vm, "Flare-Profiler");

@@ -10,9 +10,9 @@ if [[ "$IS_MAC_OSX" != ""  ]];then
 fi
 
 ATTACHER_PATH=$PROJECT_PATH/target/flare-attacher-jar-with-dependencies.jar
-AGENT_PATH=$PROJECT_PATH/../target/release/libjvmti$LIB_SUFFIX
+AGENT_PATH=$PROJECT_PATH/../flare-agent/target/release/libflareagent$LIB_SUFFIX
 if [[ "$1" == "debug" ]];then
-    AGENT_PATH=$PROJECT_PATH/../target/debug/libjvmti$LIB_SUFFIX
+    AGENT_PATH=$PROJECT_PATH/../flare-agent/target/debug/libflareagent$LIB_SUFFIX
 fi
 AGENT_OPTS=trace=on
 

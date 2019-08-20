@@ -5,10 +5,21 @@ use resp::{Value, Decoder};
 use std::io::BufReader;
 use std::collections::HashMap;
 use std::sync::{Mutex,Arc,RwLock};
-
+use std::collections::VecDeque;
+use super::sample::ThreadData;
+use profile::encoder::encode_sample_data_result;
 
 lazy_static! {
     static ref RUNNING_SERVER: Mutex<bool> = Mutex::new(false);
+    static ref DATA_QUEUE: Mutex<VecDeque<ThreadData>>  = Mutex::new(VecDeque::with_capacity(512));
+}
+
+pub fn add_thread_data(thread_data: ThreadData) {
+    let mut queue = DATA_QUEUE.lock().unwrap();
+    queue.push_back(thread_data);
+    while(queue.len() > 512){
+        queue.pop_front();
+    }
 }
 
 fn set_server_running(val: bool) {
@@ -30,8 +41,10 @@ pub fn start_server() {
     let listener = TcpListener::bind("0.0.0.0:3333").unwrap();
     // accept connections and process them, spawning a new thread for each one
     println!("Flare agent server listening on port 3333");
+    set_server_running(true);
     for stream in listener.incoming() {
         if !is_server_running() {
+            println!("Flare agent server is not running, exiting");
             break;
         }
         match stream {
@@ -59,7 +72,7 @@ fn handle_client(mut stream: TcpStream) {
         Ok(size) => {
             let clientRequest = parse_request(&data[0..size]);
             //dispatch request
-            dispatch_request(&clientRequest);
+            dispatch_request(&mut stream, &clientRequest);
 
             true
         },
@@ -71,7 +84,7 @@ fn handle_client(mut stream: TcpStream) {
     } {}
 }
 
-fn dispatch_request(clientRequest: &Value) {
+fn dispatch_request(stream: &mut TcpStream, clientRequest: &Value) {
     //extract cmd string
     let cmd_vec_result = match clientRequest {
         Value::Array(vec) => {
@@ -97,16 +110,16 @@ fn dispatch_request(clientRequest: &Value) {
     if let Some((cmd, cmd_options)) = cmd_vec_result {
         match cmd.as_str() {
             "resume-sample" => {
-                handle_resume_sample_cmd(&cmd_options);
+                handle_resume_sample_cmd(stream, &cmd_options);
             },
             "pause-sample" => {
-                handle_pause_sample_cmd(&cmd_options);
+                handle_pause_sample_cmd(stream, &cmd_options);
             },
             "stop-sample" => {
-                handle_stop_sample_cmd(&cmd_options);
+                handle_stop_sample_cmd(stream, &cmd_options);
             },
             "subscribe-events" => {
-                handle_subscribe_events_cmd(&cmd_options);
+                handle_subscribe_events_cmd(stream, &cmd_options);
             },
             _ => { println!("unknown request cmd: {}, options: {:?}", cmd, cmd_options); }
         }
@@ -132,20 +145,33 @@ fn parse_request_options(request: &Vec<Value>) -> HashMap<String, Value> {
     result
 }
 
-fn handle_resume_sample_cmd(cmd_options: &HashMap<String, Value>) {
+fn handle_resume_sample_cmd(stream: &mut TcpStream, cmd_options: &HashMap<String, Value>) {
     //resume
 }
 
-fn handle_pause_sample_cmd(cmd_options: &HashMap<String, Value>) {
+fn handle_pause_sample_cmd(stream: &mut TcpStream, cmd_options: &HashMap<String, Value>) {
     //pause
 }
 
-fn handle_stop_sample_cmd(cmd_options: &HashMap<String, Value>) {
+fn handle_stop_sample_cmd(stream: &mut TcpStream, cmd_options: &HashMap<String, Value>) {
     stop_server();
 }
 
-fn handle_subscribe_events_cmd(cmd_options: &HashMap<String, Value>) {
-
+fn handle_subscribe_events_cmd(stream: &mut TcpStream, cmd_options: &HashMap<String, Value>) {
+    println!("subscribe event loop start");
+    loop {
+        if let Some(thread_data) = DATA_QUEUE.lock().unwrap().pop_front() {
+            //TODO encode and send sample data
+            let buf = encode_sample_data_result(&thread_data);
+            if let Err(e) = stream.write_all(buf.as_slice()) {
+                println!("write sample data failed: {}", e);
+                break;
+            }
+        }else {
+            std::thread::sleep(std::time::Duration::from_millis(20));
+        }
+    }
+    println!("subscribe event loop exit")
 }
 
 fn parse_request(buf: &[u8]) -> Value {
