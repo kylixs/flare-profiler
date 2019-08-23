@@ -13,6 +13,8 @@ use std::collections::hash_map::Entry;
 use time::Duration;
 use super::server::*;
 use chrono::Local;
+use profile::encoder::*;
+use std::sync::Mutex;
 //use std::sync::mpsc::{Sender, Receiver};
 
 #[derive(Serialize, Deserialize)]
@@ -22,7 +24,12 @@ pub struct SampleResult {
     thread_count: i32,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+pub trait SampleData {
+    fn encode(&self) -> Vec<u8>;
+    fn get_type(&self) -> String;
+}
+
+#[derive(Clone)]
 pub struct ThreadData {
     pub id: JavaLong,
     pub name: String,
@@ -31,7 +38,7 @@ pub struct ThreadData {
     pub state: String,
     pub cpu_time: i64,
     pub sample_time: i64,
-    pub stacktrace: Vec<String>
+    pub stacktrace: Vec<i64>
 }
 
 impl ThreadData {
@@ -49,18 +56,49 @@ impl ThreadData {
     }
 }
 
+impl SampleData for ThreadData {
+
+    fn encode(&self) -> Vec<u8> {
+        resp_encode_thread_data(self)
+    }
+
+    fn get_type(&self) -> String {
+        "thread".to_string()
+    }
+}
+
+#[derive(Clone)]
+pub struct MethodData {
+    pub method_id: i64,
+    pub full_name: String,
+    pub hits_count: u32
+//    pub source_file: String,
+//    pub line_num: u16
+}
+
+impl SampleData for MethodData {
+    fn encode(&self) -> Vec<u8> {
+        resp_encode_method_data(self)
+    }
+
+    fn get_type(&self) -> String {
+        "method".to_string()
+    }
+}
+
+
 pub struct Sampler {
-    method_cache: HashMap<usize, MethodInfo>,
+    method_cache: HashMap<usize, MethodData>,
     running: bool,
     threads_map: HashMap<JavaLong, ThreadData>
 }
 
-pub struct MethodInfo {
-    method_id: MethodId,
-    method: MethodSignature,
-    class: ClassSignature,
-    full_name: String
-}
+//pub struct MethodInfo {
+//    method_id: MethodId,
+//    method: MethodSignature,
+//    class: ClassSignature,
+//    full_name: String
+//}
 
 impl Sampler {
     pub fn new() -> Sampler {
@@ -140,14 +178,19 @@ impl Sampler {
                 thread_data.sample_time = now_time;
 
                 let mut thread_data = thread_data.clone();
+                let mut sample_data_vec :Vec<Box<SampleData+Send>> = vec![];
                 //translate method call
                 for stack_frame in &stack_info.frame_buffer {
                     let method_info = self.get_method_info(jvm_env, stack_frame.method);
-                    thread_data.stacktrace.push(method_info.full_name.clone());
+                    if method_info.hits_count == 1 {
+                        sample_data_vec.push(Box::new(method_info.clone()));
+                    }
+                    thread_data.stacktrace.push(method_info.method_id);
                 }
 
-                //add into sending queue
-                add_thread_data(thread_data);
+                sample_data_vec.push(Box::new(thread_data));
+                //batch add into sending queue
+                add_sample_data_batch(sample_data_vec);
 
             }else {
                 //warn!("Thread UNKNOWN [{:?}]: (cpu_time = {})", stack_info.thread, cpu_time);
@@ -177,26 +220,108 @@ impl Sampler {
 
             for stack_frame in &stack_info.frame_buffer {
                 let method_info = self.get_method_info(jvm_env, stack_frame.method);
-                result.push_str(&format!("{}.{}()\n", &method_info.class.name, &method_info.method.name));
+                result.push_str(&format!("{}\n", &method_info.full_name));
             }
         }
         result
     }
 
-    fn get_method_info(&mut self, jvm_env: &Box<Environment>, method: JavaMethod) -> &MethodInfo {
-        self.method_cache.entry(method as usize).or_insert_with(|| {
+    fn get_method_info(&mut self, jvm_env: &Box<Environment>, method: JavaMethod) -> &MethodData {
+        let method_data = self.method_cache.entry(method as usize).or_insert_with(|| {
             let method_id = MethodId { native_id: method };
-            let method = jvm_env.get_method_name(&method_id).unwrap();
+            let method_sig = jvm_env.get_method_name(&method_id).unwrap();
             let class_id = jvm_env.get_method_declaring_class(&method_id).unwrap();
             let class = jvm_env.get_class_signature(&class_id).unwrap();
-            let full_name =  format!("{}.{}()", class.name, method.name);
-            MethodInfo {
-                method_id: method_id,
-                method,
-                class,
-                full_name: full_name
+            let full_name =  format!("{}.{}()", class.name, method_sig.name);
+            MethodData{
+                method_id: method as i64,
+                full_name,
+                hits_count: 0
             }
-        })
-        //self.method_cache.get(&method_id).unwrap()
+        });
+        method_data.hits_count += 1;
+        method_data
+    }
+
+//    pub fn add_stack_traces_to_call_tree(&mut self, jvm_env: &Box<Environment>, stack_traces: &Vec<JavaStackTrace>) {
+//        //merge to call stack tree
+//        for (i, stack_info) in stack_traces.iter().enumerate() {
+//            if let Ok(thread_info) = jvm_env.get_thread_info(&stack_info.thread) {
+//                let mut cpu_time: i64 = 0_i64;
+//                //if std::time::Instant::now()
+//                if let Ok(t) = jvm_env.get_thread_cpu_time(&stack_info.thread) {
+//                    cpu_time = t;
+//                    //ignore inactive thread call
+//                    if cpu_time == 0_i64 {
+//                        continue;
+//                    }
+//                } else {
+//                    println!("get_thread_cpu_time error");
+//                }
+//
+//                let call_tree = self.tree_arena.get_call_tree(&thread_info);
+//                call_tree.reset_top_call_stack_node();
+//                if call_tree.total_duration == cpu_time {
+//                    continue;
+//                }
+//
+//                let mut call_methods :Vec<JavaMethod> = vec![];
+//                for stack_frame in &stack_info.frame_buffer {
+//                    call_methods.push(stack_frame.method);
+//                }
+//                //save nodes in temp vec, process it after build call tree, avoid second borrow muttable *self
+//                let mut naming_nodes: Vec<(NodeId, JavaMethod)> = vec![];
+//
+//                //reverse call
+//                for method_id in call_methods.iter().rev() {
+//                    if !call_tree.begin_call(method_id) {
+//                        naming_nodes.push((call_tree.get_top_node().data.node_id, method_id.clone()));
+//                    }
+//                }
+//
+//                call_tree.end_last_call(cpu_time);
+//                //println!("add call stack: {} cpu_time:{}", thread_info.name, cpu_time);
+//
+//                //get method call_name of node
+//                let mut node_methods: Vec<(NodeId, String)> = vec![];
+//                for (node_id, method_id) in naming_nodes {
+//                    let method_info = self.get_method_info(jvm_env, method_id);
+//                    let call_name = format!("{}.{}()", &method_info.class.name, &method_info.method.name);
+//                    node_methods.push((node_id, call_name));
+//                }
+//
+//                //set node's call_name
+//                let call_tree = self.tree_arena.get_call_tree(&thread_info);
+//                for (node_id, call_name) in node_methods {
+//                    call_tree.get_mut_node(&node_id).data.name = call_name;
+//                }
+//            }else {
+//                //warn!("Thread UNKNOWN [{:?}]: (cpu_time = {})", stack_info.thread, cpu_time);
+//            }
+//        }
+//    }
+//
+//    pub fn write_all_call_trees(&self, writer: &mut std::io::Write, compact: bool) {
+//        for (thread_id, call_tree) in self.tree_arena.get_all_call_trees() {
+//            let tree_name = &call_tree.get_root_node().data.name;
+//            writer.write_fmt(format_args!("Thread: {}, {}, {}\n", &call_tree.thread_id, tree_name, call_tree.total_duration as f64/1000_000.0));
+//
+//            writer.write_all(call_tree.format_call_tree(compact).as_bytes());
+//            writer.write_all("\n".as_bytes());
+//        }
+//    }
+
+}
+
+
+pub struct SampleQueue {
+    pub queue: VecDeque<Box<dyn SampleData + Send>>
+}
+
+impl SampleQueue {
+    pub fn new() -> SampleQueue {
+        SampleQueue {
+            queue: VecDeque::with_capacity(512)
+        }
     }
 }

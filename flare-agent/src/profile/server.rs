@@ -7,16 +7,29 @@ use std::collections::HashMap;
 use std::sync::{Mutex,Arc,RwLock};
 use std::collections::VecDeque;
 use super::sample::ThreadData;
-use profile::encoder::encode_sample_data_result;
+use profile::encoder::*;
+use profile::sample::*;
 
 lazy_static! {
     static ref RUNNING_SERVER: Mutex<bool> = Mutex::new(false);
-    static ref DATA_QUEUE: Mutex<VecDeque<ThreadData>>  = Mutex::new(VecDeque::with_capacity(512));
+    static ref DATA_QUEUE: Mutex<SampleQueue>  = Mutex::new(SampleQueue::new());
 }
 
-pub fn add_thread_data(thread_data: ThreadData) {
-    let mut queue = DATA_QUEUE.lock().unwrap();
-    queue.push_back(thread_data);
+pub fn add_sample_data(sample_data: Box<SampleData + Send>) {
+    let mut data_queue = DATA_QUEUE.lock().unwrap();
+    let mut queue = &mut data_queue.queue;
+    queue.push_back(sample_data);
+    while(queue.len() > 512){
+        queue.pop_front();
+    }
+}
+
+pub fn add_sample_data_batch(data_vec: Vec<Box<SampleData + Send>>) {
+    let mut data_queue = DATA_QUEUE.lock().unwrap();
+    let mut queue = &mut data_queue.queue;
+    for sample_data in data_vec {
+        queue.push_back(sample_data);
+    }
     while(queue.len() > 512){
         queue.pop_front();
     }
@@ -27,7 +40,7 @@ fn set_server_running(val: bool) {
     *a = val;
 }
 
-fn is_server_running() -> bool {
+pub fn is_server_running() -> bool {
     *RUNNING_SERVER.lock().unwrap()
 }
 
@@ -160,9 +173,9 @@ fn handle_stop_sample_cmd(stream: &mut TcpStream, cmd_options: &HashMap<String, 
 fn handle_subscribe_events_cmd(stream: &mut TcpStream, cmd_options: &HashMap<String, Value>) {
     println!("subscribe event loop start");
     loop {
-        if let Some(thread_data) = DATA_QUEUE.lock().unwrap().pop_front() {
-            //TODO encode and send sample data
-            let buf = encode_sample_data_result(&thread_data);
+        if let Some(sample_data) = DATA_QUEUE.lock().unwrap().queue.pop_front() {
+            //encode and send sample data
+            let buf = sample_data.encode();
             if let Err(e) = stream.write_all(buf.as_slice()) {
                 println!("write sample data failed: {}", e);
                 break;
