@@ -31,7 +31,7 @@ pub trait SampleData {
 
 #[derive(Clone)]
 pub struct ThreadData {
-    pub id: JavaLong,
+    pub id: i64,
     pub name: String,
     pub priority: u32,
     pub daemon: bool,
@@ -44,7 +44,7 @@ pub struct ThreadData {
 impl ThreadData {
     pub fn new(id: JavaLong, name: String) -> ThreadData {
         ThreadData {
-            id: id,
+            id: id as i64,
             name: name,
             priority: 0,
             daemon: false,
