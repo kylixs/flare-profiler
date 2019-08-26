@@ -19,20 +19,21 @@ pub fn add_sample_data(sample_data: Box<SampleData + Send>) {
     let mut data_queue = DATA_QUEUE.lock().unwrap();
     let mut queue = &mut data_queue.queue;
     queue.push_back(sample_data);
-    while(queue.len() > 512){
+    while(queue.len() > 10000){
         queue.pop_front();
     }
 }
 
 pub fn add_sample_data_batch(data_vec: Vec<Box<SampleData + Send>>) {
     let mut data_queue = DATA_QUEUE.lock().unwrap();
-    let mut queue = &mut data_queue.queue;
-    for sample_data in data_vec {
-        queue.push_back(sample_data);
-    }
-    while(queue.len() > 512){
-        queue.pop_front();
-    }
+    data_queue.push_back(data_vec);
+//    let mut queue = &mut data_queue.queue;
+//    for sample_data in data_vec {
+//        queue.push_back(sample_data);
+//    }
+//    while(queue.len() > 10000){
+//        queue.pop_front();
+//    }
 }
 
 fn set_server_running(val: bool) {
@@ -51,6 +52,13 @@ pub fn stop_server() {
 }
 
 pub fn start_server() {
+    let timer = timer::Timer::new();
+    let guard = {
+        timer.schedule_repeating(chrono::Duration::milliseconds(3000), move || {
+            DATA_QUEUE.lock().unwrap().stats();
+        })
+    };
+
     let listener = TcpListener::bind("0.0.0.0:3333").unwrap();
     // accept connections and process them, spawning a new thread for each one
     println!("Flare agent server listening on port 3333");
@@ -76,6 +84,7 @@ pub fn start_server() {
     }
     // close the socket server
     drop(listener);
+    drop(guard);
     println!("Flare agent server is shutdown.");
 }
 
@@ -172,16 +181,24 @@ fn handle_stop_sample_cmd(stream: &mut TcpStream, cmd_options: &HashMap<String, 
 
 fn handle_subscribe_events_cmd(stream: &mut TcpStream, cmd_options: &HashMap<String, Value>) {
     println!("subscribe event loop start");
+    let mut sent = false;
     loop {
-        if let Some(sample_data) = DATA_QUEUE.lock().unwrap().queue.pop_front() {
-            //encode and send sample data
-            let buf = sample_data.encode();
-            if let Err(e) = stream.write_all(buf.as_slice()) {
-                println!("write sample data failed: {}", e);
-                break;
+        //auto release lock while exit guard block
+        {
+            if let Some(sample_data) = DATA_QUEUE.lock().unwrap().pop_front() {
+                sent = true;
+                //encode and send sample data
+                let buf = sample_data.encode();
+                if let Err(e) = stream.write_all(buf.as_slice()) {
+                    println!("write sample data failed: {}", e);
+                    break;
+                }
+            }else {
+                sent = false;
             }
-        }else {
-            std::thread::sleep(std::time::Duration::from_millis(20));
+        }
+        if !sent {
+            std::thread::sleep(std::time::Duration::from_millis(10));
         }
     }
     println!("subscribe event loop exit")

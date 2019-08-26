@@ -176,17 +176,21 @@ pub fn local_event_callbacks() -> jvmtiEventCallbacks {
     }
 }
 
+fn get_env_api(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv) -> Environment {
+    Environment::new(Box::new(JVMTIEnvironment::new(jvmti_env)),
+                     Box::new(JNIEnvironment::new(jni_env)))
+}
 
 #[allow(unused_variables)]
 unsafe extern "C" fn local_cb_vm_object_alloc(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: JavaThread, object: JavaObject, object_klass: JavaClass, size: jlong) -> () {
     match CALLBACK_TABLE.vm_object_alloc {
         Some(function) => {
-            let env = Environment::new(JVMTIEnvironment::new(jvmti_env), JNIEnvironment::new(jni_env));
+            let env = get_env_api(jvmti_env, jni_env);
             match env.get_thread_info(&thread) {
                 Ok(current_thread) => {
                     let class_id = env.get_object_class(&object);
 
-                    function(ObjectAllocationEvent { class_id: class_id, size: size as i64, thread: current_thread })
+                    function(ObjectAllocationEvent { class_id: class_id, size: size as i64, thread: current_thread });
                 },
                 Err(err) => {
                     match err {
@@ -204,7 +208,7 @@ unsafe extern "C" fn local_cb_vm_object_alloc(jvmti_env: *mut jvmtiEnv, jni_env:
 unsafe extern "C" fn local_cb_method_entry(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: JavaThread, method: JavaMethod) -> () {
     match CALLBACK_TABLE.method_entry {
         Some(function) => {
-            let env = Environment::new(JVMTIEnvironment::new(jvmti_env), JNIEnvironment::new(jni_env));
+            let env = get_env_api(jvmti_env, jni_env);
             match env.get_thread_info(&thread) {
                 Ok(current_thread) => {
                     let method_id = MethodId { native_id : method };
@@ -231,7 +235,7 @@ unsafe extern "C" fn local_cb_method_entry(jvmti_env: *mut jvmtiEnv, jni_env: *m
 unsafe extern "C" fn local_cb_method_exit(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread, method: jmethodID, was_popped_by_exception: jboolean, return_value: jvalue) -> () {
     match CALLBACK_TABLE.method_exit {
         Some(function) => {
-            let env = Environment::new(JVMTIEnvironment::new(jvmti_env), JNIEnvironment::new(jni_env));
+            let env = get_env_api(jvmti_env, jni_env);
             match env.get_thread_info(&thread) {
                 Ok(current_thread) => {
                     let method_id = MethodId { native_id : method };
@@ -259,7 +263,7 @@ unsafe extern "C" fn local_cb_exception(jvmti_env: *mut jvmtiEnv, jni_env: *mut 
     match CALLBACK_TABLE.exception {
         Some(function) => {
             function();
-            let env = Environment::new(JVMTIEnvironment::new(jvmti_env), JNIEnvironment::new(jni_env));
+            let env = get_env_api(jvmti_env, jni_env);
             let exception_class = env.get_object_class(&exception);
 
             function()
@@ -274,7 +278,7 @@ unsafe extern "C" fn local_cb_exception_catch(jvmti_env: *mut jvmtiEnv, jni_env:
         Some(function) => {
             function();
             /*
-            let env = Environment::new(JVMTIEnvironment::new(jvmti_env), JNIEnvironment::new(jni_env));
+            let env = get_env_api(jvmti_env, jni_env);
             let current_thread = env.get_thread_info(&thread).ok().unwrap();
 
             function()
@@ -288,7 +292,7 @@ unsafe extern "C" fn local_cb_exception_catch(jvmti_env: *mut jvmtiEnv, jni_env:
 unsafe extern "C" fn local_cb_monitor_wait(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread, object: jobject, timeout: jlong) -> () {
     match CALLBACK_TABLE.monitor_wait {
         Some(function) => {
-            let env = Environment::new(JVMTIEnvironment::new(jvmti_env), JNIEnvironment::new(jni_env));
+            let env = get_env_api(jvmti_env, jni_env);
             match env.get_thread_info(&thread) {
                 Ok(current_thread) => function(current_thread),
                 Err(err) => {
@@ -307,7 +311,7 @@ unsafe extern "C" fn local_cb_monitor_wait(jvmti_env: *mut jvmtiEnv, jni_env: *m
 unsafe extern "C" fn local_cb_monitor_waited(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread, object: jobject, timed_out: jboolean) -> () {
     match CALLBACK_TABLE.monitor_waited {
         Some(function) => {
-            let env = Environment::new(JVMTIEnvironment::new(jvmti_env), JNIEnvironment::new(jni_env));
+            let env = get_env_api(jvmti_env, jni_env);
             match env.get_thread_info(&thread) {
                 Ok(current_thread) => function(current_thread),
                 Err(err) => {
@@ -326,7 +330,7 @@ unsafe extern "C" fn local_cb_monitor_waited(jvmti_env: *mut jvmtiEnv, jni_env: 
 unsafe extern "C" fn local_cb_monitor_contended_enter(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread, object: jobject) -> () {
     match CALLBACK_TABLE.monitor_contended_enter {
         Some(function) => {
-            let env = Environment::new(JVMTIEnvironment::new(jvmti_env), JNIEnvironment::new(jni_env));
+            let env = get_env_api(jvmti_env, jni_env);
             match env.get_thread_info(&thread) {
                 Ok(current_thread) => function(current_thread),
                 Err(err) => {
@@ -345,7 +349,7 @@ unsafe extern "C" fn local_cb_monitor_contended_enter(jvmti_env: *mut jvmtiEnv, 
 unsafe extern "C" fn local_cb_monitor_contended_entered(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread, object: jobject) -> () {
     match CALLBACK_TABLE.monitor_contended_entered {
         Some(function) => {
-            let env = Environment::new(JVMTIEnvironment::new(jvmti_env), JNIEnvironment::new(jni_env));
+            let env = get_env_api(jvmti_env, jni_env);
             match env.get_thread_info(&thread) {
                 Ok(current_thread) => function(current_thread),
                 Err(err) => {
@@ -364,7 +368,7 @@ unsafe extern "C" fn local_cb_monitor_contended_entered(jvmti_env: *mut jvmtiEnv
 unsafe extern "C" fn local_cb_thread_start(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread) -> () {
     match CALLBACK_TABLE.thread_start {
         Some(function) => {
-            let env = Environment::new(JVMTIEnvironment::new(jvmti_env), JNIEnvironment::new(jni_env));
+            let env = get_env_api(jvmti_env, jni_env);
             match env.get_thread_info(&thread) {
                 Ok(current_thread) => function(current_thread),
                 Err(err) => {
@@ -384,7 +388,7 @@ unsafe extern "C" fn local_cb_thread_start(jvmti_env: *mut jvmtiEnv, jni_env: *m
 unsafe extern "C" fn local_cb_thread_end(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread) -> () {
     match CALLBACK_TABLE.thread_end {
         Some(function) => {
-            let env = Environment::new(JVMTIEnvironment::new(jvmti_env), JNIEnvironment::new(jni_env));
+            let env = get_env_api(jvmti_env, jni_env);
             match env.get_thread_info(&thread) {
                 Ok(current_thread) => function(current_thread),
                 Err(err) => {
@@ -434,7 +438,7 @@ unsafe extern "C" fn local_cb_class_file_load_hook(jvmti_env: JVMTIEnvPtr, jni_e
                                                    new_class_data_len: *mut jint, new_class_data: *mut *mut c_uchar) -> () {
     match CALLBACK_TABLE.class_file_load_hook {
         Some(function) => {
-            let env = Environment::new(JVMTIEnvironment::new(jvmti_env), JNIEnvironment::new(jni_env));
+            let env = get_env_api(jvmti_env, jni_env);
 
             let mut raw_data: Vec<u8> = Vec::with_capacity(class_data_len as usize);
             let data_ptr = raw_data.as_mut_ptr();

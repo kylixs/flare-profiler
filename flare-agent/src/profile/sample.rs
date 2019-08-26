@@ -38,7 +38,9 @@ pub struct ThreadData {
     pub state: String,
     pub cpu_time: i64,
     pub sample_time: i64,
-    pub stacktrace: Vec<i64>
+    pub stacktrace: Vec<i64>,
+    pub last_stack_frame: i64,
+    pub last_stack_len: usize
 }
 
 impl ThreadData {
@@ -51,7 +53,9 @@ impl ThreadData {
             state: "".to_string(),
             cpu_time: 0,
             sample_time: 0,
-            stacktrace: vec![]
+            stacktrace: vec![],
+            last_stack_frame: 0,
+            last_stack_len:0
         }
     }
 }
@@ -141,89 +145,62 @@ impl Sampler {
 //        }
     }
 
-    pub fn add_stack_traces(&mut self, jvm_env: &Box<Environment>, stack_traces: &Vec<JavaStackTrace>) {
+    pub fn add_stack_traces(&mut self, jvmenv: &Box<Environment>, stack_traces: &Vec<JavaStackTrace>) {
         //merge to call stack tree
         let now_time = Local::now().timestamp_millis();
+        let mut sample_data_vec :Vec<Box<SampleData+Send>> = vec![];
         for (i, stack_info) in stack_traces.iter().enumerate() {
-            if let Ok(thread_info) = jvm_env.get_thread_info(&stack_info.thread) {
-                let mut cpu_time: i64 = 0_i64;
-                //if std::time::Instant::now()
-                if let Ok(t) = jvm_env.get_thread_cpu_time(&stack_info.thread) {
-                    cpu_time = t;
-                    //ignore inactive thread call
-                    if cpu_time == 0_i64 {
+            let thread_info = &stack_info.thread;
+            let mut is_new = false;
+            let mut thread_data = self.threads_map.entry(thread_info.thread_id).or_insert_with(||{
+                is_new = true;
+                let mut thd = ThreadData::new(thread_info.thread_id, thread_info.name.clone());
+                thd.priority = thread_info.priority;
+                thd.daemon = thread_info.is_daemon;
+                thd.cpu_time = stack_info.cpu_time;
+                thd
+            });
+
+            let mut top_stack_frame = 0i64;
+            let stack_len = stack_info.frame_buffer.len();
+            if !is_new {
+                //ignore inactive thread
+                if thread_data.cpu_time == stack_info.cpu_time {
+                    //check last frame
+                    if stack_len > 0 {
+                        top_stack_frame = (stack_info.frame_buffer[0].method as i64);
+                        if thread_data.last_stack_frame == top_stack_frame && thread_data.last_stack_len == stack_len {
+                            continue;
+                        }
+                    }else {
                         continue;
                     }
-                } else {
-                    println!("get_thread_cpu_time error");
-                }
-
-                //TODO check and add stacktrace to sending queue
-                let mut is_new = false;
-                let mut thread_data = self.threads_map.entry(thread_info.thread_id).or_insert_with(||{
-                    is_new = true;
-                    let mut thd = ThreadData::new(thread_info.thread_id, thread_info.name);
-                    thd.priority = thread_info.priority;
-                    thd.daemon = thread_info.is_daemon;
-                    thd.cpu_time = cpu_time;
-                    thd
-                });
-
-                //ignore inactive thread
-                if !is_new && thread_data.cpu_time == cpu_time {
-                    continue;
-                }
-                //update thread cpu time
-                thread_data.cpu_time = cpu_time;
-                thread_data.sample_time = now_time;
-
-                let mut thread_data = thread_data.clone();
-                let mut sample_data_vec :Vec<Box<SampleData+Send>> = vec![];
-                //translate method call
-                for stack_frame in &stack_info.frame_buffer {
-                    let method_info = self.get_method_info(jvm_env, stack_frame.method);
-                    if method_info.hits_count == 1 {
-                        sample_data_vec.push(Box::new(method_info.clone()));
-                    }
-                    thread_data.stacktrace.push(method_info.method_id);
-                }
-
-                sample_data_vec.push(Box::new(thread_data));
-                //batch add into sending queue
-                add_sample_data_batch(sample_data_vec);
-
-            }else {
-                //warn!("Thread UNKNOWN [{:?}]: (cpu_time = {})", stack_info.thread, cpu_time);
-            }
-        }
-    }
-
-    pub fn format_stack_traces(&mut self, jvm_env: &Box<Environment>, stack_traces: &Vec<JavaStackTrace>) -> String {
-        let mut result  = String::new();
-        for (i, stack_info) in stack_traces.iter().enumerate() {
-            result.push_str(&format!("\nstack_info: {}, thread: {:?}, state: {:?}\n", (i+1), stack_info.thread, stack_info.state));
-
-            let mut cpu_time = -1f64;
-            match jvm_env.get_thread_cpu_time(&stack_info.thread) {
-                Ok(t) => { cpu_time = t as f64 / 1000_000.0 },
-                Err(err) => {
-                    result.push_str(&format!("get_thread_cpu_time error: {:?}\n", err))
                 }
             }
 
-            if let Ok(thread_info) = jvm_env.get_thread_info(&stack_info.thread) {
-                result.push_str(&format!("Thread {}: (id = {}, priority = {}, daemon = {}, state = {:?}, cpu_time = {}) \n",
-                                         thread_info.name, thread_info.thread_id,  thread_info.priority, thread_info.is_daemon, stack_info.state, cpu_time ));
-            } else {
-                result.push_str(&format!("Thread UNKNOWN [{:?}]: (cpu_time = {}) \n", stack_info.thread, cpu_time));
-            }
+            //update sample time
+            thread_data.cpu_time = stack_info.cpu_time;
+            thread_data.sample_time = now_time;
+            //save last frame
+            thread_data.last_stack_frame = top_stack_frame;
+            thread_data.last_stack_len = stack_len;
 
+            //clone thread_data and push to sample data queue
+            let mut thread_data = thread_data.clone();
+            //translate method call
             for stack_frame in &stack_info.frame_buffer {
-                let method_info = self.get_method_info(jvm_env, stack_frame.method);
-                result.push_str(&format!("{}\n", &method_info.full_name));
+                let method_info = self.get_method_info(jvmenv, stack_frame.method);
+                if method_info.hits_count == 1 {
+                    sample_data_vec.push(Box::new(method_info.clone()));
+                }
+                thread_data.stacktrace.push(method_info.method_id);
             }
+
+            sample_data_vec.push(Box::new(thread_data));
         }
-        result
+
+        //batch add into sending queue
+        add_sample_data_batch(sample_data_vec);
     }
 
     fn get_method_info(&mut self, jvm_env: &Box<Environment>, method: JavaMethod) -> &MethodData {
@@ -315,13 +292,49 @@ impl Sampler {
 
 
 pub struct SampleQueue {
-    pub queue: VecDeque<Box<dyn SampleData + Send>>
+    pub queue: VecDeque<Box<dyn SampleData + Send>>,
+    total_count: usize,
+    last_count: usize,
+    last_time: i64
 }
+
+//pub struct SampleStats {
+//
+//}
 
 impl SampleQueue {
     pub fn new() -> SampleQueue {
         SampleQueue {
-            queue: VecDeque::with_capacity(512)
+            queue: VecDeque::with_capacity(512),
+            total_count: 0,
+            last_count: 0,
+            last_time: 0
         }
     }
+
+    pub fn push_back(&mut self, data_vec: Vec<Box<SampleData + Send>>) {
+        self.total_count += data_vec.len();
+        for sample_data in data_vec {
+            self.queue.push_back(sample_data);
+        }
+        while(self.queue.len() > 10000){
+            self.queue.pop_front();
+        }
+    }
+
+    pub fn pop_front(&mut self) -> Option<Box<SampleData + Send>> {
+        self.queue.pop_front()
+    }
+
+    pub fn stats(&mut self) {
+        let now_time = Local::now().timestamp_millis();
+        if self.last_time > 0 {
+            let delta = self.total_count-self.last_count;
+            let rate = delta as f64 * 1000.0 / (now_time-self.last_time) as f64;
+            println!("sample queue stats: new samples={}, rate={:.2}/s, total={}, queue={}", delta, rate, self.total_count, self.queue.len());
+        }
+        self.last_count = self.total_count;
+        self.last_time = now_time;
+    }
+
 }

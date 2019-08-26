@@ -14,6 +14,8 @@ use std::ptr;
 use native::jvmti_native::*;
 use std::os::raw::{c_char, c_uchar};
 use native::{JavaMethod, JNIEnvPtr};
+use environment::jni::JNI;
+use environment::Environment;
 
 
 ///
@@ -41,23 +43,21 @@ pub trait JVMTI {
     /// function and set_event_notification_mode are called does not affect the result.
     fn set_event_callbacks(&mut self, callbacks: EventCallbacks) -> Option<NativeError>;
     fn set_event_notification_mode(&mut self, event: VMEvent, mode: bool) -> Option<NativeError>;
-    fn get_thread_info(&self, thread_id: &JavaThread) -> Result<Thread, NativeError>;
+    fn get_thread_info(&self, jni: &Box<JNI>, thread_id: &JavaThread) -> Result<Thread, NativeError>;
     fn get_method_declaring_class(&self, method_id: &MethodId) -> Result<ClassId, NativeError>;
     fn get_method_name(&self, method_id: &MethodId) -> Result<MethodSignature, NativeError>;
     fn get_class_signature(&self, class_id: &ClassId) -> Result<ClassSignature, NativeError>;
     fn allocate(&self, len: usize) -> Result<MemoryAllocation, NativeError>;
     fn deallocate(&self, ptr: *mut i8);
 
-    fn get_all_stacktraces(&self) -> Result<Vec<JavaStackTrace>, NativeError>;
+    fn get_all_stacktraces(&self, jvmenv: &Environment) -> Result<Vec<JavaStackTrace>, NativeError>;
     fn get_all_threads(&self) -> Result<Vec<ThreadId>, NativeError>;
     fn get_thread_cpu_time(&self, thread_id: &JavaThread) -> Result<JavaLong, NativeError>;
     fn get_thread_cpu_timer_info(&self) -> Result<jvmtiTimerInfo, NativeError>;
 
-    fn get_jni_env(&self) -> Result<JNIEnvPtr, NativeError>;
 }
 
 pub struct JVMTIEnvironment {
-
     jvmti: JVMTIEnvPtr
 }
 
@@ -162,7 +162,7 @@ impl JVMTI for JVMTIEnvironment {
         }
     }
 
-    fn get_thread_info(&self, thread_id: &JavaThread) -> Result<Thread, NativeError> {
+    fn get_thread_info(&self, jni: &Box<JNI>, thread_id: &JavaThread) -> Result<Thread, NativeError> {
         let mut info = Struct__jvmtiThreadInfo { name: ptr::null_mut(), priority: 0, is_daemon: 0, thread_group: ptr::null_mut(), context_class_loader: ptr::null_mut()};
         let mut info_ptr = &mut info;
 
@@ -172,12 +172,16 @@ impl JVMTI for JVMTIEnvironment {
                     match wrap_error(func(self.jvmti, *thread_id, info_ptr)) {
                         NativeError::NoError => {
                             let thread = Thread {
-                                id: ThreadId { native_id: *thread_id },
+                                id: ThreadId {native_id: *thread_id},
                                 thread_id: 0,
                                 name: stringify((*info_ptr).name),
                                 priority: (*info_ptr).priority as u32,
-                                is_daemon: if (*info_ptr).is_daemon > 0 { true } else { false }
+                                is_daemon: if (*info_ptr).is_daemon > 0 { true } else { false },
+                                thread_group: info.thread_group,
+                                context_class_loader: info.context_class_loader,
                             };
+                            //jni.delete_local_ref(info.thread_group);
+                            //jni.delete_local_ref(info.context_class_loader);
                             self.deallocate(info.name);
                             Ok(thread)
                         },
@@ -259,12 +263,14 @@ impl JVMTI for JVMTIEnvironment {
     }
 
     fn deallocate(&self, ptr: *mut i8) {
-        unsafe {
-            (**self.jvmti).Deallocate.unwrap()(self.jvmti, ptr as *mut c_uchar);
+        if ptr != ptr::null_mut() {
+            unsafe {
+                (**self.jvmti).Deallocate.unwrap()(self.jvmti, ptr as *mut c_uchar);
+            }
         }
     }
 
-    fn get_all_stacktraces(&self) -> Result<Vec<JavaStackTrace>, NativeError> {
+    fn get_all_stacktraces(&self, jvmenv: &Environment) -> Result<Vec<JavaStackTrace>, NativeError> {
         let max_frame_count:jint = 100;
         let mut thread_count:jint = 0;
         let mut stack_info_ptr: *mut jvmtiStackInfo = ptr::null_mut();
@@ -277,11 +283,29 @@ impl JVMTI for JVMTIEnvironment {
                     //enumerate thread stacks
                     for i in 0..count {
                         let stack_info = stack_info_array[i];
+
+                        let mut cpu_time: i64 = 0_i64;
+                        //if std::time::Instant::now()
+                        if let Ok(t) = jvmenv.get_thread_cpu_time(&stack_info.thread) {
+                            cpu_time = t;
+                            //ignore inactive thread call
+                            if cpu_time == 0_i64 {
+                                jvmenv.delete_local_ref(stack_info.thread);
+                                continue;
+                            }
+                        } else {
+                            println!("get_thread_cpu_time error");
+                        }
+
+                        //get thread info and release thread local ref
+                        let thread_info = jvmenv.get_thread_info_ex(&stack_info.thread).unwrap();
+                        jvmenv.delete_local_ref(stack_info.thread);
+
                         let mut stack_trace = JavaStackTrace{
-                            thread: stack_info.thread,
+                            thread: thread_info,
                             state: stack_info.state,
                             frame_buffer: vec![],
-                            cpu_time: 0
+                            cpu_time: cpu_time
                         };
 
                         let stack_frames = unsafe { std::slice::from_raw_parts(stack_info.frame_buffer,stack_info.frame_count as usize) };
@@ -290,6 +314,7 @@ impl JVMTI for JVMTIEnvironment {
                             stack_trace.frame_buffer.push( JavaStackFrame{ method: stack_frame.method, location: stack_frame.location } );
                         }
                         stack_traces_list.push(stack_trace);
+
                     }
                     self.deallocate(stack_info_ptr as *mut i8);
                     Ok(stack_traces_list)
@@ -351,25 +376,20 @@ impl JVMTI for JVMTIEnvironment {
                 err @ _ => Err(err)
             }
         }
-
     }
 
-
-    fn get_jni_env(&self) -> Result<JNIEnvPtr, NativeError>  {
-        unsafe {
-            let mut jni_env :*mut JNINativeInterface = std::ptr::null_mut();
-            let mut jni_env_ptr: *mut *mut JNINativeInterface  = &mut jni_env;
-            match wrap_error((**self.jvmti).GetJNIFunctionTable.unwrap()(self.jvmti, jni_env_ptr)){
-                NativeError::NoError => Ok(jni_env_ptr as JNIEnvPtr),
-                err @ _ => Err(err)
-            }
-        }
-    }
 }
 
+#[derive(Eq, PartialEq, Hash, Clone, Debug)]
+pub struct ThreadInfo {
+    pub thread_id: JavaLong, // actual java thread id
+    pub name: String,
+    pub priority: u32,
+    pub is_daemon: bool
+}
 
 pub struct JavaStackTrace {
-    pub thread: JavaThread,
+    pub thread: ThreadInfo,
     pub state: JavaInt,
     pub cpu_time: i64,
     pub frame_buffer: Vec<JavaStackFrame>

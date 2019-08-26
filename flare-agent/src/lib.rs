@@ -14,6 +14,8 @@ extern crate serde;
 //extern crate jni;
 //extern crate jvmti_sys;
 extern crate resp;
+extern crate timer;
+extern crate chrono;
 
 
 pub mod agent;
@@ -52,7 +54,6 @@ use std::io::{Cursor, Write};
 use thread::Thread;
 use util::stringify;
 use std::time::*;
-extern crate chrono;
 use chrono::Local;
 use std::sync::{Mutex,Arc,RwLock};
 use time::{Duration,Tm};
@@ -343,6 +344,11 @@ pub extern fn Agent_OnAttach(vm: JavaVMPtr, options: MutString, reserved: VoidPt
                     return 0;
                 }
 
+                let mut interval = 20;
+                if let Some(str) = options.custom_args.get("interval") {
+                    interval = str.parse().unwrap();
+                }
+
                 let vm_ptr = vm as usize;
                 //TODO how to pass vm or agent to thread safely?
                 let handle = std::thread::spawn( move||{
@@ -353,16 +359,16 @@ pub extern fn Agent_OnAttach(vm: JavaVMPtr, options: MutString, reserved: VoidPt
                     let mut agent = Agent::new_attach(vm, "Flare-Profiler");
                     println!("init_agent ..");
                     init_agent(&mut agent);
-                    let jvmti = &agent.jvm_env;
+                    let jvmenv = &agent.jvm_env;
 
                     let mut samples=0;
                     while is_trace_running() {
                         samples += 1;
                         let t0 = time::now();
-                        match jvmti.get_all_stacktraces() {
+                        match jvmenv.get_all_stacktraces() {
                             Ok(stack_traces) => {
                                 let t1 = time::now();
-                                SAMPLER.lock().unwrap().add_stack_traces(jvmti, &stack_traces);
+                                SAMPLER.lock().unwrap().add_stack_traces(jvmenv, &stack_traces);
                                 let t2 = time::now();
                             },
                             Err(e) => {
@@ -382,7 +388,7 @@ pub extern fn Agent_OnAttach(vm: JavaVMPtr, options: MutString, reserved: VoidPt
 //                        }
 
                         //sample interval
-                        std::thread::sleep(std::time::Duration::from_millis(20));
+                        std::thread::sleep(std::time::Duration::from_millis(interval));
                     }
                     stop_trace();
                     println!("Trace agent is stopped.");
@@ -409,19 +415,19 @@ fn init_agent(agent: &mut Agent) {
     agent.capabilities.can_generate_all_class_hook_events = true;
     agent.capabilities.can_get_bytecodes = true;
 
-    agent.on_garbage_collection_start(Some(on_garbage_collection_start));
-    agent.on_garbage_collection_finish(Some(on_garbage_collection_finish));
+//    agent.on_garbage_collection_start(Some(on_garbage_collection_start));
+//    agent.on_garbage_collection_finish(Some(on_garbage_collection_finish));
     //agent.on_vm_object_alloc(Some(on_object_alloc));
     //agent.on_vm_object_free(Some(on_object_free));
     //agent.on_class_file_load(Some(on_class_file_load));
 //    agent.on_method_entry(Some(on_method_entry));
 //    agent.on_method_exit(Some(on_method_exit));
-    agent.on_thread_start(Some(on_thread_start));
-    agent.on_thread_end(Some(on_thread_end));
-    agent.on_monitor_wait(Some(on_monitor_wait));
-    agent.on_monitor_waited(Some(on_monitor_waited));
-    agent.on_monitor_contended_enter(Some(on_monitor_contended_enter));
-    agent.on_monitor_contended_entered(Some(on_monitor_contended_entered));
+//    agent.on_thread_start(Some(on_thread_start));
+//    agent.on_thread_end(Some(on_thread_end));
+//    agent.on_monitor_wait(Some(on_monitor_wait));
+//    agent.on_monitor_waited(Some(on_monitor_waited));
+//    agent.on_monitor_contended_enter(Some(on_monitor_contended_enter));
+//    agent.on_monitor_contended_entered(Some(on_monitor_contended_entered));
     agent.update();
 }
 
