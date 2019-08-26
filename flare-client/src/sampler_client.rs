@@ -73,12 +73,12 @@ impl SamplerClient {
         let cmdValue = resp::Value::Array(vec![Value::String("subscribe-events".to_string())]);
         let cmd = cmdValue.encode();
         let size = stream.write(cmd.as_slice()).unwrap();
-        println!("Sent cmd, awaiting reply: {}", cmdValue.to_encoded_string()?);
+        println!("start subscribe events, awaiting reply: {}", cmdValue.to_encoded_string()?);
 
         let mut decoder = resp::Decoder::with_buf_bulk(BufReader::new(stream));
         while match decoder.decode() {
             Ok(data) => {
-                println!("events: \n{}", data.to_string_pretty());
+                self.write_sample_data(data);
                 true
             },
             Err(e) => {
@@ -86,7 +86,13 @@ impl SamplerClient {
                 false
             }
         }{}
+        println!("subscribe events is stopped.");
         Ok(true)
+    }
+
+    fn write_sample_data(&mut self, sample_data: resp::Value) {
+        println!("events: \n{}", data.to_string_pretty());
+
     }
 
 //    pub fn write_all_call_trees(&self, writer: &mut std::io::Write, compact: bool) {
