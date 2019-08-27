@@ -91,7 +91,7 @@ impl SamplerClient {
     }
 
     fn write_sample_data(&mut self, sample_data: resp::Value) {
-        println!("events: \n{}", data.to_string_pretty());
+        println!("events: \n{}", sample_data.to_string_pretty());
 
     }
 

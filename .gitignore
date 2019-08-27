@@ -4,6 +4,9 @@ target
 classes
 *.class
 
+#flare timeseries file
+*.fts
+
 # Logs
 logs
 *.log
