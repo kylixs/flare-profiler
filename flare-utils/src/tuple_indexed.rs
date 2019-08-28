@@ -15,9 +15,14 @@ use super::file_utils::*;
 use std::collections::HashMap;
 
 //Tuple-Indexed file Header Segment: TIHS (4 bytes)
-static HEADER_SEGMENT_FLAG: &str = "TIHS";
+static TUPLE_INDEXED_HEADER_SEGMENT_FLAG: &str = "TIHS";
 //Tuple-Indexed Data Segment flag: TIDS
-static DATA_SEGMENT_FLAG: &str = "TIDS";
+static TUPLE_INDEXED_DATA_SEGMENT_FLAG: &str = "TIDS";
+
+//Tuple-Extra file Header Segment: TEHS (4 bytes)
+static TUPLE_EXTRA_HEADER_SEGMENT_FLAG: &str = "TEHS";
+//Tuple-Extra Data Segment flag: TEDS
+static TUPLE_EXTRA_DATA_SEGMENT_FLAG: &str = "TEDS";
 
 enum_from_primitive! {
     #[derive(Clone, Copy, PartialEq, Debug)]
@@ -77,13 +82,13 @@ impl TupleIndexedFile {
 
     pub fn new_reader(path: &str) -> Result<TupleIndexedFile, io::Error> {
         let mut tuple_file = TupleIndexedFile::new(path, ValueType::UNKNOWN, ValueType::UNKNOWN, false)?;
-        tuple_file.init_reader();
+        tuple_file.init_reader()?;
         Ok(tuple_file)
     }
 
     pub fn new_writer(path: &str, first_el_type: ValueType, second_el_type: ValueType) -> Result<TupleIndexedFile, io::Error> {
         let mut tuple_file = TupleIndexedFile::new(path, first_el_type, second_el_type, true)?;
-        tuple_file.init_writer();
+        tuple_file.init_writer()?;
         Ok(tuple_file)
     }
 
@@ -112,7 +117,11 @@ impl TupleIndexedFile {
     }
 
     fn init_reader(&mut self) -> Result<bool, Error> {
-        self.load_header_info();
+        if !self.inited {
+            self.load_indexed_header_info()?;
+            self.load_extra_header_info()?;
+            self.inited = true;
+        }
         Ok(true)
     }
 
@@ -122,14 +131,14 @@ impl TupleIndexedFile {
             self.begin_time = now_time;
             self.end_time = now_time;
 
-            self.save_header_info();
-
+            self.save_indexed_header_info();
+            self.save_extra_header_info();
             self.inited = true;
         }
         Ok(true)
     }
 
-    fn save_header_info(&mut self) {
+    fn save_indexed_header_info(&mut self) {
 
         let mut header_map = HashMap::new();
         header_map.insert("first_el_type", (self.first_el_type as i8).to_string());
@@ -143,29 +152,60 @@ impl TupleIndexedFile {
         let file = &mut self.indexed_file;
         file.seek(SeekFrom::Start(0));
 
-        write_header_info(file, &header_map, HEADER_SEGMENT_FLAG, DATA_SEGMENT_FLAG);
+        write_header_info(file, &header_map, TUPLE_INDEXED_HEADER_SEGMENT_FLAG, TUPLE_INDEXED_DATA_SEGMENT_FLAG);
 
         //save data segment start offset
         self.indexed_data_offset = file.seek(SeekFrom::Current(0)).unwrap();
         //info.data_offset = file.stream_position().unwrap();
     }
 
-    fn load_header_info(&mut self) {
+    fn save_extra_header_info(&mut self) {
+
+        let mut header_map = HashMap::new();
+        header_map.insert("first_el_type", (self.first_el_type as i8).to_string());
+        header_map.insert("second_el_type", (self.second_el_type as i8).to_string());
+        header_map.insert("unit_len", self.unit_len.to_string());
+        header_map.insert("begin_time", self.begin_time.to_string());
+        header_map.insert("end_time", self.end_time.to_string());
+        header_map.insert("amount", self.amount.to_string());
+
         //write file header
+        let file = &mut self.extra_file;
+        file.seek(SeekFrom::Start(0));
+
+        write_header_info(file, &header_map, TUPLE_EXTRA_HEADER_SEGMENT_FLAG, TUPLE_EXTRA_DATA_SEGMENT_FLAG);
+
+        //save data segment start offset
+        self.extra_data_offset = file.seek(SeekFrom::Current(0)).unwrap();
+        //info.data_offset = file.stream_position().unwrap();
+    }
+
+    fn load_indexed_header_info(&mut self) -> Result<(), io::Error> {
+        //read indexed file header
         let file = &mut self.indexed_file;
         file.seek(SeekFrom::Start(0));
 
         let mut header_map: HashMap<String, String> = HashMap::new();
+        self.indexed_data_offset = read_header_info(file, &mut header_map, TUPLE_INDEXED_HEADER_SEGMENT_FLAG, TUPLE_INDEXED_DATA_SEGMENT_FLAG)?;
 
-        read_header_info(file, &mut header_map, HEADER_SEGMENT_FLAG, DATA_SEGMENT_FLAG);
-
-        self.begin_time = get_as_i64(&mut header_map, "begin_time");
-        self.end_time = get_as_i64(&mut header_map, "end_time");
         self.first_el_type = ValueType::from_i8(get_as_i8(&mut header_map, "first_el_type")).unwrap();
         self.second_el_type = ValueType::from_i8(get_as_i8(&mut header_map, "second_el_type")).unwrap();
+        self.begin_time = get_as_i64(&mut header_map, "begin_time");
+        self.end_time = get_as_i64(&mut header_map, "end_time");
+        self.unit_len = get_as_i8(&mut header_map, "unit_len");
+        self.amount = get_as_i32(&mut header_map, "amount");
+        Ok(())
+    }
 
-        //save data segment start offset
-        self.indexed_data_offset = file.seek(SeekFrom::Current(0)).unwrap();
+    fn load_extra_header_info(&mut self) -> Result<(), io::Error> {
+        //read extra file header
+
+        let file = &mut self.extra_file;
+        file.seek(SeekFrom::Start(0));
+
+        let mut header_map: HashMap<String, String> = HashMap::new();
+        self.extra_data_offset = read_header_info(file, &mut header_map, TUPLE_EXTRA_HEADER_SEGMENT_FLAG, TUPLE_EXTRA_DATA_SEGMENT_FLAG)?;
+        Ok(())
     }
 }
 
@@ -185,7 +225,7 @@ impl Drop for TupleIndexedFile {
 
     fn drop(&mut self) {
         if self.writable {
-            self.save_header_info();
+            self.save_indexed_header_info();
         }
     }
 

@@ -17,7 +17,7 @@ pub fn open_file(path: &str, rw: bool) -> Result<File, io::Error> {
 }
 
 //write common file header
-pub fn write_header_info(file: &mut Write, header_map: &HashMap<&str, String>, header_segment_flag: &str, data_segment_flag: &str) {
+pub fn write_header_info(file: &mut File, header_map: &HashMap<&str, String>, header_segment_flag: &str, data_segment_flag: &str) -> Result<u64, io::Error> {
     //encode header
     let mut header_vec = vec![];
     //property size (1 byte)
@@ -41,9 +41,11 @@ pub fn write_header_info(file: &mut Write, header_map: &HashMap<&str, String>, h
 
     //data segment flag: TSDS
     file.write_all(data_segment_flag.as_bytes());
+
+    Ok(file.seek(SeekFrom::Current(0)).unwrap())
 }
 
-pub fn read_header_info(file: &mut File, header_map: &mut HashMap<String, String>, header_segment_flag: &str, data_segment_flag: &str) -> Result<bool, io::Error> {
+pub fn read_header_info(file: &mut File, header_map: &mut HashMap<String, String>, header_segment_flag: &str, data_segment_flag: &str) -> Result<u64, io::Error> {
     //read file header
     let flag = read_file_flag(file);
     if flag != header_segment_flag {
@@ -71,7 +73,7 @@ pub fn read_header_info(file: &mut File, header_map: &mut HashMap<String, String
         println!("Invalid file, data segment flag not match, expect '{}' but '{}'", data_segment_flag, flag);
         return Err(io::Error::new(ErrorKind::InvalidInput, "Invalid file, data segment not match"));
     }
-    Ok(true)
+    Ok(file.seek(SeekFrom::Current(0)).unwrap())
 }
 
 fn read_utf8(buf_reader: &mut BufReader<&mut Read>) -> String {
