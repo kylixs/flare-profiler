@@ -3,12 +3,12 @@ use std::io::{SeekFrom, ErrorKind, Seek, Write, Read, BufReader};
 use chrono::Local;
 use std::io::Error;
 use std::io;
-use byteorder::{WriteBytesExt, ReadBytesExt};
+use byteorder::{WriteBytesExt, ReadBytesExt, NetworkEndian};
 use std::str::from_utf8;
 use num::FromPrimitive;
 use std::cmp::*;
 
-use super::TSEndian;
+use super::FileEndian;
 
 #[derive(Clone, PartialEq)]
 pub enum TSValue {
@@ -125,12 +125,12 @@ impl TimeSeriesFile {
         let mut file = &self.file;
         file.seek(SeekFrom::Start(offset1));
         //let mut stream = file.take(offset2 - offset1);
-        //stream.read_i16_into::<TSEndian>(data_vec.as_mut_slice());
+        //stream.read_i16_into::<FileEndian>(data_vec.as_mut_slice());
         let bytes = offset2 - offset1;
         let mut buf_reader = BufReader::with_capacity(1024*100, file);
         let steps = bytes / self.unit_len as u64;
         for i in 0..steps {
-            data_vec.push(buf_reader.read_i16::<TSEndian>().unwrap());
+            data_vec.push(buf_reader.read_i16::<FileEndian>().unwrap());
         }
 
         //convert time unit, merge n source point to one new point
@@ -218,16 +218,16 @@ impl TimeSeriesFileReader {
             }
 
             //header len (2 bytes)
-            let header_len = file.read_u16::<TSEndian>().unwrap() as u64;
+            let header_len = file.read_u16::<FileEndian>().unwrap() as u64;
             let header_offset = 4 + 2;
 
             //header data (n bytes)
             info.value_type = ValueType::from_i8(file.read_i8().unwrap()).unwrap();
             info.unit_len = file.read_i8().unwrap();
-            info.unit_time = file.read_i32::<TSEndian>().unwrap();
-            info.begin_time = file.read_i64::<TSEndian>().unwrap();
-            info.end_time = file.read_i64::<TSEndian>().unwrap();
-            info.amount = file.read_i32::<TSEndian>().unwrap();
+            info.unit_time = file.read_i32::<FileEndian>().unwrap();
+            info.begin_time = file.read_i64::<FileEndian>().unwrap();
+            info.end_time = file.read_i64::<FileEndian>().unwrap();
+            info.amount = file.read_i32::<FileEndian>().unwrap();
 
             //data segment flag
             file.seek(SeekFrom::Start(header_offset + header_len));
@@ -298,10 +298,10 @@ impl TimeSeriesFileWriter {
         let mut header_vec = vec![];
         header_vec.write_i8(info.value_type as i8);
         header_vec.write_i8(info.unit_len);
-        header_vec.write_i32::<TSEndian>(info.unit_time);
-        header_vec.write_i64::<TSEndian>(info.begin_time);
-        header_vec.write_i64::<TSEndian>(info.end_time);
-        header_vec.write_i32::<TSEndian>(info.amount);
+        header_vec.write_i32::<FileEndian>(info.unit_time);
+        header_vec.write_i64::<FileEndian>(info.begin_time);
+        header_vec.write_i64::<FileEndian>(info.end_time);
+        header_vec.write_i32::<FileEndian>(info.amount);
 
         //write file header
         let file = &mut info.file;
@@ -311,7 +311,7 @@ impl TimeSeriesFileWriter {
         file.write_all(b"TSHS");
 
         //header len (2 bytes)
-        file.write_u16::<TSEndian>(header_vec.len() as u16);
+        file.write_u16::<FileEndian>(header_vec.len() as u16);
 
         //header data (n bytes)
         file.write_all(header_vec.as_slice());
@@ -345,7 +345,7 @@ impl TimeSeriesFileWriter {
                 }
                 let offset = (steps * 2) as u64;
                 file.seek(SeekFrom::Start(info.data_offset + offset));
-                file.write_i16::<TSEndian>(val);
+                file.write_i16::<FileEndian>(val);
             }
             TSValue::int32(val) => {
                 if info.value_type != ValueType::INT32 {
@@ -354,7 +354,7 @@ impl TimeSeriesFileWriter {
                 }
                 let offset = (steps * 4) as u64;
                 file.seek(SeekFrom::Start(info.data_offset + offset));
-                file.write_i32::<TSEndian>(val);
+                file.write_i32::<FileEndian>(val);
             }
             TSValue::int64(val) => {
                 if info.value_type != ValueType::INT64 {
@@ -363,7 +363,7 @@ impl TimeSeriesFileWriter {
                 }
                 let offset = (steps * 8) as u64;
                 file.seek(SeekFrom::Start(info.data_offset + offset));
-                file.write_i64::<TSEndian>(val);
+                file.write_i64::<FileEndian>(val);
             }
             _ => {
                 println!("unsupported value type: {:?}", info.value_type);
