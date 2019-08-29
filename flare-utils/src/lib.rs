@@ -15,6 +15,7 @@ extern crate num;
 pub mod timeseries;
 pub mod tuple_indexed;
 pub mod file_utils;
+pub mod collections;
 
 use byteorder::{WriteBytesExt, ReadBytesExt, NetworkEndian};
 use std::io;
