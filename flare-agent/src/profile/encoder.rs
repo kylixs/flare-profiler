@@ -2,8 +2,8 @@
 use resp::{Value, Decoder};
 use profile::sample::{ThreadData, MethodData};
 
-pub fn resp_encode_thread_data(thread_data: &ThreadData) -> Vec<u8> {
-    let cmdValue = Value::Array(vec![
+pub fn resp_encode_thread_data(thread_data: &ThreadData) -> Value {
+    Value::Array(vec![
         Value::String("thread".to_string()),
         Value::String("time".to_string()),
         Value::Integer(thread_data.sample_time),
@@ -17,9 +17,7 @@ pub fn resp_encode_thread_data(thread_data: &ThreadData) -> Vec<u8> {
         Value::String(thread_data.state.clone()),
         Value::String("stacktrace".to_string()),
         resp_encode_stacktrace(thread_data),
-    ]);
-
-    cmdValue.encode()
+    ])
 }
 
 
@@ -31,12 +29,22 @@ fn resp_encode_stacktrace(thread_data: &ThreadData) -> Value {
     Value::Array(vec)
 }
 
-pub fn resp_encode_method_data(method_data: &MethodData) -> Vec<u8> {
+pub fn resp_encode_method_data(method_data: &MethodData) -> Value {
     Value::Array(vec![
         Value::String("method".to_string()),
         Value::String("id".to_string()),
         Value::Integer(method_data.method_id),
         Value::String("name".to_string()),
         Value::String(method_data.full_name.clone()),
-    ]).encode()
+    ])
+}
+
+pub fn resp_encode_sample_info(start_time: i64, sample_interval:u64) -> Value {
+    Value::Array(vec![
+        Value::String("sample_info".to_string()),
+        Value::String("start_time".to_string()),
+        Value::Integer(start_time),
+        Value::String("sample_interval".to_string()),
+        Value::Integer(sample_interval as i64),
+    ])
 }

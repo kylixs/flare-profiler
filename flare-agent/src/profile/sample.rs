@@ -14,7 +14,7 @@ use time::Duration;
 use super::server::*;
 use chrono::Local;
 use profile::encoder::*;
-use std::sync::Mutex;
+use std::sync::{Mutex, mpsc};
 //use std::sync::mpsc::{Sender, Receiver};
 
 #[derive(Serialize, Deserialize)]
@@ -63,7 +63,7 @@ impl ThreadData {
 impl SampleData for ThreadData {
 
     fn encode(&self) -> Vec<u8> {
-        resp_encode_thread_data(self)
+        resp_encode_thread_data(self).encode()
     }
 
     fn get_type(&self) -> String {
@@ -82,7 +82,7 @@ pub struct MethodData {
 
 impl SampleData for MethodData {
     fn encode(&self) -> Vec<u8> {
-        resp_encode_method_data(self)
+        resp_encode_method_data(self).encode()
     }
 
     fn get_type(&self) -> String {
@@ -90,11 +90,39 @@ impl SampleData for MethodData {
     }
 }
 
+//#[derive(Clone)]
+pub struct ResponseData {
+    cmd: String,
+    data: resp::Value,
+}
+
+impl ResponseData {
+    pub fn new(cmd: String, data: resp::Value) -> ResponseData {
+        ResponseData {
+            cmd,
+            data
+        }
+    }
+}
+
+impl SampleData for ResponseData {
+    fn encode(&self) -> Vec<u8> {
+        self.data.encode()
+    }
+
+    fn get_type(&self) -> String {
+        self.cmd.clone()
+    }
+}
 
 pub struct Sampler {
     method_cache: HashMap<usize, MethodData>,
     running: bool,
-    threads_map: HashMap<JavaLong, ThreadData>
+    sample_interval: u64,
+    start_time: i64,
+    threads_map: HashMap<JavaLong, ThreadData>,
+    sender: Option<mpsc::Sender<resp::Value>>,
+    receiver: Option<mpsc::Receiver<resp::Value>>,
 }
 
 //pub struct MethodInfo {
@@ -109,6 +137,10 @@ impl Sampler {
         Sampler {
             method_cache: HashMap::new(),
             running: false,
+            sample_interval: 0,
+            start_time:0,
+            sender: None,
+            receiver: None,
             threads_map: HashMap::new()
         }
     }
@@ -116,8 +148,17 @@ impl Sampler {
     pub fn start(&mut self) {
         if(!self.running) {
             self.running = true;
+            self.start_time = Local::now().timestamp_millis();
+
+            // 创建一个通道
+            let (tx0, rx0): (mpsc::Sender<resp::Value>, mpsc::Receiver<resp::Value>) = mpsc::channel();
+            let (tx1, rx1): (mpsc::Sender<resp::Value>, mpsc::Receiver<resp::Value>) = mpsc::channel();
+            self.receiver = Some(rx0);
+            self.sender = Some(tx1);
+
+            get_server().lock().unwrap().set_options(tx0, rx1, self.start_time, self.sample_interval);
             //running server in new thread
-            std::thread::spawn( move|| {
+            std::thread::spawn( move || {
                 start_server();
             });
         }
@@ -132,6 +173,18 @@ impl Sampler {
 
     pub fn is_running(&self) -> bool {
         self.running
+    }
+
+    pub fn set_options(&mut self, sample_interval: u64) {
+        self.sample_interval = sample_interval;
+    }
+
+    pub fn get_sample_interval(&self) -> u64 {
+        self.sample_interval
+    }
+
+    pub fn get_start_time(&self) -> i64 {
+        self.start_time
     }
 
     pub fn on_thread_start(&mut self, thread: ThreadId) {
@@ -218,6 +271,55 @@ impl Sampler {
         });
         method_data.hits_count += 1;
         method_data
+    }
+
+    pub fn handle_request(&mut self) {
+        if let Some(rx) = &self.receiver {
+            if let Ok(resp::Value::Array(vec)) = rx.try_recv() {
+                let first = &vec[0];
+                match first {
+                    resp::Value::String(s) => {
+                        let cmd_options = parse_request_options(&vec);
+                        self.dispatch_request(s, &cmd_options);
+                    },
+                    _ => {
+                        println!("invalid request array, first element must be String, but get {:?}", first);
+                    }
+                }
+            }
+        }
+    }
+
+    fn dispatch_request(&mut self, cmd: &String, options: &HashMap<String, resp::Value>) {
+        match cmd.as_str() {
+            "get_sample_info" => {
+                self.send_sample_info();
+            }
+            "get_method_cache" => {
+                self.send_method_cache();
+            }
+            _ => { println!("unknown request cmd: {}, options: {:?}", cmd, options); }
+        }
+    }
+
+    fn send_sample_info(&mut self) {
+        let response = resp_encode_sample_info(self.start_time, self.sample_interval);
+        //add_sample_data(ResponseData::new("sample_info".to_string(),response));
+        Sampler::send_response(&self.sender, response);
+    }
+
+    fn send_response(sender: &Option<mpsc::Sender<resp::Value>>, response: resp::Value) {
+        if let Some(tx) = sender {
+            tx.send(response);
+        }
+    }
+
+    fn send_method_cache(&mut self) {
+        let sender = &self.sender;
+        self.method_cache.values().for_each(|method_info| {
+            //add_sample_data(Box::new(method_info.clone()));
+            Sampler::send_response(sender, resp_encode_method_data(method_info));
+        });
     }
 
 //    pub fn add_stack_traces_to_call_tree(&mut self, jvm_env: &Box<Environment>, stack_traces: &Vec<JavaStackTrace>) {

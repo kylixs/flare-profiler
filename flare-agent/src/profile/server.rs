@@ -4,15 +4,79 @@ use std::io::{Read, Write};
 use resp::{Value, Decoder};
 use std::io::BufReader;
 use std::collections::HashMap;
-use std::sync::{Mutex,Arc,RwLock};
+use std::sync::{Mutex, Arc, RwLock, mpsc};
 use std::collections::VecDeque;
 use super::sample::ThreadData;
 use profile::encoder::*;
 use profile::sample::*;
+use std::time::Duration;
 
 lazy_static! {
-    static ref RUNNING_SERVER: Mutex<bool> = Mutex::new(false);
     static ref DATA_QUEUE: Mutex<SampleQueue>  = Mutex::new(SampleQueue::new());
+    static ref SAMPLE_SERVER: Mutex<SampleServer>  = Mutex::new(SampleServer::new());
+}
+
+pub struct SampleServer {
+    sample_interval: u64,
+    start_time: i64,
+    running: bool,
+    bind_port: u16,
+    bind_host: String,
+    sender: Option<mpsc::Sender<resp::Value>>,
+    receiver: Option<mpsc::Receiver<resp::Value>>,
+}
+
+impl SampleServer {
+    pub fn new() -> SampleServer {
+        SampleServer {
+            sample_interval: 0,
+            start_time: 0,
+            running: false,
+            bind_port: 3333,
+            bind_host: "0.0.0.0".to_string(),
+            sender: None,
+            receiver: None,
+        }
+    }
+
+    pub fn set_options(&mut self, sender: mpsc::Sender<resp::Value>, receiver: mpsc::Receiver<resp::Value>, start_time: i64, sample_interval: u64) {
+        self.start_time = start_time;
+        self.sample_interval = sample_interval;
+        self.sender = Some(sender);
+        self.receiver = Some(receiver);
+    }
+
+    pub fn set_running(&mut self, val: bool) {
+        self.running = val;
+    }
+
+    pub fn is_running(&self) -> bool {
+        self.running
+    }
+
+    pub fn send_request(&self, request: resp::Value) {
+        if let Some(tx) = &self.sender {
+            tx.send(request);
+        }
+    }
+
+    pub fn recv_response(&self) -> Option<resp::Value> {
+        if let Some(rx) = &self.receiver {
+            match rx.recv_timeout(Duration::from_millis(50)) {
+                Ok(val) => {
+                    return Some(val);
+                },
+                Err(e) => {
+                    //println!("recv response from sample thread failed: {:?}", e);
+                },
+            }
+        }
+        None
+    }
+}
+
+pub fn get_server() -> &'static Mutex<SampleServer> {
+    &SAMPLE_SERVER
 }
 
 pub fn add_sample_data(sample_data: Box<SampleData + Send>) {
@@ -27,22 +91,14 @@ pub fn add_sample_data(sample_data: Box<SampleData + Send>) {
 pub fn add_sample_data_batch(data_vec: Vec<Box<SampleData + Send>>) {
     let mut data_queue = DATA_QUEUE.lock().unwrap();
     data_queue.push_back(data_vec);
-//    let mut queue = &mut data_queue.queue;
-//    for sample_data in data_vec {
-//        queue.push_back(sample_data);
-//    }
-//    while(queue.len() > 10000){
-//        queue.pop_front();
-//    }
 }
 
 fn set_server_running(val: bool) {
-    let mut a = RUNNING_SERVER.lock().unwrap();
-    *a = val;
+    SAMPLE_SERVER.lock().unwrap().set_running(val);
 }
 
 pub fn is_server_running() -> bool {
-    *RUNNING_SERVER.lock().unwrap()
+    SAMPLE_SERVER.lock().unwrap().is_running()
 }
 
 pub fn stop_server() {
@@ -148,7 +204,7 @@ fn dispatch_request(stream: &mut TcpStream, clientRequest: &Value) {
     }
 }
 
-fn parse_request_options(request: &Vec<Value>) -> HashMap<String, Value> {
+pub fn parse_request_options(request: &Vec<Value>) -> HashMap<String, Value> {
     let mut result = HashMap::new();
     let mut i = 1;
     while i < request.len()-1 {
@@ -181,6 +237,51 @@ fn handle_stop_sample_cmd(stream: &mut TcpStream, cmd_options: &HashMap<String, 
 
 fn handle_subscribe_events_cmd(stream: &mut TcpStream, cmd_options: &HashMap<String, Value>) {
     println!("subscribe event loop start");
+
+    //send sample info
+//    let start_time = SAMPLE_SERVER.lock().unwrap().start_time;
+//    let sample_interval = SAMPLE_SERVER.lock().unwrap().sample_interval;
+//    let buf = resp_encode_sample_info(start_time, sample_interval);
+//    if let Err(e) = stream.write_all(buf.as_slice()) {
+//        println!("send sample info failed: {}", e);
+//        return;;
+//    }
+
+    //send sample info
+    println!("sending sample info to new client ..");
+    let request = Value::Array(vec![
+        Value::String("get_sample_info".to_string()),
+    ]);
+    SAMPLE_SERVER.lock().unwrap().send_request(request);
+    if let Some(response) = SAMPLE_SERVER.lock().unwrap().recv_response() {
+        if let Err(e) = stream.write_all(response.encode().as_slice()) {
+            println!("send sample info failed: {}", e);
+            return;
+        }
+    }else {
+        println!("recv get_sample_info result failed, stopping subscribe event")
+    }
+
+    //send current method cache
+    println!("sending method cache to new client ..");
+    let request = Value::Array(vec![
+        Value::String("get_method_cache".to_string()),
+    ]);
+    SAMPLE_SERVER.lock().unwrap().send_request(request);
+    //transmit method cache
+    let mut method_count = 0;
+    while let Some(response) = SAMPLE_SERVER.lock().unwrap().recv_response() {
+        if let Err(e) = stream.write_all(response.encode().as_slice()) {
+            println!("send method cache failed: {}", e);
+            //return; //recv all message in channel
+        }
+        method_count += 1;
+    }
+    println!("total sent method cache: {}", method_count);
+
+//    println!("recv get_sample_info result failed, stopping subscribe event")
+
+    println!("loop transmit data new client ..");
     let mut sent = false;
     loop {
         //auto release lock while exit guard block
