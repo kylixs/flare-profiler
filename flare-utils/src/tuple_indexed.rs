@@ -16,6 +16,9 @@ use super::file_utils::*;
 use super::collections::*;
 use crate::collections::MapUtil::*;
 
+//bulk data handler
+type BulkDataConsumer = fn(Vec<u8>);
+
 //Tuple-Indexed file Header Segment: TIHS (4 bytes)
 static TUPLE_INDEXED_HEADER_SEGMENT_FLAG: &str = "TIHS";
 //Tuple-Indexed Data Segment flag: TIDS
@@ -130,8 +133,8 @@ impl TupleIndexedFile {
     }
 
     fn new(path: &str, index_type: ValueType, bulk_offset_type: ValueType, writable: bool) -> Result<TupleIndexedFile, io::Error> {
-        let indexed_path = path.to_string() + ".tpidx";
-        let extra_path = path.to_string() + ".tpdata";
+        let indexed_path = path.to_string() + ".fidx";
+        let extra_path = path.to_string() + ".fdata";
         let unit_len = get_unit_len(index_type) + get_unit_len(bulk_offset_type);
         let indexed_file = open_file(&indexed_path, writable)?;
         let extra_file = open_file(&extra_path, writable)?;
@@ -365,17 +368,52 @@ impl TupleIndexedFile {
     /// read bulk value by index
     ///
     pub fn get_value(&mut self, index: &TupleValue) -> io::Result<Vec<u8>> {
-        if let Some(TupleValue::uint32(bulk_offset)) = self.index_map.get(index) {
-            self.extra_file.seek(SeekFrom::Start(*bulk_offset as u64));
-            let bytes_to_read = self.extra_file.read_u16::<FileEndian>()? as usize;
-            let mut buf = vec![0u8; bytes_to_read];
-            self.extra_file.read_exact(&mut buf)?;
-            Ok(buf)
+        let mut bulk_offset = 0u32;
+        if let Some(TupleValue::uint32(offset)) = self.index_map.get(index) {
+            bulk_offset = *offset;
         } else {
+            return Err(io::Error::new(ErrorKind::NotFound, "index not found"));
+        }
+        let (buf, offset) = self.read_bulk_data(bulk_offset)?;
+        Ok(buf)
+
+    }
+
+    fn read_bulk_data(&mut self, bulk_offset: u32) -> Result<(Vec<u8>,u32), Error> {
+        self.extra_file.seek(SeekFrom::Start(bulk_offset as u64));
+        let bytes_to_read = self.extra_file.read_u16::<FileEndian>()? as usize;
+        let mut buf = vec![0u8; bytes_to_read];
+        self.extra_file.read_exact(&mut buf)?;
+        let new_offset = self.extra_file.seek(SeekFrom::Current(0)).unwrap();
+        Ok((buf, new_offset as u32))
+    }
+
+    pub fn get_range_value(&mut self, start_index: &TupleValue, end_index: &TupleValue, handler: BulkDataConsumer) -> io::Result<()> {
+        let mut start_offset = 0u32;
+        let mut end_offset = 0u32;
+        let mut found = false;
+        if let Some(TupleValue::uint32(offset1)) = self.index_map.get(start_index) {
+            start_offset = *offset1;
+            if let Some(TupleValue::uint32(offset2)) = self.index_map.get(end_index) {
+                end_offset = *offset2;
+                found = true;
+            }
+        }
+        if found {
+            let mut offset = start_offset;
+            loop {
+                let (buf, next_offset) = self.read_bulk_data(offset)?;
+                handler(buf);
+                offset = next_offset;
+                if offset > end_offset {
+                    break;
+                }
+            }
+            Ok(())
+        }else {
             Err(io::Error::new(ErrorKind::NotFound, "index not found"))
         }
     }
-
 }
 
 impl Drop for TupleIndexedFile {

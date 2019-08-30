@@ -7,7 +7,7 @@ use chrono::Local;
 use rand::Rng;
 
 fn main() {
-    let mut tsfile = TimeSeriesFileReader::new("tsfile-test1.fts").unwrap();
+    let mut tsfile = TimeSeriesFileReader::new("tsfile-test1").unwrap();
     let info = tsfile.get_header_info();
     println!("tsfile header: {:?}", info);
 

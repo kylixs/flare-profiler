@@ -140,14 +140,14 @@ impl TimeSeriesFile {
             let mut new_data_vec = vec![];
             let size = data_vec.len() / merge_num as usize;
             for i in 0..size {
-                new_data_vec.push(ts_avg_int16(&data_vec[i*merge_num..(i+1)*merge_num]));
+                new_data_vec.push(ts_sum_int16(&data_vec[i*merge_num..(i+1)*merge_num]));
             }
             TSResult {
                 begin_time: start_time,
                 end_time,
                 unit_time: unit_time_ms,
                 steps: new_data_vec.len() as i32,
-                data: TSRangeValue::vec_f32(new_data_vec)
+                data: TSRangeValue::vec_int64(new_data_vec)
             }
         }else {
             TSResult {
@@ -171,6 +171,12 @@ fn ts_avg_int16 (numbers: &[i16]) -> f32 {
     sum as f32 / numbers.len() as f32
 }
 
+fn ts_sum_int16 (numbers: &[i16]) -> i64 {
+    let mut sum = 0;
+    numbers.iter().for_each(|x| sum += *x as i64);
+    sum
+}
+
 
 //fn average(numbers: &[i32]) -> f32 {
 //    numbers.iter().sum::<i32>() as f32 / numbers.len() as f32
@@ -186,10 +192,11 @@ fn ts_avg_int16 (numbers: &[i16]) -> f32 {
 impl TimeSeriesFileReader {
 
     pub fn new(path: &str) -> Result<TimeSeriesFileReader, Error> {
+        let mut path = path.to_string()+".fts";
         //let now_time = Local::now().timestamp_millis();
         match File::open(path.clone()) {
             Ok(file) => {
-                let info = TimeSeriesFile::new(ValueType::UNKNOWN, 0, path, file);
+                let info = TimeSeriesFile::new(ValueType::UNKNOWN, 0, &path, file);
                 let mut reader = TimeSeriesFileReader {
                     info: info,
                     inited: false
@@ -260,6 +267,7 @@ impl TimeSeriesFileReader {
 impl TimeSeriesFileWriter {
 
     pub fn new(value_type: ValueType, unit_time: i32, path: &str) -> Result<TimeSeriesFileWriter, Error> {
+        let mut path = path.to_string()+".fts";
         let now_time = Local::now().timestamp_millis();
         let file_rs = OpenOptions::new()
             .read(true)
@@ -268,7 +276,7 @@ impl TimeSeriesFileWriter {
             .open(path.clone());
         match file_rs {
             Ok(file) => {
-                let info = TimeSeriesFile::new(value_type, unit_time, path, file);
+                let info = TimeSeriesFile::new(value_type, unit_time, &path, file);
                 Ok(TimeSeriesFileWriter {
                     info: info,
                     inited: false

@@ -6,10 +6,10 @@ classes
 
 #flare timeseries file
 *.fts
-#tuple index file
-*.tpidx
-#tuple extra data file
-*.tpdata
+#flare index file
+*.fidx
+#flare extra data file
+*.fdata
 
 # Logs
 logs
