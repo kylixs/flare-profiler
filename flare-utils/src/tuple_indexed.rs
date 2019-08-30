@@ -15,6 +15,7 @@ use super::FileEndian;
 use super::file_utils::*;
 use super::collections::*;
 use crate::collections::MapUtil::*;
+use super::{ValueType, get_unit_len};
 
 //bulk data handler
 type BulkDataConsumer = fn(Vec<u8>);
@@ -29,29 +30,6 @@ static TUPLE_EXTRA_HEADER_SEGMENT_FLAG: &str = "TEHS";
 //Tuple-Extra Data Segment flag: TEDS
 static TUPLE_EXTRA_DATA_SEGMENT_FLAG: &str = "TEDS";
 
-enum_from_primitive! {
-    #[derive(Clone, Copy, PartialEq, Debug)]
-    pub enum ValueType {
-        UNKNOWN,
-        INT16,
-        UINT16,
-        INT32,
-        UINT32,
-        INT64,
-        FLOAT64
-    }
-}
-
-fn get_unit_len(value_type: ValueType) -> i8{
-    match value_type {
-        INT16 => 2,
-        UINT16 => 2,
-        INT32 => 4,
-        UINT32 => 4,
-        INT64 => 8,
-//        FLOAT64=> 8
-    }
-}
 
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub enum TupleValue {

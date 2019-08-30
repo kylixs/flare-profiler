@@ -18,6 +18,7 @@ path="src/lib.rs"
 #path = "src/main.rs"
 
 [dependencies]
+flare_utils = { path = "../flare-utils" }
 libc = "0.2.*"
 time = "0.1.*"
 lazy_static = "0.2.*"

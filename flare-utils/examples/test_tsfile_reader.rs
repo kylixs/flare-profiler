@@ -2,7 +2,7 @@
 extern crate rand;
 extern crate chrono;
 
-use flareutils::timeseries::*;
+use flare_utils::timeseries::*;
 use chrono::Local;
 use rand::Rng;
 

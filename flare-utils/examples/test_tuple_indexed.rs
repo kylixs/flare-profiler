@@ -4,7 +4,7 @@ extern crate rand;
 extern crate chrono;
 //extern crate flareutils;
 
-use flareutils::tuple_indexed::*;
+use flare_utils::tuple_indexed::*;
 use chrono::Local;
 use std::{io, fs};
 

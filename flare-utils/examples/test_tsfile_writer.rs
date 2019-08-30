@@ -3,7 +3,7 @@ extern crate rand;
 extern crate chrono;
 //extern crate flareutils;
 
-use flareutils::timeseries::*;
+use flare_utils::timeseries::*;
 use chrono::Local;
 use std::fs::File;
 use std::fs;

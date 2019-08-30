@@ -9,6 +9,7 @@ use num::FromPrimitive;
 use std::cmp::*;
 
 use super::FileEndian;
+use super::{ValueType, get_unit_len};
 
 #[derive(Clone, PartialEq)]
 pub enum TSValue {
@@ -32,24 +33,6 @@ pub struct TSResult {
     pub unit_time: i32,
     pub steps: i32,
     pub data: TSRangeValue
-}
-
-enum_from_primitive! {
-    #[derive(Clone, Copy, PartialEq, Debug)]
-    pub enum ValueType {
-        UNKNOWN,
-        INT16,
-        INT32,
-        INT64
-    }
-}
-
-pub fn get_unit_len(value_type: ValueType) -> i8{
-    match value_type {
-        INT16 => 2,
-        INT32 => 4,
-        INT64 => 8
-    }
 }
 
 #[derive( Debug )]
