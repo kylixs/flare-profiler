@@ -37,6 +37,7 @@ pub struct ThreadData {
     pub daemon: bool,
     pub state: String,
     pub cpu_time: i64,
+    pub cpu_time_delta: i64,
     pub sample_time: i64,
     pub stacktrace: Vec<i64>,
     pub last_stack_frame: i64,
@@ -52,6 +53,7 @@ impl ThreadData {
             daemon: false,
             state: "".to_string(),
             cpu_time: 0,
+            cpu_time_delta: 0,
             sample_time: 0,
             stacktrace: vec![],
             last_stack_frame: 0,
@@ -231,7 +233,8 @@ impl Sampler {
                 }
             }
 
-            //update sample time
+            //update sample cpu time
+            thread_data.cpu_time_delta = stack_info.cpu_time - thread_data.cpu_time;
             thread_data.cpu_time = stack_info.cpu_time;
             thread_data.sample_time = now_time;
             //save last frame

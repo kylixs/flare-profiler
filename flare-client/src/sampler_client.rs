@@ -31,6 +31,7 @@ pub struct ThreadData {
     pub daemon: bool,
     pub state: String,
     pub cpu_time: i64,
+    pub cpu_time_delta: i64,
     pub sample_time: i64,
     pub stacktrace: Vec<i64>
 }
@@ -57,8 +58,8 @@ pub struct SamplerClient {
     //sample data processor
     threads : HashMap<JavaLong, ThreadData>,
     sample_data_dir: String,
-    sample_cpu_ts_map: HashMap<JavaLong, TimeSeriesFileWriter>,
-    sample_stacktrace_map: HashMap<JavaLong, TupleIndexedFile>,
+    sample_cpu_ts_map: HashMap<JavaLong, Option<TimeSeriesFileWriter>>,
+    sample_stacktrace_map: HashMap<JavaLong, Option<TupleIndexedFile>>,
     sample_method_idx_file: TupleIndexedFile,
 //    method_cache: HashMap<MethodId, MethodInfo>,
 //    tree_arena: TreeArena
@@ -174,9 +175,9 @@ impl SamplerClient {
     fn on_thread_data(&mut self, data_vec: &Vec<Value>) {
         //let map = parse_resp_properties(data_vec, 1);
         //let mut thread_id = get_resp_int_value(map, "id");
-        let mut time= 0;
+        let mut sample_time= 0;
         if let Some(Value::Integer(x)) = get_resp_property(data_vec, "time", 1) {
-            time = *x;
+            sample_time = *x;
         }
         let mut thread_id = 0;
         if let Some(Value::Integer(x)) = get_resp_property(data_vec, "id", 1) {
@@ -214,26 +215,52 @@ impl SamplerClient {
                 daemon: false,
                 state: state.to_string(),
                 cpu_time: cpu_time,
-                sample_time: time,
+                cpu_time_delta: cpu_time_delta,
+                sample_time: sample_time,
                 stacktrace: vec![]
             }
         });
+        thread_data.sample_time = sample_time;
+        thread_data.cpu_time = cpu_time;
+        thread_data.cpu_time_delta = cpu_time_delta;
+        thread_data.state = state.to_string();
+        thread_data.name = name.to_string();
 
         //save thread cpu time
-//        let mut cpu_ts = self.sample_cpu_ts_map.entry(thread_id).or_insert_with(||{
-//            let mut path = format!("{}/thread_cpu_time_{}", self.sample_data_dir, thread_id);
-//            match TimeSeriesFileWriter::new(ValueType::INT32, self.sample_interval as i32, &path) {
-//                Ok(ts) => ts,
-//                Err(e) => {
-//                    println!("create thread cpu ts file failed: thread_id: {}, err: {}", thread_id, e);
-//                    return;
-//                }
-//            }
-//        });
-//        cpu_ts.add_value(time, TSValue::int32(cpu_time_delta as i32));
+        let sample_interval = self.sample_interval as i32;
+        let sample_data_dir = &self.sample_data_dir;
+        let cpu_ts = self.sample_cpu_ts_map.entry(thread_id).or_insert_with(||{
+            let path = format!("{}/thread_{}_cpu_time", sample_data_dir, thread_id);
+            match TimeSeriesFileWriter::new(ValueType::INT32, sample_interval , sample_time, &path) {
+                Ok(ts) => Some(ts),
+                Err(e) => {
+                    println!("create thread cpu ts file failed: thread_id: {}, err: {}", thread_id, e);
+                    None
+                }
+            }
+        });
+        let mut ts_steps = 0u32;
+        if let Some(ts) = cpu_ts {
+            if let Ok(steps) = ts.add_value(sample_time, TSValue::int32((cpu_time_delta/1000 as i64) as i32)) {
+                ts_steps = steps;
+            }
+        }
 
-        //TODO self.save_thread_stack(*thread_id, )
-
+        //save thread stack data
+        let thread_stack_idx = self.sample_stacktrace_map.entry(thread_id).or_insert_with(||{
+            let path = format!("{}/thread_{}_stack", sample_data_dir, thread_id);
+            match TupleIndexedFile::new_writer(&path, ValueType::UINT32) {
+                Ok(idx_file) => Some(idx_file),
+                Err(e) => {
+                    println!("create thread cpu ts file failed: thread_id: {}, err: {}", thread_id, e);
+                    None
+                }
+            }
+        });
+        if let Some(idx_file) = thread_stack_idx {
+            let stack_data = Value::Array(stacktrace.clone());
+            idx_file.add_value(TupleValue::uint32(ts_steps), stack_data.encode().as_slice());
+        }
     }
 
     fn save_method_info(&mut self, method_id: i64, method_name: &String) {
@@ -242,9 +269,9 @@ impl SamplerClient {
 
     fn create_thread_cpu_ts_file(&mut self, thread_id: i64) {
 
-        let ts_path = "thread_cpu_time_ts_";
-        let unit_time = 100 as i64;
-        let mut thread_cpu_ts = TimeSeriesFileWriter::new(ValueType::INT16, unit_time as i32, ts_path).unwrap();
+//        let ts_path = "thread_cpu_time_ts_";
+//        let unit_time = 100 as i64;
+//        let mut thread_cpu_ts = TimeSeriesFileWriter::new(ValueType::INT16, unit_time as i32, ts_path).unwrap();
 
     }
 

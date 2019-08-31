@@ -14,9 +14,10 @@ extern crate chrono;
 extern crate flare_utils;
 
 
+pub mod sampler_client;
 mod call_tree;
 mod client_utils;
-pub mod sampler_client;
+mod client_encoder;
 
 
 
