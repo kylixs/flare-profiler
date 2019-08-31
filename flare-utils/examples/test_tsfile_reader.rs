@@ -2,6 +2,7 @@
 extern crate rand;
 extern crate chrono;
 
+use flare_utils::ValueType;
 use flare_utils::timeseries::*;
 use chrono::Local;
 use rand::Rng;
@@ -22,8 +23,8 @@ fn main() {
 fn test_get_range_value(tsfile: &TimeSeriesFileReader, start_time: i64, unit_time: i64) {
     let info = tsfile.get_header_info();
     let mut rng = rand::thread_rng();
-    let start = rng.gen_range(0, 10000) as i64;
-    let end = rng.gen_range(10000, info.amount) as i64;
+    let start = rng.gen_range(0, info.amount/2) as i64;
+    let end = rng.gen_range(info.amount/2, info.amount) as i64;
     let ratio = 2i32.pow(rng.gen_range(0, 5));
 
     let t1 = Local::now().timestamp_millis();

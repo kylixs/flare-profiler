@@ -75,11 +75,11 @@ impl TimeSeriesFile {
     fn new(value_type: ValueType, unit_time: i32, path: &str, file: File) -> TimeSeriesFile {
         TimeSeriesFile{
             path: path.to_string(),
-            file: file,
+            file,
             data_offset: 0,
-            unit_time: unit_time,
+            unit_time,
             unit_len: get_unit_len(value_type),
-            value_type: value_type,
+            value_type,
             begin_time: 0,
             end_time: 0,
             amount: 0
@@ -240,6 +240,10 @@ impl TimeSeriesFileReader {
         &self.info
     }
 
+    pub fn get_begin_time(&self) -> i64 {
+        self.info.begin_time
+    }
+
     pub fn get_range_value_int16(&self, start_time: i64, end_time: i64, unit_time_ms: i32) -> TSResult {
         self.info.get_range_value_int16(start_time, end_time, unit_time_ms)
     }
@@ -249,7 +253,7 @@ impl TimeSeriesFileReader {
 
 impl TimeSeriesFileWriter {
 
-    pub fn new(value_type: ValueType, unit_time: i32, path: &str) -> Result<TimeSeriesFileWriter, Error> {
+    pub fn new(value_type: ValueType, unit_time: i32, begin_time: i64, path: &str) -> Result<TimeSeriesFileWriter, Error> {
         let mut path = path.to_string()+".fts";
         let now_time = Local::now().timestamp_millis();
         let file_rs = OpenOptions::new()
@@ -260,17 +264,18 @@ impl TimeSeriesFileWriter {
         match file_rs {
             Ok(file) => {
                 let info = TimeSeriesFile::new(value_type, unit_time, &path, file);
-                Ok(TimeSeriesFileWriter {
+                let mut writer = TimeSeriesFileWriter {
                     info: info,
                     inited: false
-                })
+                };
+                writer.init(begin_time);
+                Ok(writer)
             },
             Err(err) => Err(err)
         }
     }
 
     fn init(&mut self, time: i64) -> Result<bool, Error> {
-
         if !self.inited {
             let info = &mut self.info;
             info.begin_time = time;
@@ -320,10 +325,16 @@ impl TimeSeriesFileWriter {
         &self.info
     }
 
-    pub fn add_value(&mut self, time: i64, value: TSValue) -> Result<bool, Error> {
-        self.init(time);
+    pub fn get_begin_time(&self) -> i64 {
+        self.info.begin_time
+    }
+
+    pub fn add_value(&mut self, time: i64, value: TSValue) -> Result<u32, Error> {
         let info = &mut self.info;
-        let steps = (time - info.begin_time) / info.unit_time as i64;
+        let mut steps = (time - info.begin_time) / info.unit_time as i64;
+        if steps < 0 {
+            steps = 0;
+        }
         let file = &mut info.file;
         info.amount = min(info.amount+1, steps as i32 +1);
         info.end_time = info.begin_time + steps * info.unit_time as i64;
@@ -362,7 +373,7 @@ impl TimeSeriesFileWriter {
             }
         }
 
-        Ok(true)
+        Ok(steps as u32)
     }
 
     pub fn get_range_value_int16(&self, start_time: i64, end_time: i64, unit_time_ms: i32) -> TSResult {
