@@ -18,6 +18,8 @@ use std::path::PathBuf;
 use client_utils;
 use client_utils::{get_resp_property, parse_resp_properties};
 use std::hash::Hash;
+use std::sync::{Mutex, Arc};
+use std::cmp::min;
 
 
 type JavaLong = i64;
@@ -47,6 +49,8 @@ pub struct MethodData {
 
 
 pub struct SamplerClient {
+    //self ref
+    this_ref: Option<Arc<Mutex<SamplerClient>>>,
     connected: bool,
     agent_addr: String,
     agent_stream: Option<TcpStream>,
@@ -67,7 +71,7 @@ pub struct SamplerClient {
 
 impl SamplerClient {
 
-    pub fn new(addr: &str) -> io::Result<SamplerClient> {
+    pub fn new(addr: &str) -> io::Result<Arc<Mutex<SamplerClient>>> {
 
         //create sample data dir
         let now = Local::now();
@@ -79,8 +83,8 @@ impl SamplerClient {
         //method info idx file
         let mut method_idx_path = format!("{}/method_info", sample_data_dir);
         let mut sample_method_idx_file = TupleIndexedFile::new_writer(&method_idx_path, ValueType::INT64)?;
-
-        Ok(SamplerClient {
+        let mut client = Arc::new(Mutex::new(SamplerClient {
+            this_ref: None,
             sample_interval: 20,
             sample_start_time: 0,
             threads: HashMap::new(),
@@ -93,7 +97,10 @@ impl SamplerClient {
             agent_stream: None,
 //            method_cache: HashMap::new(),
 //            tree_arena: TreeArena::new()
-        })
+        }));
+        //self ref for threads
+        client.lock().unwrap().this_ref = Some(client.clone());
+        Ok(client)
     }
 
     fn connect_agent(&mut self) -> io::Result<TcpStream> {
@@ -116,23 +123,29 @@ impl SamplerClient {
         let size = stream.write(cmd.as_slice()).unwrap();
         println!("start subscribe events, awaiting reply: {}", cmdValue.to_encoded_string()?);
 
-        let mut decoder = resp::Decoder::with_buf_bulk(BufReader::new(stream));
-        while match decoder.decode() {
-            Ok(data) => {
-                self.on_sample_data(data);
-                true
-            },
-            Err(e) => {
-                println!("Failed to receive data: {}", e);
-                false
-            }
-        }{}
-        println!("subscribe events is stopped.");
+
+        if let Some(this_ref) = &self.this_ref {
+            let this = this_ref.clone();
+            std::thread::spawn(move ||{
+                let mut decoder = resp::Decoder::with_buf_bulk(BufReader::new(stream));
+                while match decoder.decode() {
+                    Ok(data) => {
+                        this.lock().unwrap().on_sample_data(data);
+                        true
+                    },
+                    Err(e) => {
+                        println!("Failed to receive data: {}", e);
+                        false
+                    }
+                }{}
+                println!("subscribe events is stopped.");
+            });
+        }
         Ok(true)
     }
 
     fn on_sample_data(&mut self, sample_data: resp::Value) {
-        println!("events: \n{}", sample_data.to_string_pretty());
+        //println!("events: \n{}", sample_data.to_string_pretty());
         if let resp::Value::Array(data_vec) = sample_data {
             if let Value::String(cmd) = &data_vec[0] {
                 if cmd == "method" {
@@ -267,11 +280,14 @@ impl SamplerClient {
         self.sample_method_idx_file.add_value(TupleValue::int64(method_id), method_name.as_bytes());
     }
 
-    fn create_thread_cpu_ts_file(&mut self, thread_id: i64) {
+    pub fn get_dashboard(&mut self) {
 
-//        let ts_path = "thread_cpu_time_ts_";
-//        let unit_time = 100 as i64;
-//        let mut thread_cpu_ts = TimeSeriesFileWriter::new(ValueType::INT16, unit_time as i32, ts_path).unwrap();
+        println!("{:8} {:48} {:8} {:8} {:8} {:8} {:8} {:8}", "ID", "NAME", "GROUP", "PRIORITY", "STATE", "%CPU", "TIME", "DAEMON");
+        for thread in self.threads.values_mut() {
+            let cpu_util = 1;
+            let cpu_time = thread.cpu_time / 1000_000;
+            println!("{:<8} {:<48} {:<8} {:<8} {:<8} {:<8} {:<8} {:<8}", thread.id,  &thread.name[0..min(48, thread.name.len())], "main", thread.priority, thread.state, cpu_util, cpu_time, thread.daemon );
+        }
 
     }
 

@@ -12,9 +12,14 @@ extern crate env_logger;
 extern crate resp;
 extern crate chrono;
 extern crate flare_utils;
+extern crate websocket;
+extern crate timer;
 
+//re-export
+pub use client::*;
 
 pub mod sampler_client;
+mod client;
 mod call_tree;
 mod client_utils;
 mod client_encoder;
