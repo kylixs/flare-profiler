@@ -46,6 +46,9 @@
       }
     }
   },
+  "peerDependencies": {
+    "d3": "~4.7.0"
+  },
   "dependencies": {
     "axios": "^0.18.0",
     "echarts": "^4.2.1",
@@ -56,7 +59,12 @@
     "vue": "^2.6.10",
     "vue-json-viewer": "^2.0.6",
     "vue-router": "^3.0.1",
-    "vuex": "^3.0.1"
+    "vuex": "^3.0.1",
+    "d3-time-format": "^2.1.1",
+    "date-fns": "^1.29.0",
+    "debounce": "^1.1.0",
+    "lodash.defaultsdeep": "^4.6.0",
+    "lodash.uniqby": "^4.7.0"
   },
   "devDependencies": {
     "babel-plugin-transform-async-to-generator": "^6.24.1",
@@ -76,6 +84,7 @@
     "url-loader": "^1.0.1",
     "vue-html-loader": "^1.2.4",
     "vue-loader": "^15.2.4",
-    "vue-style-loader": "^4.1.0"
+    "vue-style-loader": "^4.1.0",
+    "d3": "~4.7.0"
   }
 }
