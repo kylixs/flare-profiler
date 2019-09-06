@@ -67,3 +67,134 @@ unit type (1byte)| unit size (1bytes) | begin_time(8 bytes) | end_time(8 bytes)|
 ```
 |头部信息|方法信息|方法信息|方法信息
 ```
+
+
+###6. Flare UI交互接口
+Flare UI 通过WebSocket协议发送查询分析指令到Flare Client， Flare Client根据指令读取相应的数据文件进行统计分析，然后返回结果。
+请求及响应都为json格式，通用格式如下：
+```json
+{
+   "cmd": "cmd_name",
+   "options" : {
+       ...
+    }
+}
+```
+```json
+{
+   "result": "success",
+   "message": ""
+}
+```
+####1）获取取样信息
+```json
+{
+   "cmd": "sample_info",
+   "options" : {
+    }
+}
+```
+响应结果：
+```json
+{
+   "result": "success",
+   "cmd": "sample_info",
+   "data": {
+      
+   }
+}
+```
+####2）启动取样，注入目标进程
+```json
+{
+   "cmd": "start_sample",
+   "options" : {
+       "sample_method": "attach",
+       "target_pid": 1234,
+       "sample_interval_ms": 20,
+       "sample_duration_sec": 300
+    }
+}
+```
+响应结果：
+```json
+{
+   "result": "success",
+   "cmd": "start_sample",
+   "data": {
+      
+   }
+}
+```
+
+####3）停止取样，关闭目标Agent端口
+```json
+{
+   "cmd": "stop_sample",
+   "options" : {
+    }
+}
+```
+
+####4）获取Dashboard
+包含线程列表、JVM信息
+```json
+{
+   "cmd": "dashboard",
+   "options" : {
+    }
+}
+```
+响应结果：
+```json
+{
+   "result": "success",
+   "cmd": "dashboard",
+   "data": {
+      "time": "20190905 15:41:24",
+      "threads": [{
+          "id" : 132,
+          "name": "DiscoveryClient-1",
+          "group": "main",
+          "priority": 1,
+          "state": "RUNNING",
+          "%cpu" : "20.1",
+          "cpu_time" : "1:21",
+          "daemon": false
+      }],
+      "jvm_info": {}
+   }
+}
+```
+
+####5）获取线程的CPU时间趋势数据
+获取指定时间范围的线程CPU时间趋势数据
+```json
+{
+   "cmd": "cpu_ts",
+   "options" : {
+      "thread_ids": [], // 为空时获取全部线程
+      "start_time": 1567669466207,
+      "end_time": 1567669485649,
+      "unit_time_ms": 1000 
+    }
+}
+```
+响应结果：
+```json
+{
+   "result": "success",
+   "cmd": "cpu_ts",
+   "data": {
+      "threads": [{
+          "id": 132,
+          "name": "DiscoveryClient-1",
+          "start_time": 1567669466207,
+          "end_time": 1567669485649,
+          "unit_time_ms": 1000,
+          "cpu_time": 2342,
+          "ts_data": [10,2,0,0,2,4] 
+      }]
+   }
+}
+```
