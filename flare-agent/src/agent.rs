@@ -72,7 +72,7 @@ impl Agent {
 //        Box::new(Environment::new_from(jvmti, Box::new(jni_env)))
 //    }
     fn create_jvm_env(jvmti: Box<JVMTI>, jni: Box<JNI>) -> Box<Environment> {
-        Box::new(Environment::new_from(jvmti, jni))
+        Box::new(Environment::new(jvmti, jni))
     }
 
     /// Return JVMTI version being used

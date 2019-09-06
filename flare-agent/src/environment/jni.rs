@@ -1,6 +1,6 @@
 use super::super::native::{JavaObject, JNIEnvPtr};
 use super::super::class::ClassId;
-use native::jvmti_native::{jclass, jmethodID};
+use native::jvmti_native::{jclass, jmethodID, jobject};
 use std::ffi::CString;
 use native::{JavaMethod, JavaClass, JavaThread, JavaLong};
 
@@ -17,6 +17,10 @@ pub trait JNI {
     fn get_method_id(&self, clazz: JavaClass, method_name: &str, method_sig: &str ) -> JavaMethod;
 
     fn call_long_method(&self, thread: JavaThread, method_id: JavaMethod) -> JavaLong;
+
+    fn delete_local_ref(&self, obj: jobject);
+
+    fn delete_global_ref(&self, obj: jobject);
 }
 
 ///
@@ -69,6 +73,18 @@ impl JNI for JNIEnvironment {
         unsafe {
            let value = (**self.jni).CallLongMethod.unwrap()(self.jni, thread, method_id);
             value
+        }
+    }
+
+    fn delete_local_ref(&self, obj: jobject) {
+        unsafe {
+            (**self.jni).DeleteLocalRef.unwrap()(self.jni, obj);
+        }
+    }
+
+    fn delete_global_ref(&self, obj: jobject) {
+        unsafe {
+            (**self.jni).DeleteGlobalRef.unwrap()(self.jni, obj);
         }
     }
 }

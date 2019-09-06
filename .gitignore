@@ -4,6 +4,13 @@ target
 classes
 *.class
 
+#flare timeseries file
+*.fts
+#flare index file
+*.fidx
+#flare extra data file
+*.fdata
+
 # Logs
 logs
 *.log

@@ -9,19 +9,17 @@ use std::sync::RwLock;
 use std::sync::Arc;
 use time::Duration;
 
-use thread::*;
 use log::{debug, info, warn};
-use native::{JavaLong, JavaMethod};
-use std::collections::hash_map::IterMut;
 
+use std::collections::hash_map::IterMut;
+type JavaLong = i64;
+type JavaMethod = i64;
 
 static CALL_COUNT: AtomicUsize = AtomicUsize::new(0);
 
 fn get_next_nodeid() {
     CALL_COUNT.fetch_add(1, Ordering::SeqCst);
 }
-
-
 
 // assume thread safe, get lock outside
 pub struct TreeArena {
@@ -41,49 +39,10 @@ impl TreeArena {
         &self.thread_trees
     }
 
-    pub fn get_call_tree(&mut self, thread: &Thread) -> &mut CallStackTree {
-        self.thread_trees.entry(thread.thread_id).or_insert_with(||{ CallStackTree::new(thread.thread_id, &thread.name) });
-        self.thread_trees.get_mut(&thread.thread_id).unwrap()
-    }
-
-//    pub fn begin_call(&mut self, thread: &Thread, class_name: &String, method_name: &String) {
-////        let mut n = self.lock.write().unwrap();
-////        *n += 1;
-//        match self.thread_trees.get_mut(&thread.thread_id) {
-//            Some(thread_data) => {
-//                thread_data.begin_call(&class_name, &method_name);
-//            },
-//            None => {
-//                self.thread_trees.insert(thread.thread_id, CallStackTree::new(thread.thread_id, &thread.name));
-//                let thread_data = self.thread_trees.get_mut(&thread.thread_id).unwrap();
-//                thread_data.begin_call(&class_name, &method_name);
-//                println!(" create call tree: [{:?}] [{}], total trees: {} ", thread.thread_id, thread.name, self.thread_trees.len());
-//            }
-//        }
-//    }
-
-//    pub fn end_call(&mut self, thread: &Thread, class_name: &String, method_name: &String, duration: i64) {
-////        let mut n = self.lock.write().unwrap();
-////        *n += 1;
-//        match self.thread_trees.get_mut(&thread.thread_id) {
-//            Some(thread_data) => {
-//                thread_data.end_call(&class_name, &method_name, duration);
-//            },
-//            None => {}
-//        }
-//    }
-
-    pub fn format_call_tree(&mut self, thread: &Thread, compact: bool) -> String {
-        match self.thread_trees.get(&thread.thread_id) {
-            Some(thread_data) => {
-                println!("call tree of thread: [{}] [{}]", thread.thread_id, thread.name);
-                thread_data.format_call_tree(compact)
-            },
-            None => {
-                println!("call tree not found of thread: [{}] [{}]", thread.thread_id, thread.name);
-                String::from("[call tree not found]")
-            }
-        }
+    pub fn get_call_tree(&mut self, thread_id: JavaLong, thread_name: &str) -> &mut CallStackTree {
+        self.thread_trees.entry(thread_id).or_insert_with(||{
+            CallStackTree::new(thread_id, thread_name)
+        })
     }
 
     pub fn print_all(&self) {
