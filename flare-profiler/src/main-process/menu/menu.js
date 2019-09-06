@@ -64,20 +64,20 @@ const template = [
         submenu:[
             {
                 label: '重新加载',
-                accelerator:(() => {
+                /*accelerator:(() => {
                     if (process.platform === 'darwin') {
                         return 'Ctrl+Command+F'
                     } else {
                         return 'F5'
                     }
-                })(),
+                })(),*/
                 click: (item, focusedWindow) => {
                     focusedWindow.reload();
                 }
             },
             {
                 label: '切换开发者工具',
-                accelerator: 'F12',
+                //accelerator: 'F12',
                 click:(item, focusedWindow) => {
                     if (focusedWindow) {
                         focusedWindow.toggleDevTools();
@@ -86,7 +86,7 @@ const template = [
             },
             {
                 label: '退出',
-                accelerator: 'Control + Q',
+                //accelerator: 'Control + Q',
                 click: (item, focusedWindow) => {
                     focusedWindow.close();
                 }
