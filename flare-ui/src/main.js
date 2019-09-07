@@ -35,6 +35,7 @@ function initialize () {
             mainWindow.maximize()
             require('devtron').install()
         }
+        mainWindow.webContents.openDevTools()
 
         //mainWindow.setMenu(null);
 

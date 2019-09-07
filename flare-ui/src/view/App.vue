@@ -158,7 +158,7 @@
 
                 let count = 1000;
                 for (let i = 0; i < count; i++) {
-                    let info = {date:i,price:Math.random()*200};
+                    let info = {date: (i/100) ,price:Math.random()*200};
                     data.push(info);
                 }
                 this.updateChart = this.getD3LineChart('d3Div', data);
@@ -169,7 +169,7 @@
                 let count = this.refCount;
                 console.log('数据个数：', count)
                 for (let i = 0; i < count; i++) {
-                    let info = {date:i,price:Math.random()*200};
+                    let info = {date:i, price:Math.random()*200};
                     data.push(info);
                 }
                 //this.updateD3ChartDate(data)
