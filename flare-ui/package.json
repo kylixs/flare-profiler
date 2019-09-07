@@ -3,7 +3,7 @@
   "productName": "flare-profiler",
   "version": "1.0.0",
   "description": "My Electron application description",
-  "main": "src/main.js",
+  "main": "src/electron/main.js",
   "scripts": {
     "start": "electron-forge start",
     "package": "electron-forge package",

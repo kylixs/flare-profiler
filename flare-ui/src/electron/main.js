@@ -2,8 +2,6 @@ const path = require('path')
 const glob = require('glob')
 const {app, BrowserWindow, globalShortcut} = require('electron')
 
-const debug = /--debug/.test(process.argv[2])
-
 if (process.mas) app.setName('Electron')
 
 let mainWindow = null
@@ -27,15 +25,9 @@ function initialize () {
         mainWindow.loadURL(path.join('file://', __dirname, '/index.html'))
 
         // 设置应用图标
-        mainWindow.setIcon(path.join(__dirname, '/view/assets/images/favorite.png'))
+        mainWindow.setIcon(path.join(__dirname, '../vue/assets/images/favorite.png'))
 
-        // Launch fullscreen with DevTools open, usage: npm run debug
-        if (debug) {
-            mainWindow.webContents.openDevTools()
-            mainWindow.maximize()
-            require('devtron').install()
-        }
-        mainWindow.webContents.openDevTools()
+        //mainWindow.webContents.openDevTools()
 
         //mainWindow.setMenu(null);
 
@@ -47,25 +39,21 @@ function initialize () {
     /*注册全局快捷键*/
     function registerShortcuts(){
 
-        if (!globalShortcut.isRegistered('F12')) {
-            console.log(1111)
-        }
-
-        globalShortcut.register('Ctrl + F12', () => {
-            mainWindow.webContents.toggleDevTools();
-        })
-
-        globalShortcut.register('Ctrl+Shift+I', () => {
-            mainWindow.webContents.toggleDevTools();
-        })
-
-        globalShortcut.register('Ctrl + F5', () => {
-            mainWindow.reload();
-        })
-
-        globalShortcut.register('Control + Q', () => {
-            mainWindow.close();
-        })
+        // globalShortcut.register('Ctrl + F12', () => {
+        //     mainWindow.webContents.toggleDevTools();
+        // })
+        //
+        // globalShortcut.register('Ctrl+Shift+I', () => {
+        //     mainWindow.webContents.toggleDevTools();
+        // })
+        //
+        // globalShortcut.register('Ctrl + F5', () => {
+        //     mainWindow.reload();
+        // })
+        //
+        // globalShortcut.register('Control + Q', () => {
+        //     mainWindow.close();
+        // })
     }
 
     app.on('ready', () => {
