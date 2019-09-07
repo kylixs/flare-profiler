@@ -9,6 +9,8 @@ use websocket::sender::Writer;
 use websocket::server::upgrade::WsUpgrade;
 use websocket::server::upgrade::sync::Buffer;
 
+type JsonValue = serde_json::Value;
+
 pub struct Profiler {
     self_ref: Option<Arc<Mutex<Profiler>>>,
     sample_client: Option<Arc<Mutex<SamplerClient>>>,
@@ -66,12 +68,13 @@ impl Profiler {
         // Spawn a new thread for each connection.
         thread::spawn(move || {
             let ws_protocol = "flare-ws";
-            if !request.protocols().contains(&ws_protocol.to_string()) {
-                request.reject().unwrap();
-                return;
-            }
+//            if !request.protocols().contains(&ws_protocol.to_string()) {
+//                request.reject().unwrap();
+//                return;
+//            }
 
-            let mut client = request.use_protocol(ws_protocol).accept().unwrap();
+//            let mut client = request.use_protocol(ws_protocol).accept().unwrap();
+            let mut client = request.accept().unwrap();
 
             let ip = client.peer_addr().unwrap();
 
@@ -105,11 +108,25 @@ impl Profiler {
         });
     }
 
-    fn handle_request(self_ref: Arc<Mutex<Profiler>>, sender: &mut Writer<std::net::TcpStream>, json:String) {
-        println!("recv: {}", json);
+    fn handle_request(self_ref: Arc<Mutex<Profiler>>, sender: &mut Writer<std::net::TcpStream>, json_str: String) -> io::Result<()> {
+        println!("recv: {}", json_str);
+//        let message = OwnedMessage::Text(json_str);
+//        sender.send_message(&message);
+
         //TODO parse request to json
-        let message = OwnedMessage::Text(json);
-        sender.send_message(&message);
+        let request: JsonValue = serde_json::from_str(&json_str)?;
+        if let JsonValue::String(cmd) = &request["cmd"] {
+            match cmd {
+                "dashboard" => {
+                    let result = self_ref.lock().unwrap().get_dashboard();
+                    sender.send_message(OwnedMessage::Text(result));
+                }
+            }
+        }else {
+            println!("unknown request: {}", json_str);
+        }
+
+        Ok(())
     }
 
     pub fn startup(&mut self) {

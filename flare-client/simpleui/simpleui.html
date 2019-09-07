@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>Flare Client Test</title>
+		<script src="vue.js" ></script>
+		<script src="simple.js" ></script>
+	</head>
+	<body>
+		<div id="app">
+			<div id="dashboard">
+				<!-- "ID", "NAME", "GROUP", "PRIORITY", "STATE", "%CPU", "TIME", "DAEMON" -->
+				<table>
+					<thead>
+						<th width="10%">ID</th>
+						<th width="20%">Name</th>
+						<th width="10%">Group</th>
+						<th width="10%">Priority</th>
+						<th width="10%">State</th>
+						<th width="10%">%CPU</th>
+						<th width="10%">Time</th>
+						<th width="10%">Daemon</th>
+					</thead>
+					<tbody>
+						<tr v-for="thread in dashboard.threads">
+							<td>{{thread.id}}</td>
+							<td>{{thread.name}}</td>
+							<td>{{thread.group}}</td>
+							<td>{{thread.priority}}</td>
+							<td>{{thread.state}}</td>
+							<td>{{thread.cpu_util}}</td>
+							<td>{{thread.cpu_time}}</td>
+							<td>{{thread.daemon}}</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+			<p id="received">
+				<strong>Received Messages:</strong>
+			</p>
+			<form onsubmit="send('message'); return false">
+				<input type="text" id="message">
+				<input type="submit" value="Send">
+			</form>
+		</div>
+		<script>
+			var profiler = {
+				connected: false,
+				dashboard: {
+					threads: []
+				},
+				get_dashboard_request: function () {
+					return JSON.stringify({
+						"cmd": "dashboard"
+					})
+				}
+			}
+
+			var socket = new WebSocket("ws://127.0.0.1:3344", "flare-ws");
+			socket.onopen = function(evt) {
+				console.log("Connected to flare profiler successfully.");
+				profiler.connected = true;
+			}
+
+			socket.onclose = function(evt) {
+				console.log("Disconnected to flare profiler.");
+				profiler.connected = false;
+			}
+
+			socket.onerror = function(evt) {
+				console.log("Connection error.");
+				profiler.connected = false;
+			}
+
+			socket.onmessage = function (event) {
+				// var received = document.getElementById("received");
+				// var br = document.createElement("BR");
+				// var text = document.createTextNode(event.data);
+				// received.appendChild(br);
+				// received.appendChild(text);
+
+				//parse result
+				var json = JSON.parse(event.data);
+				switch (json.cmd) {
+					case "dashboard":
+						profiler.dashboard.threads = json.data.threads;
+						break;
+					default:
+						console.log("unknown message: ", json);
+						break;
+				}
+
+			};
+
+			function send(element) {
+				var input = document.getElementById(element);
+				socket.send(input.value);
+				input.value = "";
+			}
+
+			function get_dashboard() {
+				socket.send(profiler.get_dashboard_request());
+			}
+
+			var app = new Vue({
+				el: '#app',
+				data: {
+					message: '<h1>菜鸟教程</h1>',
+					dashboard: profiler.dashboard
+				}
+			});
+
+		</script>
+	</body>
+</html>

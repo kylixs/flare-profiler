@@ -20,12 +20,13 @@ use client_utils::{get_resp_property, parse_resp_properties};
 use std::hash::Hash;
 use std::sync::{Mutex, Arc};
 use std::cmp::min;
+use serde::{Deserialize, Serialize};
 
 
 type JavaLong = i64;
 type JavaMethod = i64;
 
-#[derive(Clone)]
+#[derive(Clone, Serialize)]
 pub struct ThreadData {
     pub id: JavaLong,
     pub name: String,
@@ -47,6 +48,13 @@ pub struct MethodData {
 //    pub line_num: u16
 }
 
+#[derive(Serialize)]
+pub struct DashboardInfo {
+    start_time: i64,
+    sample_time: i64,
+    //jvm_info: JvmInfo,
+    threads: Vec<ThreadData>
+}
 
 pub struct SamplerClient {
     //self ref
@@ -58,6 +66,7 @@ pub struct SamplerClient {
     //sample option
     sample_interval: i64,
     sample_start_time: i64,
+    last_sample_time: i64,
 
     //sample data processor
     threads : HashMap<JavaLong, ThreadData>,
@@ -87,6 +96,7 @@ impl SamplerClient {
             this_ref: None,
             sample_interval: 20,
             sample_start_time: 0,
+            last_sample_time: 0,
             threads: HashMap::new(),
             sample_data_dir,
             sample_cpu_ts_map: HashMap::new(),
@@ -238,6 +248,7 @@ impl SamplerClient {
         thread_data.cpu_time_delta = cpu_time_delta;
         thread_data.state = state.to_string();
         thread_data.name = name.to_string();
+        self.last_sample_time = sample_time;
 
         //save thread cpu time
         let sample_interval = self.sample_interval as i32;
@@ -280,15 +291,23 @@ impl SamplerClient {
         self.sample_method_idx_file.add_value(TupleValue::int64(method_id), method_name.as_bytes());
     }
 
-    pub fn get_dashboard(&mut self) {
+    pub fn get_dashboard(&mut self) -> DashboardInfo {
 
-        println!("{:8} {:48} {:8} {:8} {:8} {:8} {:8} {:8}", "ID", "NAME", "GROUP", "PRIORITY", "STATE", "%CPU", "TIME", "DAEMON");
+        let mut info = DashboardInfo {
+            start_time: self.sample_start_time,
+            sample_time: self.last_sample_time,
+            threads: vec![]
+        };
+
+        //println!("{:8} {:48} {:8} {:8} {:8} {:8} {:8} {:8}", "ID", "NAME", "GROUP", "PRIORITY", "STATE", "%CPU", "TIME", "DAEMON");
         for thread in self.threads.values_mut() {
             let cpu_util = 1;
             let cpu_time = thread.cpu_time / 1000_000;
-            println!("{:<8} {:<48} {:<8} {:<8} {:<8} {:<8} {:<8} {:<8}", thread.id,  &thread.name[0..min(48, thread.name.len())], "main", thread.priority, thread.state, cpu_util, cpu_time, thread.daemon );
+            //println!("{:<8} {:<48} {:<8} {:<8} {:<8} {:<8} {:<8} {:<8}", thread.id,  &thread.name[0..min(48, thread.name.len())], "main", thread.priority, thread.state, cpu_util, cpu_time, thread.daemon );
+
         }
 
+        info
     }
 
 //    pub fn write_all_call_trees(&self, writer: &mut std::io::Write, compact: bool) {
