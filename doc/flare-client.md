@@ -76,6 +76,7 @@ Flare UI 通过WebSocket协议发送查询分析指令到Flare Client， Flare C
 {
    "cmd": "cmd_name",
    "options" : {
+      "sample_instance": "localhost:2233",
        ...
     }
 }
@@ -83,13 +84,21 @@ Flare UI 通过WebSocket协议发送查询分析指令到Flare Client， Flare C
 ```json
 {
    "result": "success",
-   "message": ""
+   "message": "",
+   "data" : {
+      "sample_instance": "localhost:2233",
+      ...
+   }
 }
 ```
-####1）获取取样信息
+注意：
+FlareUI支持打开多个取样实例，sample_instance为全局唯一的实例标识符，实例相关的操作都需要指定此参数
+
+####1）列出所有实例
+列出当前打开的所有实例ID
 ```json
 {
-   "cmd": "sample_info",
+   "cmd": "list_instances",
    "options" : {
     }
 }
@@ -98,18 +107,73 @@ Flare UI 通过WebSocket协议发送查询分析指令到Flare Client， Flare C
 ```json
 {
    "result": "success",
-   "cmd": "sample_info",
+   "cmd": "list_instances",
    "data": {
-      
+        "sample_instances": [{
+            "instance_id": "localhost_2233_01",
+            "type": "file"
+        },{
+            "instance_id": "localhost:2233",
+            "type": "attach"
+        }]
    }
 }
 ```
-####2）启动取样，注入目标进程
+
+列出历史取样目录:
 ```json
 {
-   "cmd": "start_sample",
+   "cmd": "history_samples",
    "options" : {
-       "sample_method": "attach",
+    }
+}
+```
+响应结果：
+```json
+{
+   "result": "success",
+   "cmd": "history_samples",
+   "data": {
+        "sample_instances": [{
+            "instance_id": "localhost_2233_01",
+            "type": "file"
+        },{
+            "instance_id": "localhost_2233_02",
+            "type": "file"
+        },{
+            "instance_id": "localhost_2233_03",
+            "type": "file"
+        }]
+   }
+}
+```
+
+####2）打开取样数据
+打开指定的取样数据目录，返回创建取样实例ID。
+```json
+{
+   "cmd": "open_sample",
+   "options" : {
+        "sample_data_dir": "D:/flare-samples/localhost_2233_01"
+    }
+}
+```
+响应结果：
+```json
+{
+   "result": "success",
+   "cmd": "open_sample",
+   "data": {
+        "sample_instance": "localhost_2233_01"
+   }
+}
+```
+####3）启动取样，注入目标进程
+注入指定Java进程，返回创建取样实例ID。
+```json
+{
+   "cmd": "attach_jvm",
+   "options" : {
        "target_pid": 1234,
        "sample_interval_ms": 20,
        "sample_duration_sec": 300
@@ -120,28 +184,51 @@ Flare UI 通过WebSocket协议发送查询分析指令到Flare Client， Flare C
 ```json
 {
    "result": "success",
-   "cmd": "start_sample",
+   "cmd": "attach_jvm",
    "data": {
-      
+      "sample_instance": "localhost:2233"
    }
 }
 ```
 
-####3）停止取样，关闭目标Agent端口
+
+连接指定Flare Agent端口，返回创建取样实例ID。
+```json
+{
+   "cmd": "connect_agent",
+   "options" : {
+       "agent_addr": "localhost:3344"
+    }
+}
+```
+响应结果：
+```json
+{
+   "result": "success",
+   "cmd": "connect_agent",
+   "data": {
+      "sample_instance": "localhost:3344"
+   }
+}
+```
+
+####4）停止取样，关闭目标Agent端口
 ```json
 {
    "cmd": "stop_sample",
    "options" : {
+      "sample_instance": "localhost:2233"
     }
 }
 ```
 
-####4）获取Dashboard
+####5）获取Dashboard
 包含线程列表、JVM信息
 ```json
 {
    "cmd": "dashboard",
    "options" : {
+      "sample_instance": "localhost:2233"
     }
 }
 ```
@@ -151,6 +238,7 @@ Flare UI 通过WebSocket协议发送查询分析指令到Flare Client， Flare C
    "result": "success",
    "cmd": "dashboard",
    "data": {
+      "sample_instance": "localhost:2233",
       "time": "20190905 15:41:24",
       "threads": [{
           "id" : 132,
@@ -167,12 +255,13 @@ Flare UI 通过WebSocket协议发送查询分析指令到Flare Client， Flare C
 }
 ```
 
-####5）获取线程的CPU时间趋势数据
+####6）获取线程的CPU时间趋势数据
 获取指定时间范围的线程CPU时间趋势数据
 ```json
 {
    "cmd": "cpu_ts",
    "options" : {
+      "sample_instance": "localhost:2233",
       "thread_ids": [], // 为空时获取全部线程
       "start_time": 1567669466207,
       "end_time": 1567669485649,
@@ -186,6 +275,7 @@ Flare UI 通过WebSocket协议发送查询分析指令到Flare Client， Flare C
    "result": "success",
    "cmd": "cpu_ts",
    "data": {
+      "sample_instance": "localhost:2233",
       "threads": [{
           "id": 132,
           "name": "DiscoveryClient-1",

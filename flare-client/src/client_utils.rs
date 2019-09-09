@@ -2,6 +2,9 @@ use std::collections::HashMap;
 use websocket::OwnedMessage;
 use serde::Serialize;
 use FlareResponse;
+use serde_json::Number;
+use std::io::ErrorKind;
+use std::io;
 
 pub fn get_resp_property<'a>(data_vec: &'a Vec<resp::Value>, key: &str, start: i32) -> Option<&'a resp::Value> {
     for x in (start as usize..data_vec.len()).step_by(2) {
@@ -61,4 +64,38 @@ pub fn wrap_response<T: ?Sized>(cmd: &str, value: &T) -> OwnedMessage
         data: Box::new(value)
     };
     OwnedMessage::Text(serde_json::to_string(&response).unwrap())
+}
+
+pub fn get_option<'a>(request: &'a serde_json::Value, key: &str) -> Option<&'a serde_json::Value> {
+    if let serde_json::Value::Object(options) = &request[key] {
+        Some(&options["sample_instance"])
+    } else {
+        None
+    }
+}
+
+pub fn get_option_as_str<'a>(request: &'a serde_json::Value, key: &str) -> Option<&'a String> {
+    if let serde_json::Value::Object(options) = &request["options"] {
+        if let serde_json::Value::String(s) = &options[key] {
+            return Some(s);
+        }
+    }
+    return None;
+}
+
+pub fn get_option_as_int(request: &serde_json::Value, key: &str) -> Option<Number> {
+    if let serde_json::Value::Object(options) = &request["options"] {
+        if let serde_json::Value::Number(s) = &options[key] {
+            return Some(s.clone());
+        }
+    }
+    return None;
+}
+
+pub fn new_error(kind: ErrorKind, msg: &str) -> io::Result<()> {
+    Err(io::Error::new(kind, msg))
+}
+
+pub fn new_invalid_input_error(msg: &str) -> io::Result<()> {
+    Err(io::Error::new(ErrorKind::InvalidInput, msg))
 }

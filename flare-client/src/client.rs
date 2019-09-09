@@ -10,6 +10,8 @@ use websocket::server::upgrade::WsUpgrade;
 use websocket::server::upgrade::sync::Buffer;
 use serde::Serialize;
 use client_utils::*;
+use std::collections::HashMap;
+use std::io::ErrorKind;
 
 type JsonValue = serde_json::Value;
 
@@ -22,29 +24,27 @@ pub struct FlareResponse<T: ?Sized> {
 
 pub struct Profiler {
     self_ref: Option<Arc<Mutex<Profiler>>>,
-    sample_client: Option<Arc<Mutex<SamplerClient>>>,
-    agent_addr: String,
-    analysis_bind_addr: String,
+    bind_addr: String,
     running: bool,
+    sample_instance_map: HashMap<String, Arc<Mutex<SamplerClient>>>
 }
 
 impl Profiler {
     pub fn new() -> Arc<Mutex<Profiler>> {
         let mut inst = Arc::new(Mutex::new(Profiler {
             self_ref: None,
-            sample_client: None,
-            agent_addr: "127.0.0.1:3333".to_string(),
-            analysis_bind_addr: "0.0.0.0:3344".to_string(),
-            running: true
+            bind_addr: "0.0.0.0:3344".to_string(),
+            running: true,
+            sample_instance_map: HashMap::new(),
         }));
         inst.lock().unwrap().self_ref = Some(inst.clone());
         inst
     }
 
     pub fn connect_agent(&mut self, agent_addr: &str) -> io::Result<()> {
-        self.agent_addr = agent_addr.to_string();
+        println!("connecting to agent: {}", agent_addr);
         let mut client = SamplerClient::new(agent_addr)?;
-        self.sample_client = Some(client.clone());
+        self.sample_instance_map.insert(agent_addr.to_string(), client.clone());
 
         thread::spawn(move|| {
             client.lock().unwrap().subscribe_events();
@@ -53,17 +53,25 @@ impl Profiler {
         Ok(())
     }
 
-    pub fn get_dashboard(&mut self) -> DashboardInfo {
-        self.sample_client.as_ref().unwrap().lock().unwrap().get_dashboard()
+    pub fn get_dashboard(&mut self, sample_instance: &str) -> io::Result<DashboardInfo> {
+        if let Some(client) = self.sample_instance_map.get(sample_instance) {
+            Ok(client.lock().unwrap().get_dashboard())
+        }else {
+            Err(io::Error::new(ErrorKind::NotFound, "sample instance not found"))
+        }
     }
 
-    pub fn get_sample_info(&mut self) -> SampleInfo {
-        self.sample_client.as_ref().unwrap().lock().unwrap().get_sample_info()
+    pub fn get_sample_info(&mut self, sample_instance: &str) -> io::Result<SampleInfo> {
+        if let Some(client) = self.sample_instance_map.get(sample_instance) {
+            Ok(client.lock().unwrap().get_sample_info())
+        }else {
+            Err(io::Error::new(ErrorKind::NotFound, "sample instance not found"))
+        }
     }
 
     fn start_ws_server(&mut self) {
         let self_ref = self.self_ref.as_ref().unwrap().clone();
-        let bind_addr = self.analysis_bind_addr.clone();
+        let bind_addr = self.bind_addr.clone();
         thread::spawn(move || {
             println!("analysis server binding: {}", bind_addr);
             let server = Server::bind(bind_addr).unwrap();
@@ -77,7 +85,7 @@ impl Profiler {
         });
     }
 
-    fn handle_connection(self_ref: Arc<Mutex<Profiler>>, request: WsUpgrade<std::net::TcpStream, core::option::Option<Buffer>>) {
+    fn handle_connection(self_ref: Arc<Mutex<Profiler>>, request: WsUpgrade<std::net::TcpStream, Option<Buffer>>) {
         // Spawn a new thread for each connection.
         thread::spawn(move || {
             let ws_protocol = "flare-profiler";
@@ -92,8 +100,11 @@ impl Profiler {
             println!("Connection from {}", ip);
 
             //send first message
-            let sample_info = self_ref.lock().unwrap().get_sample_info();
-            client.send_message(&wrap_response( "sample_info", &sample_info));
+//            let sample_info = self_ref.lock().unwrap().get_sample_info()?;
+//            client.send_message(&wrap_response( "sample_info", &sample_info));
+
+            //recv first message
+//            client.recv_message();
 
             //recv and dispatch message
             let (mut receiver, mut sender) = client.split().unwrap();
@@ -111,7 +122,7 @@ impl Profiler {
                         sender.send_message(&message).unwrap();
                     }
                     OwnedMessage::Text(json) => {
-                        Profiler::handle_request(self_ref.clone(), &mut sender, json);
+                        Profiler::handle_request(self_ref.clone(), &mut sender,json);
                     }
                     _ => sender.send_message(&message).unwrap(),
                 }
@@ -127,11 +138,63 @@ impl Profiler {
 
         //TODO parse request to json
         let request: JsonValue = serde_json::from_str(&json_str)?;
+        let temp;
+        let options = (
+            if let Some(s) = request["options"].as_object() { s
+            }else { temp = serde_json::Map::new(); &temp }
+        );
+
         if let JsonValue::String(cmd) = &request["cmd"] {
             match cmd.as_str() {
+                "list_instances" => {
+                    //
+                }
+                "history_samples" => {
+                    //
+                }
+                "open_sample" => {
+                    let sample_data_dir = options["sample_data_dir"].as_str();
+                    if sample_data_dir.is_none() {
+                        return new_invalid_input_error("missing option 'sample_data_dir'");
+                    }
+                    //
+                }
+                "attach_jvm" => {
+                    let sample_method = options["sample_method"].as_str();
+                    if sample_method.is_none() {
+                        return new_invalid_input_error("missing option 'sample_method'");
+                    }
+
+                    let target_pid = options["target_pid"].as_u64();
+                    if target_pid.is_none() {
+                        return new_invalid_input_error("missing option 'target_pid'");
+                    }
+
+                    let sample_interval_ms = options["sample_interval_ms"].as_u64();
+                    if sample_interval_ms.is_none() {
+                        return new_invalid_input_error("missing option 'sample_interval_ms'");
+                    }
+
+                    let mut sample_duration_sec = options["sample_duration_sec"].as_u64();
+                    if sample_duration_sec.is_none() {
+                        sample_duration_sec = Some(0);
+                    }
+                    //attach
+                }
+                "connect_agent" => {
+                    let agent_addr = options["agent_addr"].as_str();
+                    if agent_addr.is_none() {
+                        return new_invalid_input_error("missing option 'agent_addr'");
+                    }
+                    self_ref.lock().unwrap().connect_agent(agent_addr.unwrap());
+                }
                 "dashboard" => {
-                    let dashboard_info = self_ref.lock().unwrap().get_dashboard();
-                    sender.send_message(&wrap_response(&cmd, &dashboard_info));
+                    if let Some(sample_instance) = options["sample_instance"].as_str() {
+                        let dashboard_info = self_ref.lock().unwrap().get_dashboard(sample_instance)?;
+                        sender.send_message(&wrap_response(&cmd, &dashboard_info));
+                    } else {
+                        println!("missing 'sample_instance': {}, request: {}", cmd, json_str);
+                    }
                 }
                 _ => {
                     println!("unknown cmd: {}, request: {}", cmd, json_str);

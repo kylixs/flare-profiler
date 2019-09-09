@@ -7,13 +7,29 @@
 		<script src="simple.js" ></script>
 		<style type="text/css" >
 			#dashboard {
-				width: 800px;
+				width: 1000px;
+			}
+
+			input.input-field {
+				width: 250px;
 			}
 		</style>
 	</head>
 	<body>
 		<div id="app">
-			<input type="button" value="Dashboard" onclick="get_dashboard()" >
+			<div>
+				<p>Start Sample:
+				<input class="input-field" type="text" value="localhost:2233" v-model="profiler.agent_addr">
+				<input type="button" value="Connect" onclick="start_sample()" >
+				</p>
+			</div>
+			<div>
+				<p>Open Sample:
+				<input class="input-field" type="file" v-model="profiler.sample_dir">
+				<input type="button" value="Open" onclick="open_sample()" >
+				</p>
+			</div>
+			<br>
 			<div id="dashboard">
 				<p>Sample Info </p>
 				<p>Sample Start Time: {{profiler.dashboard.sample_info.sample_start_time}}</p>
@@ -53,6 +69,8 @@
 		<script>
 			var profiler = {
 				connected: false,
+				agent_addr: "localhost:2233",
+				sample_dir: null,
 				dashboard_timer: null,
 				dashboard: {
 					sample_info: {},
