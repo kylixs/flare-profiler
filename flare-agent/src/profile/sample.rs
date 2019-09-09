@@ -122,6 +122,7 @@ pub struct Sampler {
     running: bool,
     sample_interval: u64,
     start_time: i64,
+    last_sample_time: i64,
     threads_map: HashMap<JavaLong, ThreadData>,
     sender: Option<mpsc::Sender<resp::Value>>,
     receiver: Option<mpsc::Receiver<resp::Value>>,
@@ -141,6 +142,7 @@ impl Sampler {
             running: false,
             sample_interval: 0,
             start_time:0,
+            last_sample_time:0,
             sender: None,
             receiver: None,
             threads_map: HashMap::new()
@@ -203,6 +205,7 @@ impl Sampler {
     pub fn add_stack_traces(&mut self, jvmenv: &Box<Environment>, stack_traces: &Vec<JavaStackTrace>) {
         //merge to call stack tree
         let now_time = Local::now().timestamp_millis();
+        self.last_sample_time = now_time;
         let mut sample_data_vec :Vec<Box<SampleData+Send>> = vec![];
         for (i, stack_info) in stack_traces.iter().enumerate() {
             let thread_info = &stack_info.thread;
@@ -306,7 +309,7 @@ impl Sampler {
     }
 
     fn send_sample_info(&mut self) {
-        let response = resp_encode_sample_info(self.start_time, self.sample_interval);
+        let response = resp_encode_sample_info(self.start_time, self.sample_interval, self.last_sample_time);
         //add_sample_data(ResponseData::new("sample_info".to_string(),response));
         Sampler::send_response(&self.sender, response);
     }

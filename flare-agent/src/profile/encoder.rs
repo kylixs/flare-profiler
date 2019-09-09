@@ -41,12 +41,14 @@ pub fn resp_encode_method_data(method_data: &MethodData) -> Value {
     ])
 }
 
-pub fn resp_encode_sample_info(start_time: i64, sample_interval:u64) -> Value {
+pub fn resp_encode_sample_info(start_time: i64, sample_interval:u64, last_sample_time: i64) -> Value {
     Value::Array(vec![
         Value::String("sample_info".to_string()),
         Value::String("start_time".to_string()),
         Value::Integer(start_time),
         Value::String("sample_interval".to_string()),
         Value::Integer(sample_interval as i64),
+        Value::String("last_sample_time".to_string()),
+        Value::Integer(last_sample_time),
     ])
 }
