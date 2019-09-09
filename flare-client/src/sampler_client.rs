@@ -127,12 +127,24 @@ impl SamplerClient {
             println!("save sample data to dir: {}", sample_data_dir);
 
             //method info idx file
-            let mut method_idx_path = format!("{}/method_info", sample_data_dir);
+            let method_idx_path = format!("{}/method_info", sample_data_dir);
+            if self.sample_method_idx_file.is_some() {
+                //copy old method info file to new dir
+                let old_method_file = format!("{}/method_info.fidx", self.sample_data_dir);
+                let new_method_file = format!("{}/method_info.fidx", sample_data_dir);
+                std::fs::copy(old_method_file, new_method_file)?;
+
+                let old_method_file = format!("{}/method_info.fdata", self.sample_data_dir);
+                let new_method_file = format!("{}/method_info.fdata", sample_data_dir);
+                std::fs::copy(old_method_file, new_method_file)?;
+            }
             let mut method_idx_file = TupleIndexedFile::new_writer(&method_idx_path, ValueType::INT64)?;
 
             self.record_start_time = sample_time;
             self.sample_data_dir = sample_data_dir;
             self.sample_method_idx_file = Some(method_idx_file);
+            self.sample_cpu_ts_map.clear();
+            self.sample_stacktrace_map.clear();
             Ok(true)
         }else {
             Ok(false)

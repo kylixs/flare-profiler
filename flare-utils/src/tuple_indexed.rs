@@ -147,12 +147,29 @@ impl TupleIndexedFile {
 
     fn init_writer(&mut self) -> Result<(), Error> {
         if !self.inited {
-            let now_time = Local::now().timestamp_millis();
-            self.begin_time = now_time;
-            self.end_time = now_time;
 
-            self.save_indexed_header_info()?;
-            self.save_extra_header_info()?;
+            //读取已经存在的文件头信息
+            let mut load = false;
+            if let Ok(len) = self.indexed_file.seek(SeekFrom::End(0)) {
+                if len > 0 {
+                    if let Err(e) = self.init_reader() {
+                        //load file failed
+                        return Err(e);
+                    }else {
+                        load = true;
+                    }
+                }
+            }
+
+            //文件不存在或者文件大小为0
+            if !load {
+                let now_time = Local::now().timestamp_millis();
+                self.begin_time = now_time;
+                self.end_time = now_time;
+                self.save_indexed_header_info()?;
+                self.save_extra_header_info()?;
+            }
+
             self.inited = true;
         }
         Ok(())
