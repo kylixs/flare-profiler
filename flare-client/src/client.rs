@@ -8,8 +8,17 @@ use websocket::sync::sender::Sender;
 use websocket::sender::Writer;
 use websocket::server::upgrade::WsUpgrade;
 use websocket::server::upgrade::sync::Buffer;
+use serde::Serialize;
+use client_utils::*;
 
 type JsonValue = serde_json::Value;
+
+#[derive(Clone, Serialize)]
+pub struct FlareResponse<T: ?Sized> {
+    pub result: String,
+    pub cmd: String,
+    pub data: Box<T>
+}
 
 pub struct Profiler {
     self_ref: Option<Arc<Mutex<Profiler>>>,
@@ -44,8 +53,12 @@ impl Profiler {
         Ok(())
     }
 
-    pub fn get_dashboard(&mut self) {
-        self.sample_client.as_ref().unwrap().lock().unwrap().get_dashboard();
+    pub fn get_dashboard(&mut self) -> DashboardInfo {
+        self.sample_client.as_ref().unwrap().lock().unwrap().get_dashboard()
+    }
+
+    pub fn get_sample_info(&mut self) -> SampleInfo {
+        self.sample_client.as_ref().unwrap().lock().unwrap().get_sample_info()
     }
 
     fn start_ws_server(&mut self) {
@@ -67,27 +80,25 @@ impl Profiler {
     fn handle_connection(self_ref: Arc<Mutex<Profiler>>, request: WsUpgrade<std::net::TcpStream, core::option::Option<Buffer>>) {
         // Spawn a new thread for each connection.
         thread::spawn(move || {
-            let ws_protocol = "flare-ws";
-//            if !request.protocols().contains(&ws_protocol.to_string()) {
-//                request.reject().unwrap();
-//                return;
-//            }
-
-//            let mut client = request.use_protocol(ws_protocol).accept().unwrap();
-            let mut client = request.accept().unwrap();
+            let ws_protocol = "flare-profiler";
+            if !request.protocols().contains(&ws_protocol.to_string()) {
+                request.reject().unwrap();
+                return;
+            }
+            let mut client = request.use_protocol(ws_protocol).accept().unwrap();
+//            let mut client = request.accept().unwrap();
 
             let ip = client.peer_addr().unwrap();
-
             println!("Connection from {}", ip);
 
-            let message = OwnedMessage::Text("Hello".to_string());
-            client.send_message(&message).unwrap();
+            //send first message
+            let sample_info = self_ref.lock().unwrap().get_sample_info();
+            client.send_message(&wrap_response( "sample_info", &sample_info));
 
+            //recv and dispatch message
             let (mut receiver, mut sender) = client.split().unwrap();
-
             for message in receiver.incoming_messages() {
                 let message = message.unwrap();
-
                 match message {
                     OwnedMessage::Close(_) => {
                         let message = OwnedMessage::Close(None);
@@ -108,6 +119,7 @@ impl Profiler {
         });
     }
 
+
     fn handle_request(self_ref: Arc<Mutex<Profiler>>, sender: &mut Writer<std::net::TcpStream>, json_str: String) -> io::Result<()> {
         println!("recv: {}", json_str);
 //        let message = OwnedMessage::Text(json_str);
@@ -116,14 +128,17 @@ impl Profiler {
         //TODO parse request to json
         let request: JsonValue = serde_json::from_str(&json_str)?;
         if let JsonValue::String(cmd) = &request["cmd"] {
-            match cmd {
+            match cmd.as_str() {
                 "dashboard" => {
-                    let result = self_ref.lock().unwrap().get_dashboard();
-                    sender.send_message(OwnedMessage::Text(result));
+                    let dashboard_info = self_ref.lock().unwrap().get_dashboard();
+                    sender.send_message(&wrap_response(&cmd, &dashboard_info));
+                }
+                _ => {
+                    println!("unknown cmd: {}, request: {}", cmd, json_str);
                 }
             }
         }else {
-            println!("unknown request: {}", json_str);
+            println!("invalid request: {}", json_str);
         }
 
         Ok(())

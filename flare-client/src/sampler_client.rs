@@ -16,7 +16,7 @@ use flare_utils::timeseries::TimeSeriesFileWriter;
 use flare_utils::{ValueType};
 use std::path::PathBuf;
 use client_utils;
-use client_utils::{get_resp_property, parse_resp_properties};
+use client_utils::*;
 use std::hash::Hash;
 use std::sync::{Mutex, Arc};
 use std::cmp::min;
@@ -50,10 +50,19 @@ pub struct MethodData {
 
 #[derive(Serialize)]
 pub struct DashboardInfo {
-    start_time: i64,
-    sample_time: i64,
-    //jvm_info: JvmInfo,
+    sample_info: SampleInfo,
     threads: Vec<ThreadData>
+    //jvm_info: JvmInfo,
+}
+
+#[derive(Serialize)]
+pub struct SampleInfo {
+    sample_interval: i64,
+    sample_start_time: i64,
+    record_start_time: i64,
+    last_record_time: i64,
+    agent_addr: String,
+    sample_data_dir: String,
 }
 
 pub struct SamplerClient {
@@ -66,14 +75,17 @@ pub struct SamplerClient {
     //sample option
     sample_interval: i64,
     sample_start_time: i64,
-    last_sample_time: i64,
+
+    //client
+    record_start_time: i64,
+    last_record_time: i64,
 
     //sample data processor
     threads : HashMap<JavaLong, ThreadData>,
     sample_data_dir: String,
     sample_cpu_ts_map: HashMap<JavaLong, Option<TimeSeriesFileWriter>>,
     sample_stacktrace_map: HashMap<JavaLong, Option<TupleIndexedFile>>,
-    sample_method_idx_file: TupleIndexedFile,
+    sample_method_idx_file: Option<TupleIndexedFile>,
 //    method_cache: HashMap<MethodId, MethodInfo>,
 //    tree_arena: TreeArena
 }
@@ -82,26 +94,17 @@ impl SamplerClient {
 
     pub fn new(addr: &str) -> io::Result<Arc<Mutex<SamplerClient>>> {
 
-        //create sample data dir
-        let now = Local::now();
-        let now_time = now.format("%Y%m%dT%H%M%S").to_string();
-        let sample_data_dir = format!("flare-samples/{}-{}", addr.replace(":","_"), now_time);
-        std::fs::create_dir_all(sample_data_dir.clone())?;
-        println!("save sample data to dir: {}", sample_data_dir);
-
-        //method info idx file
-        let mut method_idx_path = format!("{}/method_info", sample_data_dir);
-        let mut sample_method_idx_file = TupleIndexedFile::new_writer(&method_idx_path, ValueType::INT64)?;
         let mut client = Arc::new(Mutex::new(SamplerClient {
             this_ref: None,
             sample_interval: 20,
             sample_start_time: 0,
-            last_sample_time: 0,
+            record_start_time: 0,
+            last_record_time: 0,
             threads: HashMap::new(),
-            sample_data_dir,
+            sample_data_dir: "".to_string(),
             sample_cpu_ts_map: HashMap::new(),
             sample_stacktrace_map: HashMap::new(),
-            sample_method_idx_file,
+            sample_method_idx_file: None,
             connected: false,
             agent_addr: addr.to_string(),
             agent_stream: None,
@@ -111,6 +114,29 @@ impl SamplerClient {
         //self ref for threads
         client.lock().unwrap().this_ref = Some(client.clone());
         Ok(client)
+    }
+
+    //按小时滚动更换数据保存目录
+    fn check_and_roll_data_dir(&mut self, sample_time: i64) -> io::Result<bool> {
+        if self.record_start_time==0 || sample_time - self.record_start_time > 3600_000 {
+            //create sample data dir
+            let now = Local::now();
+            let now_time = now.format("%Y%m%dT%H%M%S").to_string();
+            let sample_data_dir = format!("flare-samples/{}-{}", self.agent_addr.replace(":","_"), now_time);
+            std::fs::create_dir_all(sample_data_dir.clone())?;
+            println!("save sample data to dir: {}", sample_data_dir);
+
+            //method info idx file
+            let mut method_idx_path = format!("{}/method_info", sample_data_dir);
+            let mut method_idx_file = TupleIndexedFile::new_writer(&method_idx_path, ValueType::INT64)?;
+
+            self.record_start_time = sample_time;
+            self.sample_data_dir = sample_data_dir;
+            self.sample_method_idx_file = Some(method_idx_file);
+            Ok(true)
+        }else {
+            Ok(false)
+        }
     }
 
     fn connect_agent(&mut self) -> io::Result<TcpStream> {
@@ -170,17 +196,14 @@ impl SamplerClient {
     }
 
     fn on_sample_info_data(&mut self, data_vec: &Vec<Value>) {
-        let mut start_time= 0;
-        if let Some(Value::Integer(x)) = get_resp_property(data_vec, "start_time", 1) {
-            start_time = *x;
-        }
-        let mut sample_interval= 0;
-        if let Some(Value::Integer(x)) = get_resp_property(data_vec, "sample_interval", 1) {
-            sample_interval = *x;
-        }
+        let start_time= get_resp_property_as_int(data_vec, "start_time", 1, 0);
+        let sample_interval= get_resp_property_as_int(data_vec, "sample_interval", 1, 0);
+        let last_sample_time= get_resp_property_as_int(data_vec, "last_sample_time", 1, 0);
         self.sample_start_time = start_time;
         self.sample_interval = sample_interval;
         println!("on sample info: start_time:{}, sample_interval:{}", start_time, sample_interval);
+
+        self.check_and_roll_data_dir(last_sample_time);
     }
 
     fn on_method_data(&mut self, data_vec: &Vec<Value>) {
@@ -197,31 +220,12 @@ impl SamplerClient {
 
     fn on_thread_data(&mut self, data_vec: &Vec<Value>) {
         //let map = parse_resp_properties(data_vec, 1);
-        //let mut thread_id = get_resp_int_value(map, "id");
-        let mut sample_time= 0;
-        if let Some(Value::Integer(x)) = get_resp_property(data_vec, "time", 1) {
-            sample_time = *x;
-        }
-        let mut thread_id = 0;
-        if let Some(Value::Integer(x)) = get_resp_property(data_vec, "id", 1) {
-            thread_id = *x;
-        }
-        let mut cpu_time = 0;
-        if let Some(Value::Integer(x)) = get_resp_property(data_vec, "cpu_time", 1) {
-            cpu_time = *x;
-        }
-        let mut cpu_time_delta = 0;
-        if let Some(Value::Integer(x)) = get_resp_property(data_vec, "cpu_time_delta", 1) {
-            cpu_time_delta = *x;
-        }
-        let mut name = "";
-        if let Some(Value::String(x)) = get_resp_property(data_vec, "name", 1) {
-            name = x;
-        }
-        let mut state = "";
-        if let Some(Value::String(x)) = get_resp_property(data_vec, "state", 1) {
-            state = x;
-        }
+        let sample_time= get_resp_property_as_int(data_vec, "time", 1, 0);
+        let thread_id= get_resp_property_as_int(data_vec, "id", 1, 0);
+        let cpu_time= get_resp_property_as_int(data_vec, "cpu_time", 1, 0);
+        let cpu_time_delta= get_resp_property_as_int(data_vec, "cpu_time_delta", 1, 0);
+        let name= get_resp_property_as_str(data_vec, "name", 1, "");
+        let state= get_resp_property_as_str(data_vec, "state", 1, "");
         let mut stacktrace = &vec![];
         if let Some(Value::Array(x)) = get_resp_property(data_vec, "stacktrace", 1) {
             stacktrace = x;
@@ -248,7 +252,10 @@ impl SamplerClient {
         thread_data.cpu_time_delta = cpu_time_delta;
         thread_data.state = state.to_string();
         thread_data.name = name.to_string();
-        self.last_sample_time = sample_time;
+
+        //prepare data dir
+        self.check_and_roll_data_dir(sample_time);
+        self.last_record_time = sample_time;
 
         //save thread cpu time
         let sample_interval = self.sample_interval as i32;
@@ -288,26 +295,40 @@ impl SamplerClient {
     }
 
     fn save_method_info(&mut self, method_id: i64, method_name: &String) {
-        self.sample_method_idx_file.add_value(TupleValue::int64(method_id), method_name.as_bytes());
+        if let Some(idx) = self.sample_method_idx_file.as_mut() {
+            idx.add_value(TupleValue::int64(method_id), method_name.as_bytes());
+        }
     }
 
     pub fn get_dashboard(&mut self) -> DashboardInfo {
 
         let mut info = DashboardInfo {
-            start_time: self.sample_start_time,
-            sample_time: self.last_sample_time,
+            sample_info: self.get_sample_info(),
             threads: vec![]
         };
 
         //println!("{:8} {:48} {:8} {:8} {:8} {:8} {:8} {:8}", "ID", "NAME", "GROUP", "PRIORITY", "STATE", "%CPU", "TIME", "DAEMON");
         for thread in self.threads.values_mut() {
+            //计算CPU占用率
             let cpu_util = 1;
-            let cpu_time = thread.cpu_time / 1000_000;
+//            let cpu_time = thread.cpu_time / 1000_000;
             //println!("{:<8} {:<48} {:<8} {:<8} {:<8} {:<8} {:<8} {:<8}", thread.id,  &thread.name[0..min(48, thread.name.len())], "main", thread.priority, thread.state, cpu_util, cpu_time, thread.daemon );
 
+            info.threads.push(thread.clone())
         }
 
         info
+    }
+
+    pub fn get_sample_info(&self) -> SampleInfo {
+        SampleInfo {
+            sample_start_time: self.sample_start_time,
+            record_start_time: self.record_start_time,
+            last_record_time: self.last_record_time,
+            sample_interval: self.sample_interval,
+            agent_addr: self.agent_addr.clone(),
+            sample_data_dir: self.sample_data_dir.clone()
+        }
     }
 
 //    pub fn write_all_call_trees(&self, writer: &mut std::io::Write, compact: bool) {

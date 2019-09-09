@@ -1,14 +1,27 @@
 <!DOCTYPE html>
-<html>
+<html xmlns:v-bind="http://www.w3.org/1999/xhtml" xmlns:v-on="http://www.w3.org/1999/xhtml">
 	<head>
 		<meta charset="utf-8">
 		<title>Flare Client Test</title>
 		<script src="vue.js" ></script>
 		<script src="simple.js" ></script>
+		<style type="text/css" >
+			#dashboard {
+				width: 800px;
+			}
+		</style>
 	</head>
 	<body>
 		<div id="app">
+			<input type="button" value="Dashboard" onclick="get_dashboard()" >
 			<div id="dashboard">
+				<p>Sample Info </p>
+				<p>Sample Start Time: {{profiler.dashboard.sample_info.sample_start_time}}</p>
+				<p>Record Start Time: {{profiler.dashboard.sample_info.record_start_time}}</p>
+				<p>Last Record Time: {{profiler.dashboard.sample_info.last_record_time}}</p>
+				<p>Record Duration: {{(profiler.dashboard.sample_info.last_record_time - profiler.dashboard.sample_info.record_start_time)/1000}}s</p>
+
+				<br>
 				<!-- "ID", "NAME", "GROUP", "PRIORITY", "STATE", "%CPU", "TIME", "DAEMON" -->
 				<table>
 					<thead>
@@ -22,44 +35,55 @@
 						<th width="10%">Daemon</th>
 					</thead>
 					<tbody>
-						<tr v-for="thread in dashboard.threads">
+						<tr v-for="thread in profiler.dashboard.threads">
 							<td>{{thread.id}}</td>
 							<td>{{thread.name}}</td>
 							<td>{{thread.group}}</td>
 							<td>{{thread.priority}}</td>
 							<td>{{thread.state}}</td>
 							<td>{{thread.cpu_util}}</td>
-							<td>{{thread.cpu_time}}</td>
+							<td>{{thread.cpu_time/1000000}}</td>
 							<td>{{thread.daemon}}</td>
 						</tr>
 					</tbody>
 				</table>
 			</div>
-			<p id="received">
-				<strong>Received Messages:</strong>
-			</p>
-			<form onsubmit="send('message'); return false">
-				<input type="text" id="message">
-				<input type="submit" value="Send">
-			</form>
+
 		</div>
 		<script>
 			var profiler = {
 				connected: false,
+				dashboard_timer: null,
 				dashboard: {
+					sample_info: {},
 					threads: []
 				},
 				get_dashboard_request: function () {
 					return JSON.stringify({
 						"cmd": "dashboard"
 					})
+				},
+				start_dashboard: function () {
+					if (this.dashboard_timer == null) {
+						this.dashboard_timer = setInterval(function () {
+							get_dashboard();
+						}, 2000);
+					}
+				},
+				stop_dashboard: function () {
+					if (this.dashboard_timer != null) {
+						clearTimeout(this.dashboard_timer);
+						this.dashboard_timer = null;
+					}
 				}
 			}
 
-			var socket = new WebSocket("ws://127.0.0.1:3344", "flare-ws");
+			var socket = new WebSocket("ws://127.0.0.1:3344", "flare-profiler");
 			socket.onopen = function(evt) {
 				console.log("Connected to flare profiler successfully.");
 				profiler.connected = true;
+
+				profiler.start_dashboard();
 			}
 
 			socket.onclose = function(evt) {
@@ -83,7 +107,8 @@
 				var json = JSON.parse(event.data);
 				switch (json.cmd) {
 					case "dashboard":
-						profiler.dashboard.threads = json.data.threads;
+						profiler.dashboard = json.data;
+						// profiler.dashboard.threads = json.data.threads;
 						break;
 					default:
 						console.log("unknown message: ", json);
@@ -98,7 +123,8 @@
 				input.value = "";
 			}
 
-			function get_dashboard() {
+			function get_dashboard(){
+				console.log("send request: get_dashboard");
 				socket.send(profiler.get_dashboard_request());
 			}
 
@@ -106,7 +132,12 @@
 				el: '#app',
 				data: {
 					message: '<h1>菜鸟教程</h1>',
-					dashboard: profiler.dashboard
+					profiler: profiler
+				},
+				methods: {
+				},
+				create(){
+
 				}
 			});
 
