@@ -71,19 +71,18 @@
                 </div>
             </el-dialog>
 
-            <!--<div class="mg10">-->
-                <!--<el-button @click="refEchartsData">刷新</el-button>-->
-            <!--</div>-->
+            <div class="mg10" style="margin-bottom: 50px;">
+                <el-button @click="refEchartsData">刷新</el-button>
+                <!--echarts bar图表-->
+                <div id="echartsId" style="width: 900px;height:400px;" v-show="isShowEcharts"></div>
+            </div>
 
-            <!--echarts bar图表-->
-            <!--<div id="echartsId" style="width: 900px;height:400px;" v-show="isShowEcharts"></div>-->
-
-            <div class="mg10">
+            <!--<div class="mg10">
                 <el-button @click="refD3Line">刷新</el-button>
             </div>
             <div id="d3Div">
                 <svg width="1100" height="400"></svg>
-            </div>
+            </div>-->
         </div>
     </div>
 </template>
@@ -129,13 +128,10 @@
             }
         },
         mounted(){
-            //this.getD3Bar();
             //this.getD3Line();
+            this.echartsBar();
         },
         created() {
-            this.$nextTick(()=>{
-                this.getD3Line();
-            })
             // 监听主线程操作事件
             this.menuOption();
             // 注册右键菜单
@@ -161,6 +157,45 @@
                     data.push(info);
                 }
                 this.updateChart.updateD3ChartDate(data);
+            },
+            /*刷新echarts 渲染数据*/
+            refEchartsData: function(){
+                this.refCount = this.refCount + 100;
+                //var dataCount = 5000;
+                var data = index.echartsData(this.refCount);
+                var option = {
+                    xAxis: {
+                        data: data.categoryData,
+                        silent: false,
+                        splitLine: {
+                            show: false
+                        },
+                        splitArea: {
+                            show: false
+                        }
+                    },
+                    series: [{
+                        type: 'bar',
+                        data: data.valueData,
+                        large: true,
+                        largeThreshold:50
+                    }]
+                };
+                this.myChart.setOption(option);
+            },
+            /*初始化echarts bar*/
+            echartsBar: function(){
+                var dataCount = this.refCount = 3600;
+                var data = index.echartsData(dataCount);
+
+                this.myChart = this.$echarts.init(document.getElementById('echartsId'));
+
+                var option = index.echartsOptions(data);
+                this.myChart.setOption(option);
+
+                setInterval(() => {
+                    this.refEchartsData();
+                }, 30000);
             },
             loadNode(node, resolve) {
                 if (node.level === 0) {
@@ -384,9 +419,7 @@
             },
         },
         computed:{
-            refEchartsData(){
-                //return index.refEchartsData.bind(this)
-            }
+
         }
     }
 </script>

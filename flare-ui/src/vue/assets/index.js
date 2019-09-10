@@ -1,4 +1,5 @@
 import * as d3 from 'd3/build/d3';
+import echarts from 'echarts'
 
 export default {
     getD3LineChart: function (elementId, data){
@@ -252,97 +253,69 @@ export default {
             .data([repositoriesData])
             .call(chart);
     },
-    /*刷新echarts 渲染数据*/
-    refEchartsData: function(){
-        console.log(this);
-        var dataCount = 5000;
-        var data = this.generateData(dataCount);
-        var option = {
-            series: [
-                {
-                    name:'测试1',
-                    type:'bar',
-                    data:data.valueData,
-                    large:true,
-                    largeThreshold:500,
-                    itemStyle:{
-                        opacity:0
-                    }
-                },
-            ]
-        };
-        this.myChart.setOption(option);
-    },
-    /*初始化echarts bar*/
-    echartsBar: function(){
-        var dataCount = 50000;
-        var data = this.generateData(dataCount);
-
-        this.myChart = this.$echarts.init(document.getElementById('echartsId'));
-
-        var option = {
+    echartsOptions(data) {
+        let options = {
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: {
+                    type: 'shadow'
+                }
+            },
             grid: {
-                right: '20%'
-            },
-            xAxis: {
-                show:false
-            },
-            yAxis: {
-                show:false
+                bottom: 90
             },
             dataZoom: [{
-                start: 0,
-                end: 30,
-                handleIcon: 'M10.7,11.9v-1.3H9.3v1.3c-4.9,0.3-8.8,4.4-8.8,9.4c0,5,3.9,9.1,8.8,9.4v1.3h1.3v-1.3c4.9-0.3,8.8-4.4,8.8-9.4C19.5,16.3,15.6,12.2,10.7,11.9z M13.3,24.4H6.7V23h6.6V24.4z M13.3,19.6H6.7v-1.4h6.6V19.6z',
-                handleSize: '60%',
-                handleStyle: {
-                    color: '#fff',
-                    shadowBlur: 2,
-                    shadowColor: 'rgba(0, 0, 0, 1)',
-                    shadowOffsetX: 2,
-                    shadowOffsetY: 2
-                },
-                top:'top',
-                left:50,
-                height:100,
-                showDetail:false,
+                type: 'inside',
+                start:0,
+                end:10
+            }, {
+                type: 'slider',
+                //backgroundColor:'#cccccc'
+                realtime:false,
+                filterMode:'empty'
             }],
-            series: [
-                {
-                    name:'测试1',
-                    type:'bar',
-                    data:data.valueData,
-                    large:true,
-                    largeThreshold:500,
-                    itemStyle:{
-                        opacity:0
-                    }
+            xAxis: {
+                data: data.categoryData,
+                //max: 3600,
+                splitLine: {
+                    show: false
                 },
-            ]
-        };
-        this.myChart.setOption(option);
+                splitArea: {
+                    show: false
+                }
+            },
+            yAxis: {show:false},
+            series: [{
+                type: 'bar',//bar
+                data: data.valueData,
+                large: true,
+                largeThreshold:50,
+                itemStyle:{
+                    color: '#e74911', // bar颜色
+                    opacity: 1 // 透明度，0：不绘制
+                }
+            }]
+        }
+        return options;
     },
-    generateData: function (count) {
+    echartsData(count) {
         var baseValue = Math.random() * 1000;
-        var time = +new Date(2011, 0, 1);
+        var time = +new Date(2019,8,9,0,0,1);
         var smallBaseValue;
 
         function next(idx) {
-            smallBaseValue = idx % 30 === 0
-                ? Math.random() * 900
-                : (smallBaseValue + Math.random() * 1500 - 250);
+            smallBaseValue = idx % 30 === 0 ? Math.random() * 900
+                : (smallBaseValue + Math.random() * 1300 - 250);
             baseValue += Math.random() * 20 - 10;
-            return Math.max(
-                0,
-                Math.round(baseValue + smallBaseValue) + 3000
-            );
+            return Math.max(0,Math.round(baseValue + smallBaseValue) + 3000);
         }
 
         var categoryData = [];
         var valueData = [];
 
         for (var i = 0; i < count; i++) {
-            categoryData.push(i + "ms");
+            categoryData.push((i + 1) + 'ms');
+            //categoryData.push(echarts.format.formatTime('hh:mm:ss', time));
             valueData.push(next(i).toFixed(2));
             time += 1000;
         }
