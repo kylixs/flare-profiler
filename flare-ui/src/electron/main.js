@@ -1,5 +1,5 @@
 const path = require('path')
-const glob = require('glob')
+//const glob = require('glob')
 const {app, BrowserWindow, globalShortcut} = require('electron')
 
 if (process.mas) app.setName('Electron')
@@ -101,8 +101,11 @@ function makeSingleInstance () {
 
 // Require each JS file in the main-process dir
 function loadDemos () {
-    const files = glob.sync(path.join(__dirname, 'main-process/**/*.js'))
-    files.forEach((file) => { require(file) })
+    // const files = glob.sync(path.join(__dirname, 'main-process/**/*.js'))
+    // files.forEach((file) => { require(file) })
+
+    require('./main-process/menu/menu.js')
+    require('./main-process/ipc/main.js')
 }
 
 initialize()
