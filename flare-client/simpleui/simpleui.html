@@ -29,6 +29,10 @@
 				<input type="button" value="Open" onclick="open_sample()" >
 				</p>
 			</div>
+			<div>
+				<input type="button" value="List Instances" onclick="profiler.list_instances()" >
+				<input type="button" value="History" onclick="profiler.list_history()" >
+			</div>
 			<br>
 			<div id="dashboard">
 				<p>Sample Info </p>
@@ -76,11 +80,6 @@
 					sample_info: {},
 					threads: []
 				},
-				get_dashboard_request: function () {
-					return JSON.stringify({
-						"cmd": "dashboard"
-					})
-				},
 				start_dashboard: function () {
 					if (this.dashboard_timer == null) {
 						this.dashboard_timer = setInterval(function () {
@@ -93,15 +92,32 @@
 						clearTimeout(this.dashboard_timer);
 						this.dashboard_timer = null;
 					}
-				}
-			}
+				},
+                get_dashboard: function (){
+                    console.log("send request: get_dashboard");
+                    socket.send(JSON.stringify({
+                        "cmd": "dashboard"
+                    }));
+                },
+                list_instances: function () {
+                    socket.send(JSON.stringify({
+                        "cmd": "list_instances"
+                    }))
+                },
+                list_history: function () {
+                    socket.send(JSON.stringify({
+                        "cmd": "history_samples"
+                    }))
+                }
+
+            }
 
 			var socket = new WebSocket("ws://127.0.0.1:3344", "flare-profiler");
 			socket.onopen = function(evt) {
 				console.log("Connected to flare profiler successfully.");
 				profiler.connected = true;
 
-				profiler.start_dashboard();
+				//profiler.start_dashboard();
 			}
 
 			socket.onclose = function(evt) {
@@ -139,11 +155,6 @@
 				var input = document.getElementById(element);
 				socket.send(input.value);
 				input.value = "";
-			}
-
-			function get_dashboard(){
-				console.log("send request: get_dashboard");
-				socket.send(profiler.get_dashboard_request());
 			}
 
 			var app = new Vue({

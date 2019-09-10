@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use websocket::OwnedMessage;
 use serde::Serialize;
 use FlareResponse;
-use serde_json::Number;
+use serde_json::{Number,json};
 use std::io::ErrorKind;
 use std::io;
 
@@ -66,21 +66,20 @@ pub fn wrap_response<T: ?Sized>(cmd: &str, value: &T) -> OwnedMessage
     OwnedMessage::Text(serde_json::to_string(&response).unwrap())
 }
 
-pub fn get_option<'a>(request: &'a serde_json::Value, key: &str) -> Option<&'a serde_json::Value> {
-    if let serde_json::Value::Object(options) = &request[key] {
-        Some(&options["sample_instance"])
-    } else {
-        None
-    }
+pub fn wrap_error_response(cmd: &str, message: &str) -> OwnedMessage {
+    let response = FlareResponse {
+        result: "failure".to_string(),
+        cmd: cmd.to_string(),
+        data: Box::new(json!({ "message": message }))
+    };
+    OwnedMessage::Text(serde_json::to_string(&response).unwrap())
 }
 
-pub fn get_option_as_str<'a>(request: &'a serde_json::Value, key: &str) -> Option<&'a String> {
-    if let serde_json::Value::Object(options) = &request["options"] {
-        if let serde_json::Value::String(s) = &options[key] {
-            return Some(s);
-        }
+pub fn get_option_required_as_str<'a>(options: &'a serde_json::Map<String, serde_json::Value>, key: &str) -> io::Result<&'a String> {
+    if let serde_json::Value::String(s) = &options[key] {
+        return Ok(s);
     }
-    return None;
+    return  Err(io::Error::new(ErrorKind::InvalidInput, format!("missing option '{}'", key)));
 }
 
 pub fn get_option_as_int(request: &serde_json::Value, key: &str) -> Option<Number> {

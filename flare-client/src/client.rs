@@ -12,6 +12,7 @@ use serde::Serialize;
 use client_utils::*;
 use std::collections::HashMap;
 use std::io::ErrorKind;
+use serde_json::json;
 
 type JsonValue = serde_json::Value;
 
@@ -122,88 +123,124 @@ impl Profiler {
                         sender.send_message(&message).unwrap();
                     }
                     OwnedMessage::Text(json) => {
-                        Profiler::handle_request(self_ref.clone(), &mut sender,json);
+                        let mut _cmd = String::new();
+                        if let Err(e) = self_ref.lock().unwrap().handle_request(&mut sender,json, &mut _cmd) {
+                            //send error
+                            sender.send_message(&wrap_error_response(&_cmd, &e.to_string()));
+                        }
                     }
-                    _ => sender.send_message(&message).unwrap(),
+                    _ => {
+                        sender.send_message(&message).unwrap()
+                    },
                 }
             }
         });
     }
 
-
-    fn handle_request(self_ref: Arc<Mutex<Profiler>>, sender: &mut Writer<std::net::TcpStream>, json_str: String) -> io::Result<()> {
+    fn handle_request(&mut self, sender: &mut Writer<std::net::TcpStream>, json_str: String, _out_cmd: &mut String) -> io::Result<()> {
         println!("recv: {}", json_str);
-//        let message = OwnedMessage::Text(json_str);
-//        sender.send_message(&message);
-
         //TODO parse request to json
         let request: JsonValue = serde_json::from_str(&json_str)?;
         let temp;
-        let options = (
-            if let Some(s) = request["options"].as_object() { s
-            }else { temp = serde_json::Map::new(); &temp }
-        );
+        let mut options = request["options"].as_object();
+        if options.is_none() {
+            temp = serde_json::Map::new();
+            options = Some(&temp);
+        }
+        let options = options.unwrap();
 
-        if let JsonValue::String(cmd) = &request["cmd"] {
-            match cmd.as_str() {
-                "list_instances" => {
-                    //
-                }
-                "history_samples" => {
-                    //
-                }
-                "open_sample" => {
-                    let sample_data_dir = options["sample_data_dir"].as_str();
-                    if sample_data_dir.is_none() {
-                        return new_invalid_input_error("missing option 'sample_data_dir'");
-                    }
-                    //
-                }
-                "attach_jvm" => {
-                    let sample_method = options["sample_method"].as_str();
-                    if sample_method.is_none() {
-                        return new_invalid_input_error("missing option 'sample_method'");
-                    }
+        //cmd
+        let cmd= request["cmd"].as_str().unwrap_or("");
+        if cmd == "" {
+            return new_invalid_input_error("missing attribute 'cmd'");
+        }
+        _out_cmd.push_str(cmd);
 
-                    let target_pid = options["target_pid"].as_u64();
-                    if target_pid.is_none() {
-                        return new_invalid_input_error("missing option 'target_pid'");
-                    }
-
-                    let sample_interval_ms = options["sample_interval_ms"].as_u64();
-                    if sample_interval_ms.is_none() {
-                        return new_invalid_input_error("missing option 'sample_interval_ms'");
-                    }
-
-                    let mut sample_duration_sec = options["sample_duration_sec"].as_u64();
-                    if sample_duration_sec.is_none() {
-                        sample_duration_sec = Some(0);
-                    }
-                    //attach
-                }
-                "connect_agent" => {
-                    let agent_addr = options["agent_addr"].as_str();
-                    if agent_addr.is_none() {
-                        return new_invalid_input_error("missing option 'agent_addr'");
-                    }
-                    self_ref.lock().unwrap().connect_agent(agent_addr.unwrap());
-                }
-                "dashboard" => {
-                    if let Some(sample_instance) = options["sample_instance"].as_str() {
-                        let dashboard_info = self_ref.lock().unwrap().get_dashboard(sample_instance)?;
-                        sender.send_message(&wrap_response(&cmd, &dashboard_info));
-                    } else {
-                        println!("missing 'sample_instance': {}, request: {}", cmd, json_str);
-                    }
-                }
-                _ => {
-                    println!("unknown cmd: {}, request: {}", cmd, json_str);
-                }
+        match cmd {
+            "list_instances" => {
+                self.handle_list_instances(sender, cmd, options)?;
             }
-        }else {
-            println!("invalid request: {}", json_str);
+            "history_samples" => {
+                self.handle_history_samples(sender, cmd, options)?;
+            }
+            "open_sample" => {
+                self.handle_open_sample(sender, cmd, options)?;
+            }
+            "attach_jvm" => {
+                self.handle_attach_jvm(sender, cmd, options)?;
+            }
+            "connect_agent" => {
+                self.handle_connect_agent(sender, cmd, options)?;
+            }
+            "dashboard" => {
+                self.handle_dashboard_request(sender, cmd, options)?;
+            }
+            _ => {
+                println!("unknown cmd: {}, request: {}", cmd, json_str);
+            }
+        }
+        Ok(())
+    }
+
+    //list open instances
+    fn handle_list_instances(&mut self, sender: &mut Writer<std::net::TcpStream>, cmd: &str, options: &serde_json::Map<String, serde_json::Value>) -> io::Result<()> {
+        let mut sample_instances = vec![];
+        for (instance_id, client) in self.sample_instance_map.iter() {
+            let client_type = client.lock().unwrap().get_sample_type();
+            sample_instances.push(json!({"instance_id": instance_id, "type": client_type.to_string()}))
+        }
+        let data = json!({"sample_instances": sample_instances});
+        sender.send_message(&wrap_response(cmd, &data));
+        Ok(())
+    }
+
+    //list history samples
+    fn handle_history_samples(&mut self, sender: &mut Writer<std::net::TcpStream>, cmd: &str, options: &serde_json::Map<String, serde_json::Value>) -> io::Result<()> {
+        let mut sample_instances = vec![];
+        let paths = std::fs::read_dir("flare-samples")?;
+        for path in paths {
+
+            sample_instances.push(json!({"instance_id": path.unwrap().file_name().into_string().unwrap(), "type": "file"}));
+        }
+        let data = json!({"sample_instances": sample_instances});
+        sender.send_message(&wrap_response(cmd, &data));
+        Ok(())
+    }
+
+    fn handle_open_sample(&mut self, sender: &mut Writer<std::net::TcpStream>, cmd: &str, options: &serde_json::Map<String, serde_json::Value>) -> io::Result<()> {
+        let sample_data_dir = options["sample_data_dir"].as_str();
+        if sample_data_dir.is_none() {
+            return new_invalid_input_error("missing option 'sample_data_dir'");
+        }
+        //
+        Ok(())
+    }
+
+    fn handle_attach_jvm(&mut self, sender: &mut Writer<std::net::TcpStream>, cmd: &str, options: &serde_json::Map<String, serde_json::Value>) -> io::Result<()> {
+        let target_pid = options["target_pid"].as_u64();
+        if target_pid.is_none() {
+            return new_invalid_input_error("missing option 'target_pid'");
         }
 
+        let sample_interval_ms = options["sample_interval_ms"].as_u64().unwrap_or(20);
+        let sample_duration_sec = options["sample_duration_sec"].as_u64().unwrap_or(0);
+
+        //attach
+    }
+
+    fn handle_connect_agent(&mut self, sender: &mut Writer<std::net::TcpStream>, cmd: &str, options: &serde_json::Map<String, serde_json::Value>) -> io::Result<()> {
+        let agent_addr = options["agent_addr"].as_str();
+        if agent_addr.is_none() {
+            return new_invalid_input_error("missing option 'agent_addr'");
+        }
+        self.connect_agent(agent_addr.unwrap());
+        Ok(())
+    }
+
+    fn handle_dashboard_request(&mut self, sender: &mut Writer<std::net::TcpStream>, cmd: &str, options: &serde_json::Map<String, serde_json::Value>) -> io::Result<()> {
+        let sample_instance = get_option_required_as_str(options, "sample_instance")?;
+        let dashboard_info = self.get_dashboard(sample_instance)?;
+        sender.send_message(&wrap_response(&cmd, &dashboard_info));
         Ok(())
     }
 

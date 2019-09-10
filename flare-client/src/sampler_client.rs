@@ -21,7 +21,7 @@ use std::hash::Hash;
 use std::sync::{Mutex, Arc};
 use std::cmp::min;
 use serde::{Deserialize, Serialize};
-
+use serde_json::json;
 
 type JavaLong = i64;
 type JavaMethod = i64;
@@ -75,6 +75,7 @@ pub struct SamplerClient {
     //sample option
     sample_interval: i64,
     sample_start_time: i64,
+    sample_type: String,
 
     //client
     record_start_time: i64,
@@ -96,6 +97,7 @@ impl SamplerClient {
 
         let mut client = Arc::new(Mutex::new(SamplerClient {
             this_ref: None,
+            sample_type: "attach".to_string(),
             sample_interval: 20,
             sample_start_time: 0,
             record_start_time: 0,
@@ -115,6 +117,10 @@ impl SamplerClient {
         client.lock().unwrap().this_ref = Some(client.clone());
         Ok(client)
     }
+
+//    pub fn open() -> io::Result<Arc<Mutex<SamplerClient>>> {
+//        //TODO
+//    }
 
     //按小时滚动更换数据保存目录
     fn check_and_roll_data_dir(&mut self, sample_time: i64) -> io::Result<bool> {
@@ -341,6 +347,10 @@ impl SamplerClient {
             agent_addr: self.agent_addr.clone(),
             sample_data_dir: self.sample_data_dir.clone()
         }
+    }
+
+    pub fn get_sample_type(&self) -> String {
+        self.sample_type.clone()
     }
 
 //    pub fn write_all_call_trees(&self, writer: &mut std::io::Write, compact: bool) {
