@@ -75,11 +75,20 @@ pub fn wrap_error_response(cmd: &str, message: &str) -> OwnedMessage {
     OwnedMessage::Text(serde_json::to_string(&response).unwrap())
 }
 
-pub fn get_option_required_as_str<'a>(options: &'a serde_json::Map<String, serde_json::Value>, key: &str) -> io::Result<&'a String> {
-    if let serde_json::Value::String(s) = &options[key] {
-        return Ok(s);
+pub fn get_option_required_as_str<'a>(options: &'a serde_json::Map<String, serde_json::Value>, key: &str) -> io::Result<&'a str> {
+    match options.get(key) {
+        Some(val) => {
+            match val.as_str() {
+                Some(s) => Ok(s),
+                None => {
+                    Err(io::Error::new(ErrorKind::InvalidInput, format!("option value is not a string '{}'", key)))
+                },
+            }
+        },
+        None => {
+            Err(io::Error::new(ErrorKind::InvalidInput, format!("missing option '{}'", key)))
+        }
     }
-    return  Err(io::Error::new(ErrorKind::InvalidInput, format!("missing option '{}'", key)));
 }
 
 pub fn get_option_as_int(request: &serde_json::Value, key: &str) -> Option<Number> {

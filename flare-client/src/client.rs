@@ -131,10 +131,12 @@ impl Profiler {
                         sender.send_message(&message).unwrap();
                     }
                     OwnedMessage::Text(json) => {
-                        let mut _cmd = String::new();
-                        if let Err(e) = self_ref.lock().unwrap().handle_request(&mut sender,json, &mut _cmd) {
+                        let mut cmd = String::new();
+                        if let Err(e) = self_ref.lock().unwrap().handle_request(&mut sender,json.clone(), &mut cmd) {
+                            let err = e.to_string();
+                            println!("handle request failed: {}, cmd: {}, json: {}", err, cmd, json);
                             //send error
-                            sender.send_message(&wrap_error_response(&_cmd, &e.to_string()));
+                            sender.send_message(&wrap_error_response(&cmd, &err));
                         }
                     }
                     _ => {
