@@ -28,7 +28,7 @@ fn test_get_range_value(tsfile: &TimeSeriesFileReader, start_time: i64, unit_tim
     let ratio = 2i32.pow(rng.gen_range(0, 5));
 
     let t1 = Local::now().timestamp_millis();
-    let tsresult = tsfile.get_range_value_int16(start_time + unit_time * start, start_time + unit_time * end, ratio * unit_time as i32);
+    let tsresult = tsfile.get_range_value(start_time + unit_time * start, start_time + unit_time * end, ratio * unit_time as i32);
     let t2 = Local::now().timestamp_millis();
     println!("result: begin_time: {}, end_time:{}, unit_time: {}, steps: {}, cost: {}ms",
              tsresult.begin_time, tsresult.end_time, tsresult.unit_time, tsresult.steps, (t2 - t1));

@@ -34,7 +34,7 @@ enum_from_primitive! {
         INT32,
         UINT32,
         INT64,
-        FLOAT64
+//        FLOAT64
     }
 }
 

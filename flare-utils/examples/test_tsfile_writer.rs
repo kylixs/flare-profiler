@@ -24,7 +24,7 @@ fn main() {
     println!("tsfile header: {:?}", info);
 
     let t1 = Local::now().timestamp_millis();
-    let tsresult = tsfile.get_range_value_int16(start_time + unit_time*2000, start_time + unit_time*2050, 5 * unit_time as i32);
+    let tsresult = tsfile.get_range_value(start_time + unit_time*2000, start_time + unit_time*2050, 5 * unit_time as i32);
     let t2 = Local::now().timestamp_millis();
 
     println!("result: {:?}, cost: {}ms", tsresult, (t2-t1));

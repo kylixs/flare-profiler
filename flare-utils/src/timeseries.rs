@@ -70,6 +70,17 @@ pub struct TimeSeriesFileWriter {
 
 }
 
+pub trait TimeSeries {
+
+    fn get_header_info(&self) -> &TimeSeriesFile;
+
+    fn get_begin_time(&self) -> i64;
+
+    fn add_value(&mut self, time: i64, value: TSValue) -> Result<u32, Error>;
+
+    fn get_range_value(&self, start_time: i64, end_time: i64, unit_time_ms: i32) -> TSResult;
+}
+
 impl TimeSeriesFile {
 
     fn new(value_type: ValueType, unit_time: i32, path: &str, file: File) -> TimeSeriesFile {
@@ -86,7 +97,7 @@ impl TimeSeriesFile {
         }
     }
 
-    pub fn get_range_value_int16(&self, start_time: i64, end_time: i64, unit_time_ms: i32) -> TSResult {
+    pub fn get_range_value(&self, start_time: i64, end_time: i64, unit_time_ms: i32) -> TSResult {
         let mut data_vec = vec![];
         // self.begin_time <= start_time <= self.end_time
         let mut start_time = max(self.begin_time, start_time);
@@ -112,8 +123,35 @@ impl TimeSeriesFile {
         let bytes = offset2 - offset1;
         let mut buf_reader = BufReader::with_capacity(1024*100, file);
         let steps = bytes / self.unit_len as u64;
-        for i in 0..steps {
-            data_vec.push(buf_reader.read_i16::<FileEndian>().unwrap());
+
+        match self.value_type {
+            ValueType::UNKNOWN => {},
+            ValueType::INT16 => {
+                for i in 0..steps {
+                    data_vec.push(buf_reader.read_i16::<FileEndian>().unwrap() as i64);
+                }
+            },
+            ValueType::UINT16 => {
+                for i in 0..steps {
+                    data_vec.push(buf_reader.read_u16::<FileEndian>().unwrap() as i64);
+                }
+            },
+            ValueType::INT32 => {
+                for i in 0..steps {
+                    data_vec.push(buf_reader.read_i32::<FileEndian>().unwrap() as i64);
+                }
+            },
+            ValueType::UINT32 => {
+                for i in 0..steps {
+                    data_vec.push(buf_reader.read_u32::<FileEndian>().unwrap() as i64);
+                }
+            },
+            ValueType::INT64 => {
+                for i in 0..steps {
+                    data_vec.push(buf_reader.read_i64::<FileEndian>().unwrap() as i64);
+                }
+            },
+//            ValueType::FLOAT64 => {},
         }
 
         //convert time unit, merge n source point to one new point
@@ -123,7 +161,7 @@ impl TimeSeriesFile {
             let mut new_data_vec = vec![];
             let size = data_vec.len() / merge_num as usize;
             for i in 0..size {
-                new_data_vec.push(ts_sum_int16(&data_vec[i*merge_num..(i+1)*merge_num]));
+                new_data_vec.push(ts_sum_int64(&data_vec[i*merge_num..(i+1)*merge_num]));
             }
             TSResult {
                 begin_time: start_time,
@@ -138,14 +176,10 @@ impl TimeSeriesFile {
                 end_time,
                 unit_time: unit_time_ms,
                 steps: data_vec.len() as i32,
-                data: TSRangeValue::vec_int16(data_vec)
+                data: TSRangeValue::vec_int64(data_vec)
             }
         }
     }
-
-//    pub fn get_range_value_int32(&mut self, start_time: i64, end_time: i64, unit_time_ms: i32) -> Vec<i32> {
-//
-//    }
 }
 
 fn ts_avg_int16 (numbers: &[i16]) -> f32 {
@@ -160,6 +194,11 @@ fn ts_sum_int16 (numbers: &[i16]) -> i64 {
     sum
 }
 
+fn ts_sum_int64 (numbers: &[i64]) -> i64 {
+    let mut sum = 0;
+    numbers.iter().for_each(|x| sum += *x as i64);
+    sum
+}
 
 //fn average(numbers: &[i32]) -> f32 {
 //    numbers.iter().sum::<i32>() as f32 / numbers.len() as f32
@@ -236,18 +275,25 @@ impl TimeSeriesFileReader {
         Ok(true)
     }
 
-    pub fn get_header_info(&self) -> &TimeSeriesFile {
+}
+
+impl TimeSeries for TimeSeriesFileReader {
+
+    fn get_header_info(&self) -> &TimeSeriesFile {
         &self.info
     }
 
-    pub fn get_begin_time(&self) -> i64 {
+    fn get_begin_time(&self) -> i64 {
         self.info.begin_time
     }
 
-    pub fn get_range_value_int16(&self, start_time: i64, end_time: i64, unit_time_ms: i32) -> TSResult {
-        self.info.get_range_value_int16(start_time, end_time, unit_time_ms)
+    fn add_value(&mut self, time: i64, value: TSValue) -> Result<u32, Error> {
+        Err(Error::new(ErrorKind::PermissionDenied, "can not modify data file in reader mode"))
     }
 
+    fn get_range_value(&self, start_time: i64, end_time: i64, unit_time_ms: i32) -> TSResult {
+        self.info.get_range_value(start_time, end_time, unit_time_ms)
+    }
 }
 
 
@@ -318,18 +364,21 @@ impl TimeSeriesFileWriter {
         //save data segment start offset
         info.data_offset = file.seek(SeekFrom::Current(0)).unwrap();
         //info.data_offset = file.stream_position().unwrap();
-
     }
 
-    pub fn get_header_info(&mut self) -> &TimeSeriesFile {
+}
+
+impl TimeSeries for TimeSeriesFileWriter {
+
+    fn get_header_info(&self) -> &TimeSeriesFile {
         &self.info
     }
 
-    pub fn get_begin_time(&self) -> i64 {
+    fn get_begin_time(&self) -> i64 {
         self.info.begin_time
     }
 
-    pub fn add_value(&mut self, time: i64, value: TSValue) -> Result<u32, Error> {
+    fn add_value(&mut self, time: i64, value: TSValue) -> Result<u32, Error> {
         let info = &mut self.info;
         let mut steps = (time - info.begin_time) / info.unit_time as i64;
         if steps < 0 {
@@ -376,10 +425,9 @@ impl TimeSeriesFileWriter {
         Ok(steps as u32)
     }
 
-    pub fn get_range_value_int16(&self, start_time: i64, end_time: i64, unit_time_ms: i32) -> TSResult {
-        self.info.get_range_value_int16(start_time, end_time, unit_time_ms)
+    fn get_range_value(&self, start_time: i64, end_time: i64, unit_time_ms: i32) -> TSResult {
+        self.info.get_range_value(start_time, end_time, unit_time_ms)
     }
-
 }
 
 impl Drop for TimeSeriesFileWriter {
