@@ -16,7 +16,7 @@ fn main() {
 //    }
 
     let mut profiler = Profiler::new();
-    profiler.lock().unwrap().connect_agent("localhost:3333");
+//    profiler.lock().unwrap().connect_agent("localhost:3333");
 
     //start websocket server
     profiler.lock().unwrap().startup();

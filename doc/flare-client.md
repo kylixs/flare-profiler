@@ -94,11 +94,11 @@ Flare UI 通过WebSocket协议发送查询分析指令到Flare Client， Flare C
 注意：
 FlareUI支持打开多个取样实例，sample_instance为全局唯一的实例标识符，实例相关的操作都需要指定此参数
 
-####1）列出所有实例
-列出当前打开的所有实例ID
+####1）列出所有会话
+列出当前打开的所有会话
 ```json
 {
-   "cmd": "list_instances",
+   "cmd": "list_sessions",
    "options" : {
     }
 }
@@ -107,13 +107,13 @@ FlareUI支持打开多个取样实例，sample_instance为全局唯一的实例�
 ```json
 {
    "result": "success",
-   "cmd": "list_instances",
+   "cmd": "list_sessions",
    "data": {
-        "sample_instances": [{
-            "instance_id": "localhost_2233_01",
+        "sample_sessions": [{
+            "session_id": "localhost_2233_01",
             "type": "file"
         },{
-            "instance_id": "localhost:2233",
+            "session_id": "localhost:2233",
             "type": "attach"
         }]
    }
@@ -134,14 +134,14 @@ FlareUI支持打开多个取样实例，sample_instance为全局唯一的实例�
    "result": "success",
    "cmd": "history_samples",
    "data": {
-        "sample_instances": [{
-            "instance_id": "localhost_2233_01",
+        "history_samples": [{
+            "path": "localhost_2233_01",
             "type": "file"
         },{
-            "instance_id": "localhost_2233_02",
+            "path": "localhost_2233_02",
             "type": "file"
         },{
-            "instance_id": "localhost_2233_03",
+            "path": "localhost_2233_03",
             "type": "file"
         }]
    }
@@ -164,7 +164,7 @@ FlareUI支持打开多个取样实例，sample_instance为全局唯一的实例�
    "result": "success",
    "cmd": "open_sample",
    "data": {
-        "sample_instance": "localhost_2233_01"
+        "session_id": "localhost_2233_01"
    }
 }
 ```
@@ -186,7 +186,7 @@ FlareUI支持打开多个取样实例，sample_instance为全局唯一的实例�
    "result": "success",
    "cmd": "attach_jvm",
    "data": {
-      "sample_instance": "localhost:2233"
+      "session_id": "localhost:2233"
    }
 }
 ```
@@ -207,7 +207,7 @@ FlareUI支持打开多个取样实例，sample_instance为全局唯一的实例�
    "result": "success",
    "cmd": "connect_agent",
    "data": {
-      "sample_instance": "localhost:3344"
+      "session_id": "localhost:3344"
    }
 }
 ```
@@ -217,7 +217,7 @@ FlareUI支持打开多个取样实例，sample_instance为全局唯一的实例�
 {
    "cmd": "stop_sample",
    "options" : {
-      "sample_instance": "localhost:2233"
+      "session_id": "localhost:2233"
     }
 }
 ```
@@ -228,7 +228,7 @@ FlareUI支持打开多个取样实例，sample_instance为全局唯一的实例�
 {
    "cmd": "dashboard",
    "options" : {
-      "sample_instance": "localhost:2233"
+      "session_id": "localhost:2233"
     }
 }
 ```
@@ -238,7 +238,7 @@ FlareUI支持打开多个取样实例，sample_instance为全局唯一的实例�
    "result": "success",
    "cmd": "dashboard",
    "data": {
-      "sample_instance": "localhost:2233",
+      "session_id": "localhost:2233",
       "time": "20190905 15:41:24",
       "threads": [{
           "id" : 132,
@@ -261,7 +261,7 @@ FlareUI支持打开多个取样实例，sample_instance为全局唯一的实例�
 {
    "cmd": "cpu_ts",
    "options" : {
-      "sample_instance": "localhost:2233",
+      "session_id": "localhost:2233",
       "thread_ids": [], // 为空时获取全部线程
       "start_time": 1567669466207,
       "end_time": 1567669485649,
@@ -275,7 +275,7 @@ FlareUI支持打开多个取样实例，sample_instance为全局唯一的实例�
    "result": "success",
    "cmd": "cpu_ts",
    "data": {
-      "sample_instance": "localhost:2233",
+      "session_id": "localhost:2233",
       "threads": [{
           "id": 132,
           "name": "DiscoveryClient-1",

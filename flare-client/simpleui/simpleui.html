@@ -7,112 +7,223 @@
 		<script src="simple.js" ></script>
 		<style type="text/css" >
 			#dashboard {
-				width: 1000px;
+				width: 900px;
+				height: 400px;
+				overflow: auto;
+			}
+
+			#stack_tree_region {
+				/*background: #e6a23c;*/
+				width: 900px;
+			}
+
+			#cpu_time_region {
+				/*background: #a0cfff;*/
+				width: 900px;
 			}
 
 			input.input-field {
 				width: 250px;
 			}
+			.list-item {
+				cursor: pointer;
+			}
+			.message {
+				color: #DD0000;
+			}
+			#layout td {
+				vertical-align: top;
+			}
 		</style>
 	</head>
 	<body>
 		<div id="app">
-			<div>
-				<p>Start Sample:
-				<input class="input-field" type="text" value="localhost:2233" v-model="profiler.agent_addr">
-				<input type="button" value="Connect" onclick="start_sample()" >
-				</p>
-			</div>
-			<div>
-				<p>Open Sample:
-				<input class="input-field" type="file" v-model="profiler.sample_dir">
-				<input type="button" value="Open" onclick="open_sample()" >
-				</p>
-			</div>
-			<div>
-				<input type="button" value="List Instances" onclick="profiler.list_instances()" >
-				<input type="button" value="History" onclick="profiler.list_history()" >
-			</div>
-			<br>
-			<div id="dashboard">
-				<p>Sample Info </p>
-				<p>Sample Start Time: {{profiler.dashboard.sample_info.sample_start_time}}</p>
-				<p>Record Start Time: {{profiler.dashboard.sample_info.record_start_time}}</p>
-				<p>Last Record Time: {{profiler.dashboard.sample_info.last_record_time}}</p>
-				<p>Record Duration: {{(profiler.dashboard.sample_info.last_record_time - profiler.dashboard.sample_info.record_start_time)/1000}}s</p>
+			<table id="layout">
+				<tbody>
+					<tr style="height: 500px">
+						<td width="900px">
+							<div>
+								<p>Start Sample:
+									<input class="input-field" type="text" v-model="profiler.agent_addr">
+									<input type="button" value="Connect" onclick="profiler.connect_agent()" >
+								</p>
+							</div>
+							<!--			<div>-->
+							<!--				<p>Open Sample:-->
+							<!--				<input class="input-field" type="file" v-model="profiler.sample_dir">-->
+							<!--				<input type="button" value="Open" onclick="profiler.open_sample()" >-->
+							<!--				</p>-->
+							<!--			</div>-->
+							<div>
+								<input type="button" value="Sessions" onclick="profiler.list_sessions()" >
+								<input type="button" value="History" onclick="profiler.list_history()" >
+								<input type="button" value="Stop" onclick="profiler.stop_dashboard()" >
 
-				<br>
-				<!-- "ID", "NAME", "GROUP", "PRIORITY", "STATE", "%CPU", "TIME", "DAEMON" -->
-				<table>
-					<thead>
-						<th width="10%">ID</th>
-						<th width="20%">Name</th>
-						<th width="10%">Group</th>
-						<th width="10%">Priority</th>
-						<th width="10%">State</th>
-						<th width="10%">%CPU</th>
-						<th width="10%">Time</th>
-						<th width="10%">Daemon</th>
-					</thead>
-					<tbody>
-						<tr v-for="thread in profiler.dashboard.threads">
-							<td>{{thread.id}}</td>
-							<td>{{thread.name}}</td>
-							<td>{{thread.group}}</td>
-							<td>{{thread.priority}}</td>
-							<td>{{thread.state}}</td>
-							<td>{{thread.cpu_util}}</td>
-							<td>{{thread.cpu_time/1000000}}</td>
-							<td>{{thread.daemon}}</td>
-						</tr>
-					</tbody>
-				</table>
-			</div>
+								<div v-show="profiler.show_history_samples">
+									<p>History samples:</p>
+									<p class="list-item" v-for="sample in profiler.data.history_samples" @click='profiler.open_sample(sample.path)' >[{{sample.type}}]{{sample.path}}</p>
+								</div>
+								<div v-show="profiler.show_sessions">
+									<p>Sample sessions:</p>
+									<p class="list-item" v-for="session in profiler.data.sample_sessions" @click="profiler.active_session(session.session_id, session.type)"> [{{session.type}}]{{session.session_id}}</p>
+								</div>
+							</div>
+							<div class="message" v-show="profiler.show_message">
+								<!--				<p>操作指令：{{profiler.data.cmd}}</p>-->
+								<p>错误信息：{{profiler.data.message}}</p>
+							</div>
+							<br>
+							<div>
+								<p>Sample Session: {{profiler.data.session_id}} </p>
+								<p>Sample Type: {{profiler.data.type}} </p>
+								<p>Sample Start Time: {{profiler.data.sample_info.sample_start_time}}</p>
+								<p>Record Start Time: {{profiler.data.sample_info.record_start_time}}</p>
+								<p>Last Record Time: {{profiler.data.sample_info.last_record_time}}</p>
+								<p>Record Duration: {{(profiler.data.sample_info.last_record_time - profiler.data.sample_info.record_start_time)/1000}}s</p>
+							</div>
+						</td>
+						<td>
+							<div id="stack_tree_region">
+								<p>Thread Stack</p>
+							</div>
+						</td>
+					</tr>
+					<tr style="height: 400px">
+						<td>
+							<div id="dashboard">
+								<!-- "ID", "NAME", "GROUP", "PRIORITY", "STATE", "%CPU", "TIME", "DAEMON" -->
+								<table>
+									<thead>
+									<th width="10%">ID</th>
+									<th width="20%">Name</th>
+									<th width="10%">Group</th>
+									<th width="10%">Priority</th>
+									<th width="10%">State</th>
+									<th width="10%">%CPU</th>
+									<th width="10%">Time</th>
+									<th width="10%">Daemon</th>
+									</thead>
+									<tbody>
+									<tr v-for="thread in profiler.data.threads">
+										<td>{{thread.id}}</td>
+										<td>{{thread.name}}</td>
+										<td>{{thread.group}}</td>
+										<td>{{thread.priority}}</td>
+										<td>{{thread.state}}</td>
+										<td>{{thread.cpu_util}}</td>
+										<td>{{thread.cpu_time | cpuTimeFilter}}</td>
+										<td>{{thread.daemon}}</td>
+									</tr>
+									</tbody>
+								</table>
+							</div>
+						</td>
+						<td>
+							<div id="cpu_time_region">
+								<h3>CPU Time</h3>
 
+							</div>
+						</td>
+					</tr>
+				</tbody>
+			</table>
 		</div>
+
 		<script>
 			var profiler = {
 				connected: false,
-				agent_addr: "localhost:2233",
+				agent_addr: "localhost:3333",
+				profiler_addr: "localhost:3344",
 				sample_dir: null,
 				dashboard_timer: null,
-				dashboard: {
+				show_history_samples: false,
+				show_message: false,
+				show_sessions: false,
+				data: {
 					sample_info: {},
-					threads: []
+					threads: [],
+					history_samples: [],
+					sample_sessions: [],
+					session_id: "",
+					type: ""
 				},
-				start_dashboard: function () {
+				start_dashboard() {
 					if (this.dashboard_timer == null) {
-						this.dashboard_timer = setInterval(function () {
-							get_dashboard();
-						}, 2000);
+						profiler.get_dashboard();
+						if(profiler.data.type == "attach") {
+							this.dashboard_timer = setInterval(function () {
+								profiler.get_dashboard();
+							}, 2000);
+						}
 					}
 				},
-				stop_dashboard: function () {
+				stop_dashboard() {
 					if (this.dashboard_timer != null) {
 						clearTimeout(this.dashboard_timer);
 						this.dashboard_timer = null;
 					}
 				},
-                get_dashboard: function (){
-                    console.log("send request: get_dashboard");
+                get_dashboard(){
+					if (profiler.data.session_id == ""){
+						return;
+					}
+					console.log("send request: get_dashboard");
+					socket.send(JSON.stringify({
+						"cmd": "dashboard",
+						"options": {
+							"session_id": profiler.data.session_id
+						}
+					}));
+				},
+                list_sessions() {
+					this.show_sessions = true;
+					this.show_history_samples = false;
                     socket.send(JSON.stringify({
-                        "cmd": "dashboard"
-                    }));
-                },
-                list_instances: function () {
-                    socket.send(JSON.stringify({
-                        "cmd": "list_instances"
+                        "cmd": "list_sessions"
                     }))
                 },
                 list_history: function () {
-                    socket.send(JSON.stringify({
+					this.show_sessions = false;
+					this.show_history_samples = true;
+					socket.send(JSON.stringify({
                         "cmd": "history_samples"
                     }))
-                }
-
+                },
+				connect_agent: function () {
+					this.clear_session();
+					var request = {
+						"cmd": "connect_agent",
+						"options": {
+							"agent_addr": this.agent_addr
+						}
+					};
+					socket.send(JSON.stringify(request));
+				},
+				open_sample: function (sample_data_dir) {
+					this.clear_session();
+					var request = {
+						"cmd": "open_sample",
+						"options": {
+							"sample_data_dir": sample_data_dir
+						}
+					};
+					socket.send(JSON.stringify(request));
+				},
+				active_session:function (session_id, type) {
+					this.clear_session();
+					profiler.data.session_id = session_id;
+					profiler.data.type = type;
+					profiler.start_dashboard();
+				},
+				clear_session: function () {
+					this.stop_dashboard();
+					this.data.session_id = "";
+					this.data.threads = [];
+					this.data.sample_info = {};
+				}
             }
 
-			var socket = new WebSocket("ws://127.0.0.1:3344", "flare-profiler");
+			var socket = new WebSocket("ws://"+profiler.profiler_addr, "flare-profiler");
 			socket.onopen = function(evt) {
 				console.log("Connected to flare profiler successfully.");
 				profiler.connected = true;
@@ -131,24 +242,32 @@
 			}
 
 			socket.onmessage = function (event) {
-				// var received = document.getElementById("received");
-				// var br = document.createElement("BR");
-				// var text = document.createTextNode(event.data);
-				// received.appendChild(br);
-				// received.appendChild(text);
-
 				//parse result
 				var json = JSON.parse(event.data);
+				var success = (json.result == "success");
+				profiler.show_message = !success;
+
+				//将response属性赋值到共享对象
+				Object.assign(profiler.data, json.data);
+				if (!success) {
+					profiler.stop_dashboard();
+				}
 				switch (json.cmd) {
 					case "dashboard":
-						profiler.dashboard = json.data;
-						// profiler.dashboard.threads = json.data.threads;
+						break;
+					case "open_sample":
+						profiler.start_dashboard();
+						break;
+					case "connect_agent":
+						profiler.start_dashboard();
+						break;
+					case "history_samples":
+						profiler.show_history_samples = true;
 						break;
 					default:
 						console.log("unknown message: ", json);
 						break;
 				}
-
 			};
 
 			function send(element) {
@@ -160,13 +279,17 @@
 			var app = new Vue({
 				el: '#app',
 				data: {
-					message: '<h1>菜鸟教程</h1>',
+					message: '',
 					profiler: profiler
 				},
 				methods: {
 				},
+				filters: {
+					cpuTimeFilter(value) {
+						return (value/1000000000).toFixed(2);
+					}
+				},
 				create(){
-
 				}
 			});
 

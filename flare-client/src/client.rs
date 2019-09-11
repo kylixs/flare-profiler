@@ -27,7 +27,7 @@ pub struct Profiler {
     self_ref: Option<Arc<Mutex<Profiler>>>,
     bind_addr: String,
     running: bool,
-    sample_instance_map: HashMap<String, Arc<Mutex<SamplerClient>>>
+    sample_session_map: HashMap<String, Arc<Mutex<SamplerClient>>>
 }
 
 impl Profiler {
@@ -36,34 +36,42 @@ impl Profiler {
             self_ref: None,
             bind_addr: "0.0.0.0:3344".to_string(),
             running: true,
-            sample_instance_map: HashMap::new(),
+            sample_session_map: HashMap::new(),
         }));
         inst.lock().unwrap().self_ref = Some(inst.clone());
         inst
     }
 
-    pub fn connect_agent(&mut self, agent_addr: &str) -> io::Result<()> {
+    pub fn connect_agent(&mut self, agent_addr: &str) -> io::Result<String> {
         println!("connecting to agent: {}", agent_addr);
         let mut client = SamplerClient::new(agent_addr)?;
-        self.sample_instance_map.insert(agent_addr.to_string(), client.clone());
+        let instance_id = agent_addr.to_string();
 
-        thread::spawn(move|| {
-            client.lock().unwrap().subscribe_events();
-        });
+        client.lock().unwrap().subscribe_events()?;
+        println!("connect agent successful");
 
-        Ok(())
+        self.sample_session_map.insert(instance_id.clone(), client);
+        Ok(instance_id)
     }
 
-    pub fn get_dashboard(&mut self, sample_instance: &str) -> io::Result<DashboardInfo> {
-        if let Some(client) = self.sample_instance_map.get(sample_instance) {
+    pub fn open_sample(&mut self, sample_data_dir: &str) -> io::Result<String> {
+        println!("open sample {} ..", sample_data_dir);
+        let mut client = SamplerClient::open(sample_data_dir)?;
+        let instance_id = sample_data_dir.to_string();
+        self.sample_session_map.insert(instance_id.clone(), client);
+        Ok(instance_id)
+    }
+
+    pub fn get_dashboard(&mut self, session_id: &str) -> io::Result<DashboardInfo> {
+        if let Some(client) = self.sample_session_map.get(session_id) {
             Ok(client.lock().unwrap().get_dashboard())
         }else {
             Err(io::Error::new(ErrorKind::NotFound, "sample instance not found"))
         }
     }
 
-    pub fn get_sample_info(&mut self, sample_instance: &str) -> io::Result<SampleInfo> {
-        if let Some(client) = self.sample_instance_map.get(sample_instance) {
+    pub fn get_sample_info(&mut self, session_id: &str) -> io::Result<SampleInfo> {
+        if let Some(client) = self.sample_session_map.get(session_id) {
             Ok(client.lock().unwrap().get_sample_info())
         }else {
             Err(io::Error::new(ErrorKind::NotFound, "sample instance not found"))
@@ -74,7 +82,7 @@ impl Profiler {
         let self_ref = self.self_ref.as_ref().unwrap().clone();
         let bind_addr = self.bind_addr.clone();
         thread::spawn(move || {
-            println!("analysis server binding: {}", bind_addr);
+            println!("Flare profiler started on port: {}", bind_addr);
             let server = Server::bind(bind_addr).unwrap();
             for request in server.filter_map(Result::ok) {
                 if !self_ref.lock().unwrap().is_running() {
@@ -157,8 +165,8 @@ impl Profiler {
         _out_cmd.push_str(cmd);
 
         match cmd {
-            "list_instances" => {
-                self.handle_list_instances(sender, cmd, options)?;
+            "list_sessions" => {
+                self.handle_list_sessions(sender, cmd, options)?;
             }
             "history_samples" => {
                 self.handle_history_samples(sender, cmd, options)?;
@@ -182,37 +190,37 @@ impl Profiler {
         Ok(())
     }
 
-    //list open instances
-    fn handle_list_instances(&mut self, sender: &mut Writer<std::net::TcpStream>, cmd: &str, options: &serde_json::Map<String, serde_json::Value>) -> io::Result<()> {
-        let mut sample_instances = vec![];
-        for (instance_id, client) in self.sample_instance_map.iter() {
+    //list open sessions
+    fn handle_list_sessions(&mut self, sender: &mut Writer<std::net::TcpStream>, cmd: &str, options: &serde_json::Map<String, serde_json::Value>) -> io::Result<()> {
+        let mut sample_sessions = vec![];
+        for (instance_id, client) in self.sample_session_map.iter() {
             let client_type = client.lock().unwrap().get_sample_type();
-            sample_instances.push(json!({"instance_id": instance_id, "type": client_type.to_string()}))
+            sample_sessions.push(json!({"session_id": instance_id, "type": client_type.to_string()}))
         }
-        let data = json!({"sample_instances": sample_instances});
+        let data = json!({"sample_sessions": sample_sessions});
         sender.send_message(&wrap_response(cmd, &data));
         Ok(())
     }
 
     //list history samples
     fn handle_history_samples(&mut self, sender: &mut Writer<std::net::TcpStream>, cmd: &str, options: &serde_json::Map<String, serde_json::Value>) -> io::Result<()> {
-        let mut sample_instances = vec![];
+        let mut samples = vec![];
         let paths = std::fs::read_dir("flare-samples")?;
         for path in paths {
-
-            sample_instances.push(json!({"instance_id": path.unwrap().file_name().into_string().unwrap(), "type": "file"}));
+            samples.push(json!({"path": path.unwrap().path().to_str(), "type": "file"}));
         }
-        let data = json!({"sample_instances": sample_instances});
+        let data = json!({"history_samples": samples});
         sender.send_message(&wrap_response(cmd, &data));
         Ok(())
     }
 
     fn handle_open_sample(&mut self, sender: &mut Writer<std::net::TcpStream>, cmd: &str, options: &serde_json::Map<String, serde_json::Value>) -> io::Result<()> {
-        let sample_data_dir = options["sample_data_dir"].as_str();
-        if sample_data_dir.is_none() {
+        let sample_data_dir = options["sample_data_dir"].as_str().unwrap_or("");
+        if sample_data_dir == "" {
             return new_invalid_input_error("missing option 'sample_data_dir'");
         }
-        //
+        let instance_id = self.open_sample(sample_data_dir)?;
+        sender.send_message(&wrap_response(&cmd, &json!({ "session_id": instance_id, "type": "file" })));
         Ok(())
     }
 
@@ -226,6 +234,7 @@ impl Profiler {
         let sample_duration_sec = options["sample_duration_sec"].as_u64().unwrap_or(0);
 
         //attach
+        Ok(())
     }
 
     fn handle_connect_agent(&mut self, sender: &mut Writer<std::net::TcpStream>, cmd: &str, options: &serde_json::Map<String, serde_json::Value>) -> io::Result<()> {
@@ -233,13 +242,15 @@ impl Profiler {
         if agent_addr.is_none() {
             return new_invalid_input_error("missing option 'agent_addr'");
         }
-        self.connect_agent(agent_addr.unwrap());
+        let instance_id = self.connect_agent(agent_addr.unwrap())?;
+        sender.send_message(&wrap_response(&cmd, &json!({ "session_id": instance_id, "type": "attach" })));
+
         Ok(())
     }
 
     fn handle_dashboard_request(&mut self, sender: &mut Writer<std::net::TcpStream>, cmd: &str, options: &serde_json::Map<String, serde_json::Value>) -> io::Result<()> {
-        let sample_instance = get_option_required_as_str(options, "sample_instance")?;
-        let dashboard_info = self.get_dashboard(sample_instance)?;
+        let session_id = get_option_required_as_str(options, "session_id")?;
+        let dashboard_info = self.get_dashboard(session_id)?;
         sender.send_message(&wrap_response(&cmd, &dashboard_info));
         Ok(())
     }

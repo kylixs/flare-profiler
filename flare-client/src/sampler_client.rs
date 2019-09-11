@@ -5,15 +5,15 @@ use std::collections::hash_map::Entry;
 use time::Duration;
 use std::net::{TcpStream, ToSocketAddrs};
 use resp::Value;
-use std::io::{Write, Read, BufReader, Error};
+use std::io::{Write, Read, BufReader, Error, ErrorKind};
 use std::str::from_utf8;
 use std::io;
 use chrono::Local;
 use flare_utils::timeseries::*;
 use flare_utils::tuple_indexed::*;
-use flare_utils::tuple_indexed::TupleIndexedFile;
-use flare_utils::timeseries::TimeSeriesFileWriter;
-use flare_utils::{ValueType};
+use flare_utils::tuple_indexed::{TupleIndexedFile, TupleValue};
+use flare_utils::timeseries::{TimeSeries, TSValue, TimeSeriesFileWriter, TimeSeriesFileReader};
+use flare_utils::{ValueType, file_utils};
 use std::path::PathBuf;
 use client_utils;
 use client_utils::*;
@@ -22,11 +22,12 @@ use std::sync::{Mutex, Arc};
 use std::cmp::min;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use flare_utils::file_utils::open_file;
 
 type JavaLong = i64;
 type JavaMethod = i64;
 
-#[derive(Clone, Serialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct ThreadData {
     pub id: JavaLong,
     pub name: String,
@@ -48,14 +49,14 @@ pub struct MethodData {
 //    pub line_num: u16
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub struct DashboardInfo {
     sample_info: SampleInfo,
     threads: Vec<ThreadData>
     //jvm_info: JvmInfo,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub struct SampleInfo {
     sample_interval: i64,
     sample_start_time: i64,
@@ -65,12 +66,19 @@ pub struct SampleInfo {
     sample_data_dir: String,
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct SummaryInfo {
+    sample_info: SampleInfo,
+    threads: Vec<ThreadData>
+}
+
 pub struct SamplerClient {
     //self ref
     this_ref: Option<Arc<Mutex<SamplerClient>>>,
     connected: bool,
     agent_addr: String,
     agent_stream: Option<TcpStream>,
+    readonly: bool,
 
     //sample option
     sample_interval: i64,
@@ -80,11 +88,13 @@ pub struct SamplerClient {
     //client
     record_start_time: i64,
     last_record_time: i64,
+    //last save summary time
+    last_save_time: i64,
 
     //sample data processor
     threads : HashMap<JavaLong, ThreadData>,
     sample_data_dir: String,
-    sample_cpu_ts_map: HashMap<JavaLong, Option<TimeSeriesFileWriter>>,
+    sample_cpu_ts_map: HashMap<JavaLong, Option<Box<TimeSeries+Send>>>,
     sample_stacktrace_map: HashMap<JavaLong, Option<TupleIndexedFile>>,
     sample_method_idx_file: Option<TupleIndexedFile>,
 //    method_cache: HashMap<MethodId, MethodInfo>,
@@ -93,34 +103,124 @@ pub struct SamplerClient {
 
 impl SamplerClient {
 
-    pub fn new(addr: &str) -> io::Result<Arc<Mutex<SamplerClient>>> {
 
+    pub fn new(addr: &str) -> io::Result<Arc<Mutex<SamplerClient>>> {
+        let mut client = SamplerClient::new_instance();
+        client.lock().unwrap().agent_addr = addr.to_string();
+        Ok(client)
+    }
+
+    pub fn open(sample_dir: &str) -> io::Result<Arc<Mutex<SamplerClient>>> {
+        println!("load sample data from dir: {}", sample_dir);
+        let mut client = SamplerClient::new_instance();
+        client.lock().unwrap().load_sample(sample_dir)?;
+
+        Ok(client)
+    }
+
+    fn new_instance() -> Arc<Mutex<SamplerClient>> {
         let mut client = Arc::new(Mutex::new(SamplerClient {
             this_ref: None,
-            sample_type: "attach".to_string(),
+            readonly: false,
+            sample_type: "".to_string(),
             sample_interval: 20,
             sample_start_time: 0,
             record_start_time: 0,
             last_record_time: 0,
+            last_save_time: 0,
             threads: HashMap::new(),
             sample_data_dir: "".to_string(),
             sample_cpu_ts_map: HashMap::new(),
             sample_stacktrace_map: HashMap::new(),
             sample_method_idx_file: None,
             connected: false,
-            agent_addr: addr.to_string(),
+            agent_addr: "".to_string(),
             agent_stream: None,
 //            method_cache: HashMap::new(),
 //            tree_arena: TreeArena::new()
         }));
         //self ref for threads
         client.lock().unwrap().this_ref = Some(client.clone());
-        Ok(client)
+        client
     }
 
-//    pub fn open() -> io::Result<Arc<Mutex<SamplerClient>>> {
-//        //TODO
-//    }
+    //加载取样数据
+    fn load_sample(&mut self, sample_data_dir: &str) -> io::Result<()> {
+        self.readonly = true;
+        self.sample_type = "file".to_string();
+        self.sample_data_dir = sample_data_dir.to_string();
+        let dir_meta = std::fs::metadata(sample_data_dir);
+        if dir_meta.is_err() {
+            return new_error(ErrorKind::NotFound, "sample data dir not found");
+        }
+        if !dir_meta.unwrap().is_dir() {
+            return new_error(ErrorKind::NotFound, "sample data dir is not a directory");
+        }
+
+        self.sample_data_dir = sample_data_dir.to_string();
+
+        //summary info
+        let path = format!("{}/summary_info.json", sample_data_dir);
+        let json = std::fs::read_to_string(path)?;
+
+        let summary = serde_json::from_str::<SummaryInfo>(&json);
+        if summary.is_err() {
+            println!("load summary info json failed: {}", summary.err().unwrap());
+            return new_error(ErrorKind::InvalidData, "load summary info json failed");
+        }
+        let summary = summary.unwrap();
+
+        let sample_info = &summary.sample_info;
+        self.sample_start_time = sample_info.sample_start_time;
+        self.sample_interval = sample_info.sample_interval;
+        self.agent_addr = sample_info.agent_addr.clone();
+        self.record_start_time = sample_info.record_start_time;
+        self.last_record_time = sample_info.last_record_time;
+
+        //threads
+        for thread in &summary.threads {
+            self.threads.insert(thread.id, thread.clone());
+
+            //load cpu time ts
+            let thread_cpu_ts_file = format!("{}/thread_{}_cpu_time", sample_data_dir, thread.id);
+            match TimeSeriesFileReader::new(&thread_cpu_ts_file) {
+                Ok(ts) => {
+                    self.sample_cpu_ts_map.insert(thread.id, Some(Box::new(ts)));
+                },
+                Err(e) => {
+                    println!("load thread cpu time file failed: {}, err: {}", thread_cpu_ts_file, e);
+                }
+            }
+
+            //load thread stacktrace
+            let thread_stack_file = format!("{}/thread_{}_stack", sample_data_dir, thread.id);
+            match TupleIndexedFile::new_reader(&thread_stack_file) {
+                Ok(file) => {
+                    self.sample_stacktrace_map.insert(thread.id, Some(file));
+                },
+                Err(e) => {
+                    println!("load thread stacktrace file failed: {}, err: {}", thread_stack_file, e);
+                }
+            }
+        }
+
+        //method info idx file
+        let method_idx_path = format!("{}/method_info", sample_data_dir);
+        let mut method_idx_file = TupleIndexedFile::new_writer(&method_idx_path, ValueType::INT64)?;
+        self.sample_method_idx_file = Some(method_idx_file);
+
+        //load threads
+//        let paths = std::fs::read_dir("sample_data_dir")?;
+//        for path in paths {
+//            let file_name =  path.unwrap().file_name().into_string().unwrap();
+//            if file_name.starts_with("thread_") {
+//                //TODO
+//            }
+//        }
+
+        println!("load sample dir is done: {}", sample_data_dir);
+        Ok(())
+    }
 
     //按小时滚动更换数据保存目录
     fn check_and_roll_data_dir(&mut self, sample_time: i64) -> io::Result<bool> {
@@ -157,7 +257,39 @@ impl SamplerClient {
         }
     }
 
-    fn connect_agent(&mut self) -> io::Result<TcpStream> {
+    fn save_summary_info(&mut self) -> io::Result<()> {
+        let now = Local::now().timestamp_millis();
+        if now - self.last_save_time < 1000 {
+            //ignore write file frequently
+            return Ok(());
+        }
+
+        let mut info = SummaryInfo {
+            sample_info: self.get_sample_info(),
+            threads: vec![]
+        };
+        for thread in self.threads.values() {
+            info.threads.push(thread.clone());
+        }
+
+        let path = format!("{}/summary_info.json", self.sample_data_dir);
+        match file_utils::open_file(&path, true) {
+            Ok(mut file) => {
+                let json = serde_json::to_string_pretty(&info).unwrap();
+                file.write_all(json.as_bytes());
+                file.set_len(json.as_bytes().len() as u64);
+                self.last_save_time = Local::now().timestamp_millis();
+                Ok(())
+            }
+            Err(e) => {
+                println!("save summary info failed: {}", e);
+                Err(e)
+            }
+        }
+    }
+
+    pub fn connect_agent(&mut self) -> io::Result<TcpStream> {
+        self.sample_type = "attach".to_string();
         match TcpStream::connect(&self.agent_addr) {
             Ok(mut stream) => {
                 println!("Successfully connected to flare agent at: {:?}", self.agent_addr);
@@ -211,6 +343,8 @@ impl SamplerClient {
                 }
             }
         }
+
+        self.save_summary_info();
     }
 
     fn on_sample_info_data(&mut self, data_vec: &Vec<Value>) {
@@ -274,6 +408,9 @@ impl SamplerClient {
         //prepare data dir
         self.check_and_roll_data_dir(sample_time);
         self.last_record_time = sample_time;
+        if is_new {
+            self.save_summary_info();
+        }
 
         //save thread cpu time
         let sample_interval = self.sample_interval as i32;
@@ -281,7 +418,7 @@ impl SamplerClient {
         let cpu_ts = self.sample_cpu_ts_map.entry(thread_id).or_insert_with(||{
             let path = format!("{}/thread_{}_cpu_time", sample_data_dir, thread_id);
             match TimeSeriesFileWriter::new(ValueType::INT32, sample_interval , sample_time, &path) {
-                Ok(ts) => Some(ts),
+                Ok(ts) => Some(Box::new(ts)),
                 Err(e) => {
                     println!("create thread cpu ts file failed: thread_id: {}, err: {}", thread_id, e);
                     None
@@ -463,4 +600,12 @@ impl SamplerClient {
 //        })
 //        //self.method_cache.get(&method_id).unwrap()
 //    }
+}
+
+
+impl Drop for SamplerClient {
+    fn drop(&mut self) {
+        println!("save summary info before destroy sampler client ..");
+        self.save_summary_info();
+    }
 }
