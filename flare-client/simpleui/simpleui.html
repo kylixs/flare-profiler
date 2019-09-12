@@ -132,7 +132,7 @@
 						<td>
 							<div id="cpu_time_region">
 								<h3>CPU Time</h3>
-
+								<div id="echartsId" style="height:30px;"></div>
 							</div>
 						</td>
 					</tr>
@@ -140,7 +140,9 @@
 			</table>
 		</div>
 
+		<script src="echarts.min.js"></script>
 		<script>
+
 			var profiler = {
 				connected: false,
 				agent_addr: "localhost:3333",
@@ -329,14 +331,56 @@
 					profiler: profiler
 				},
 				methods: {
+                    echarts_bar: function () {
+                        let echartsData = [];
+
+                        for (let i = 0; i < 3000; i++) {
+                            echartsData.push(Math.random().toFixed(2) * 1000);
+                        }
+
+                        let options = {
+                            dataZoom: [{
+                                type: 'inside',
+                                start:0,
+                                end:10
+                            }, {
+                                type: 'slider',
+                                //backgroundColor:'#cccccc'
+                                realtime:false,
+                                filterMode:'empty',
+                                top:'top'
+                            }],
+                            xAxis: {
+                                data: echartsData,
+                                show:false
+                            },
+                            yAxis: {show:false},
+                            series: [{
+                                type: 'bar',//bar
+                                data: echartsData,
+                                large: true,
+                                largeThreshold:50,
+                                itemStyle:{
+                                    color: '#e74911', // bar颜色
+                                    opacity: 0 // 透明度，0：不绘制
+                                }
+                            }]
+                        }
+                        var myChart = echarts.init(document.getElementById('echartsId'));
+                        myChart.setOption(options);
+                    }
 				},
 				filters: {
 					cpuTimeFilter(value) {
 						return (value/1000000000).toFixed(2);
 					}
 				},
-				create(){
-				}
+				created(){
+
+				},
+                mounted(){
+                    this.echarts_bar();
+				},
 			});
 
 		</script>
