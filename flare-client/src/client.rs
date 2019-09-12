@@ -105,14 +105,17 @@ impl Profiler {
 
             let mut thread_cpu_times = vec![];
             for thread_id in thread_ids {
-                let ts_data = client.lock().unwrap().get_thread_cpu_time(thread_id, start_time, end_time, unit_time_ms);
-                if let Some(ts_data) = &ts_data {
+                let ts_result = client.lock().unwrap().get_thread_cpu_time(thread_id, start_time, end_time, unit_time_ms);
+                if let Some(ts_result) = &ts_result {
+                    let ts_data = ts_result.data.as_int64();
                     thread_cpu_times.push(json!({
                         "id":  thread_id,
-                        "start_time": ts_data.begin_time,
-                        "end_time": ts_data.end_time,
-                        "unit_time_ms": ts_data.unit_time,
-                        "ts_data": ts_data.data.as_int64()
+                        "start_time": ts_result.begin_time,
+                        "end_time": ts_result.end_time,
+                        "unit_time_ms": ts_result.unit_time,
+                        "total_cpu_time": ts_result.total_cpu_time,
+                        "steps": ts_result.steps,
+                        "ts_data": ts_data
                     }));
                 }
             }
@@ -320,6 +323,7 @@ impl Profiler {
         let graph_width = get_option_as_int(options, "graph_width", 900);
         let unit_time_ms = get_option_as_int(options, "unit_time_ms", -1);
 
+        //TODO fetch only top n threads data
         //fetch and send in batches, avoid long waiting
         let mut start = 0;
         while start < thread_ids.len() {

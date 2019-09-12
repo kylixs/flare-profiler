@@ -41,6 +41,7 @@ pub struct TSResult {
     pub end_time: i64,
     pub unit_time: i32,
     pub steps: i32,
+    pub total_cpu_time: i64,
     pub data: TSRangeValue
 }
 
@@ -173,17 +174,21 @@ impl TimeSeriesFile {
             for i in 0..size {
                 new_data_vec.push(ts_sum_int64(&data_vec[i*merge_num..(i+1)*merge_num]));
             }
+            let total_cpu_time = ts_sum_int64(new_data_vec.as_slice());
             TSResult {
                 begin_time: start_time,
                 end_time,
+                total_cpu_time,
                 unit_time: unit_time_ms,
                 steps: new_data_vec.len() as i32,
                 data: TSRangeValue::vec_int64(new_data_vec)
             }
         }else {
+            let total_cpu_time = ts_sum_int64(data_vec.as_slice());
             TSResult {
                 begin_time: start_time,
                 end_time,
+                total_cpu_time,
                 unit_time: unit_time_ms,
                 steps: data_vec.len() as i32,
                 data: TSRangeValue::vec_int64(data_vec)

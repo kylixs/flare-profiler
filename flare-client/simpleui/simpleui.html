@@ -20,6 +20,14 @@
 			#cpu_time_region {
 				/*background: #a0cfff;*/
 				width: 900px;
+				margin-left: 10px;
+			}
+
+			#cpu_time_content {
+				width: 900px;
+				height: 380px;
+				overflow-x: hidden;
+				overflow-y: auto;
 			}
 
 			input.input-field {
@@ -27,7 +35,8 @@
 			}
 
 			.message {
-				color: #DD0000;
+				/*color: #DD0000;*/
+				color: #409eff;
 			}
 			#layout td {
 				vertical-align: top;
@@ -43,6 +52,32 @@
                 cursor: pointer;
                 padding-bottom: 10px;
             }
+			.title {
+				margin-top: 0px;
+				margin-bottom: 10px;
+			}
+			.echarts_bar {
+				height: 30px;
+				width: 900px;
+				vertical-align: baseline;
+			}
+
+			.echarts_bar .thread_name {
+				height: 30px;
+				line-height: 30px;
+				width: 800px;
+				margin-right: 10px;
+				float: left;
+				overflow: hidden;
+				text-overflow:ellipsis;
+			}
+			.echarts_bar .thread_bar {
+				height: 30px;
+				width: 800px;
+				float: left;
+				color: #e74911;
+			}
+
 		</style>
 	</head>
 	<body>
@@ -66,7 +101,7 @@
 							<div>
 								<input type="button" value="Sessions" onclick="profiler.list_sessions()" >
 								<input type="button" value="History" onclick="profiler.list_history()" >
-								<input type="button" value="Stop" onclick="profiler.stop_dashboard()" >
+								<input type="button" value="Stop" onclick="profiler.stop_auto_refresh()" >
 
 								<div v-show="profiler.show_history_samples">
 									<p>History samples:</p>
@@ -131,8 +166,17 @@
 						</td>
 						<td>
 							<div id="cpu_time_region">
-								<h3>CPU Time</h3>
-								<div id="echartsId" style="height:30px;"></div>
+								<h4 class="title">CPU Time</h4>
+								<div id="cpu_time_content">
+									<div class="echarts_bar">
+										<div class="thread_name">Thread 0</div>
+										<div class="thread_bar" id="echartsId"></div>
+									</div>
+									<div v-for="thread,index in profiler.data.threads" class="echarts_bar">
+										<div class="thread_name">{{thread.name}}</div>
+										<div class="thread_bar" v-bind:id="'thread_cpu_chart_'+thread.id"></div>
+									</div>
+								</div>
 							</div>
 						</td>
 					</tr>
@@ -172,7 +216,7 @@
 				},
 				stop_auto_refresh() {
 					if (this.dashboard_timer != null) {
-						clearTimeout(this.dashboard_timer);
+						clearInterval(this.dashboard_timer);
 						this.dashboard_timer = null;
 					}
 				},
@@ -220,7 +264,7 @@
                         }
                     };
                     socket.send(JSON.stringify(request));
-                    console.log("update_cpu_time: ", request);
+                    // console.log("update_cpu_time: ", request);
                 },
                 list_sessions() {
 					this.show_sessions = true;
@@ -267,6 +311,14 @@
 					this.data.session_id = "";
 					this.data.threads = [];
 					this.data.sample_info = {};
+				},
+				on_cpu_time_result(data){
+					for (let i = 0; i < data.thread_cpu_times.length; i++) {
+						let thread = data.thread_cpu_times[i];
+						if (thread.total_cpu_time > 0) {
+							create_echarts_bar("thread_cpu_chart_"+thread.id, thread.ts_data);
+						}
+					}
 				}
             }
 
@@ -312,6 +364,9 @@
 					case "history_samples":
 						profiler.show_history_samples = true;
 						break;
+					case "cpu_time":
+						profiler.on_cpu_time_result(json.data);
+						break;
 					default:
 						console.log("unknown message: ", json);
 						break;
@@ -324,6 +379,60 @@
 				input.value = "";
 			}
 
+			function create_echarts_bar(elemId, echartsData) {
+				if (!echartsData){
+					echartsData = [];
+					for (let i = 0; i < 3000; i++) {
+						echartsData.push(Math.random().toFixed(2) * 1000);
+					}
+				}
+
+				let options = {
+					dataZoom: [{
+						type: 'inside',
+						start:0,
+						end:10,
+						moveOnMouseMove: false,
+						moveOnMouseWheel: false,
+						zoomOnMouseWheel: false
+					}, {
+						type: 'slider',
+						//backgroundColor:'#cccccc',
+						dataBackground: {
+							lineStyle: {
+								color: '#409eff',
+								opacity: 1
+							},
+							areaStyle: {
+								color: '#3a8ee6',
+								opacity: 0.3
+							}
+						},
+						realtime:false,
+						filterMode:'empty',
+						top:'top',
+						left:'left'
+					}],
+					xAxis: {
+						// data: echartsData,
+						show:false
+					},
+					yAxis: {show:false},
+					series: [{
+						type: 'bar',//bar
+						data: echartsData,
+						large: true,
+						largeThreshold:50,
+						itemStyle:{
+							color: '#e74911', // bar颜色
+							opacity: 0 // 透明度，0：不绘制
+						}
+					}]
+				}
+				var myChart = echarts.init(document.getElementById(elemId));
+				myChart.setOption(options);
+			}
+
 			var app = new Vue({
 				el: '#app',
 				data: {
@@ -331,45 +440,6 @@
 					profiler: profiler
 				},
 				methods: {
-                    echarts_bar: function () {
-                        let echartsData = [];
-
-                        for (let i = 0; i < 3000; i++) {
-                            echartsData.push(Math.random().toFixed(2) * 1000);
-                        }
-
-                        let options = {
-                            dataZoom: [{
-                                type: 'inside',
-                                start:0,
-                                end:10
-                            }, {
-                                type: 'slider',
-                                //backgroundColor:'#cccccc'
-                                realtime:false,
-                                filterMode:'empty',
-                                top:'top',
-								left:'left'
-                            }],
-                            xAxis: {
-                                data: echartsData,
-                                show:false
-                            },
-                            yAxis: {show:false},
-                            series: [{
-                                type: 'bar',//bar
-                                data: echartsData,
-                                large: true,
-                                largeThreshold:50,
-                                itemStyle:{
-                                    color: '#e74911', // bar颜色
-                                    opacity: 0 // 透明度，0：不绘制
-                                }
-                            }]
-                        }
-                        var myChart = echarts.init(document.getElementById('echartsId'));
-                        myChart.setOption(options);
-                    }
 				},
 				filters: {
 					cpuTimeFilter(value) {
@@ -380,7 +450,7 @@
 
 				},
                 mounted(){
-                    this.echarts_bar();
+                    create_echarts_bar('echartsId');
 				},
 			});
 
