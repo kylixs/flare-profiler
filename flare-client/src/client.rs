@@ -12,7 +12,9 @@ use serde::Serialize;
 use client_utils::*;
 use std::collections::HashMap;
 use std::io::ErrorKind;
-use serde_json::json;
+use serde_json::{json, Value};
+use std::cmp::{min, max};
+use chrono::Local;
 
 type JsonValue = serde_json::Value;
 
@@ -66,7 +68,57 @@ impl Profiler {
         if let Some(client) = self.sample_session_map.get(session_id) {
             Ok(client.lock().unwrap().get_dashboard())
         }else {
-            Err(io::Error::new(ErrorKind::NotFound, "sample instance not found"))
+            Err(io::Error::new(ErrorKind::NotFound, "sample session not found"))
+        }
+    }
+
+    pub fn get_thread_cpu_times(&mut self, session_id: &str, thread_ids: &[i64], mut start_time: i64, mut end_time: i64, mut unit_time_ms: i64, graph_width: i64) -> io::Result<Vec<Value>> {
+        if let Some(client) = self.sample_session_map.get(session_id) {
+            let sample_info = client.lock().unwrap().get_sample_info();
+            //限制时间范围
+            if start_time < 0 {
+                start_time = sample_info.record_start_time;
+            } else {
+                start_time = max(start_time, sample_info.record_start_time);
+            }
+
+            if end_time < 0 {
+                end_time = sample_info.last_record_time;
+            } else {
+                end_time = min(end_time, sample_info.last_record_time);
+            }
+
+            if unit_time_ms < 10 {
+                //计算聚合单位时间
+                let dt = end_time - start_time;
+                if dt <= 0 {
+                    return Err(new_invalid_input_error("time period error, end_time must be greater than start_time"))
+                }
+                let mut ratio = dt / graph_width / sample_info.sample_interval;
+                //超过十倍 按照十倍缩放
+                if ratio > 10 {
+                    ratio = ratio / 10 * 10;
+                }
+                unit_time_ms = ratio * sample_info.sample_interval;
+            }
+
+
+            let mut thread_cpu_times = vec![];
+            for thread_id in thread_ids {
+                let ts_data = client.lock().unwrap().get_thread_cpu_time(thread_id, start_time, end_time, unit_time_ms);
+                if let Some(ts_data) = &ts_data {
+                    thread_cpu_times.push(json!({
+                        "id":  thread_id,
+                        "start_time": ts_data.begin_time,
+                        "end_time": ts_data.end_time,
+                        "unit_time_ms": ts_data.unit_time,
+                        "ts_data": ts_data.data.as_int64()
+                    }));
+                }
+            }
+            Ok(thread_cpu_times)
+        }else {
+            Err(io::Error::new(ErrorKind::NotFound, "sample session not found"))
         }
     }
 
@@ -74,7 +126,7 @@ impl Profiler {
         if let Some(client) = self.sample_session_map.get(session_id) {
             Ok(client.lock().unwrap().get_sample_info())
         }else {
-            Err(io::Error::new(ErrorKind::NotFound, "sample instance not found"))
+            Err(io::Error::new(ErrorKind::NotFound, "sample session not found"))
         }
     }
 
@@ -162,7 +214,7 @@ impl Profiler {
         //cmd
         let cmd= request["cmd"].as_str().unwrap_or("");
         if cmd == "" {
-            return new_invalid_input_error("missing attribute 'cmd'");
+            return Err(new_invalid_input_error("missing attribute 'cmd'"));
         }
         _out_cmd.push_str(cmd);
 
@@ -184,6 +236,9 @@ impl Profiler {
             }
             "dashboard" => {
                 self.handle_dashboard_request(sender, cmd, options)?;
+            }
+            "cpu_time" => {
+                self.handle_cpu_time_request(sender, cmd, options)?;
             }
             _ => {
                 println!("unknown cmd: {}, request: {}", cmd, json_str);
@@ -219,7 +274,7 @@ impl Profiler {
     fn handle_open_sample(&mut self, sender: &mut Writer<std::net::TcpStream>, cmd: &str, options: &serde_json::Map<String, serde_json::Value>) -> io::Result<()> {
         let sample_data_dir = options["sample_data_dir"].as_str().unwrap_or("");
         if sample_data_dir == "" {
-            return new_invalid_input_error("missing option 'sample_data_dir'");
+            return Err(new_invalid_input_error("missing option 'sample_data_dir'"));
         }
         let instance_id = self.open_sample(sample_data_dir)?;
         sender.send_message(&wrap_response(&cmd, &json!({ "session_id": instance_id, "type": "file" })));
@@ -229,7 +284,7 @@ impl Profiler {
     fn handle_attach_jvm(&mut self, sender: &mut Writer<std::net::TcpStream>, cmd: &str, options: &serde_json::Map<String, serde_json::Value>) -> io::Result<()> {
         let target_pid = options["target_pid"].as_u64();
         if target_pid.is_none() {
-            return new_invalid_input_error("missing option 'target_pid'");
+            return Err(new_invalid_input_error("missing option 'target_pid'"));
         }
 
         let sample_interval_ms = options["sample_interval_ms"].as_u64().unwrap_or(20);
@@ -240,9 +295,9 @@ impl Profiler {
     }
 
     fn handle_connect_agent(&mut self, sender: &mut Writer<std::net::TcpStream>, cmd: &str, options: &serde_json::Map<String, serde_json::Value>) -> io::Result<()> {
-        let agent_addr = options["agent_addr"].as_str();
+        let agent_addr = options.get("agent_addr").map_or(None, |x| x.as_str());
         if agent_addr.is_none() {
-            return new_invalid_input_error("missing option 'agent_addr'");
+            return Err(new_invalid_input_error("missing option 'agent_addr'"));
         }
         let instance_id = self.connect_agent(agent_addr.unwrap())?;
         sender.send_message(&wrap_response(&cmd, &json!({ "session_id": instance_id, "type": "attach" })));
@@ -251,9 +306,35 @@ impl Profiler {
     }
 
     fn handle_dashboard_request(&mut self, sender: &mut Writer<std::net::TcpStream>, cmd: &str, options: &serde_json::Map<String, serde_json::Value>) -> io::Result<()> {
-        let session_id = get_option_required_as_str(options, "session_id")?;
+        let session_id = get_option_as_str_required(options, "session_id")?;
         let dashboard_info = self.get_dashboard(session_id)?;
         sender.send_message(&wrap_response(&cmd, &dashboard_info));
+        Ok(())
+    }
+
+    fn handle_cpu_time_request(&mut self, sender: &mut Writer<std::net::TcpStream>, cmd: &str, options: &serde_json::Map<String, serde_json::Value>) -> io::Result<()> {
+        let session_id = get_option_as_str_required(options, "session_id")?;
+        let thread_ids = get_option_as_int_array(options, "thread_ids")?;
+        let start_time = get_option_as_int(options, "start_time", -1);
+        let end_time = get_option_as_int(options, "end_time", -1);
+        let graph_width = get_option_as_int(options, "graph_width", 900);
+        let unit_time_ms = get_option_as_int(options, "unit_time_ms", -1);
+
+        //fetch and send in batches, avoid long waiting
+        let mut start = 0;
+        while start < thread_ids.len() {
+            let t1 = Local::now().timestamp_millis();
+            let end = min(start+5, thread_ids.len());
+            let thread_cpu_times = self.get_thread_cpu_times(session_id, &thread_ids[start..end], start_time, end_time, unit_time_ms, graph_width)?;;
+            let result = json!({
+                "session_id": session_id,
+                "thread_cpu_times": thread_cpu_times
+            });
+            let t2 = Local::now().timestamp_millis();
+            println!("fetch thread cpu time data cost: {}ms, threads: {:?}", t2-t1, &thread_ids[start..end]);
+            sender.send_message(&wrap_response(&cmd, &result));
+            start = end;
+        }
         Ok(())
     }
 

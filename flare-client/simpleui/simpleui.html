@@ -25,15 +25,24 @@
 			input.input-field {
 				width: 250px;
 			}
-			.list-item {
-				cursor: pointer;
-			}
+
 			.message {
 				color: #DD0000;
 			}
 			#layout td {
 				vertical-align: top;
 			}
+            .list-content {
+                height: 160px;
+                overflow: auto;
+                list-style:none;
+                margin:0px;
+                padding:0px;
+            }
+            .list-item {
+                cursor: pointer;
+                padding-bottom: 10px;
+            }
 		</style>
 	</head>
 	<body>
@@ -61,18 +70,21 @@
 
 								<div v-show="profiler.show_history_samples">
 									<p>History samples:</p>
-									<p class="list-item" v-for="sample in profiler.data.history_samples" @click='profiler.open_sample(sample.path)' >[{{sample.type}}]{{sample.path}}</p>
+                                    <ul class="list-content">
+                                        <li class="list-item" v-for="sample in profiler.data.history_samples" @click='profiler.open_sample(sample.path)' >[{{sample.type}}]{{sample.path}}</li>
+                                    </ul>
 								</div>
-								<div v-show="profiler.show_sessions">
+								<div class="list-div" v-show="profiler.show_sessions">
 									<p>Sample sessions:</p>
-									<p class="list-item" v-for="session in profiler.data.sample_sessions" @click="profiler.active_session(session.session_id, session.type)"> [{{session.type}}]{{session.session_id}}</p>
+                                    <ul class="list-content">
+									    <li class="list-item" v-for="session in profiler.data.sample_sessions" @click="profiler.active_session(session.session_id, session.type)"> [{{session.type}}]{{session.session_id}}</li>
+                                    </ul>
 								</div>
 							</div>
 							<div class="message" v-show="profiler.show_message">
 								<!--				<p>操作指令：{{profiler.data.cmd}}</p>-->
 								<p>错误信息：{{profiler.data.message}}</p>
 							</div>
-							<br>
 							<div>
 								<p>Sample Session: {{profiler.data.session_id}} ({{profiler.data.type}})</p>
 								<p>Sample Start Time: {{profiler.data.sample_info.sample_start_time}}</p>
@@ -167,7 +179,9 @@
                         return;
                     }
 				    this.update_dashboard();
-                    this.update_cpu_time();
+                    setTimeout(function () {
+                        profiler.update_cpu_time();
+                    }, 500);
                 },
                 update_dashboard(){
 					console.log("send request: get_dashboard");
@@ -194,8 +208,9 @@
                     var unit_time_ms = ratio * sample_interval;
 
                     var request = {
-                        "cmd": "dashboard",
+                        "cmd": "cpu_time",
                         "options": {
+                            "session_id": profiler.data.session_id,
                             "thread_ids": thread_ids,
                             "start_time": start_time,
                             "end_time": end_time,
@@ -284,6 +299,7 @@
 				}
 				switch (json.cmd) {
 					case "dashboard":
+					    //profiler.on_dashboard_result(json.data);
 						break;
 					case "open_sample":
 						profiler.start_auto_refresh();

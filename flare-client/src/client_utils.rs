@@ -75,7 +75,7 @@ pub fn wrap_error_response(cmd: &str, message: &str) -> OwnedMessage {
     OwnedMessage::Text(serde_json::to_string(&response).unwrap())
 }
 
-pub fn get_option_required_as_str<'a>(options: &'a serde_json::Map<String, serde_json::Value>, key: &str) -> io::Result<&'a str> {
+pub fn get_option_as_str_required<'a>(options: &'a serde_json::Map<String, serde_json::Value>, key: &str) -> io::Result<&'a str> {
     match options.get(key) {
         Some(val) => {
             match val.as_str() {
@@ -91,19 +91,46 @@ pub fn get_option_required_as_str<'a>(options: &'a serde_json::Map<String, serde
     }
 }
 
-pub fn get_option_as_int(request: &serde_json::Value, key: &str) -> Option<Number> {
-    if let serde_json::Value::Object(options) = &request["options"] {
-        if let serde_json::Value::Number(s) = &options[key] {
-            return Some(s.clone());
+pub fn get_option_as_int(options: &serde_json::Map<String, serde_json::Value>, key: &str, default_value: i64) -> i64 {
+    match options.get(key) {
+        Some(val) => {
+            match val.as_i64() {
+                Some(s) => s,
+                None => default_value
+            }
+        },
+        None => default_value
+    }
+}
+
+pub fn get_option_as_int_array(options: &serde_json::Map<String, serde_json::Value>, key: &str) -> io::Result<Vec<i64>> {
+    let val = options.get(key);
+    if val.is_none() {
+        return Err(new_invalid_input_error(&format!("missing option: {}", key)));
+    }
+    let val = val.unwrap().as_array();
+    if val.is_none() {
+        return Err(new_invalid_input_error(&format!("option '{}' is not int array ", key)));
+    }
+    let vals = val.unwrap();
+    let mut data = vec![];
+    for v in vals {
+        match v.as_i64() {
+            Some(x) => {
+                data.push(x);
+            },
+            None => {
+                return Err(new_invalid_input_error(&format!("option '{}' contains none int value: {} ", key, v)));
+            },
         }
     }
-    return None;
+    Ok(data)
 }
 
 pub fn new_error(kind: ErrorKind, msg: &str) -> io::Result<()> {
     Err(io::Error::new(kind, msg))
 }
 
-pub fn new_invalid_input_error(msg: &str) -> io::Result<()> {
-    Err(io::Error::new(ErrorKind::InvalidInput, msg))
+pub fn new_invalid_input_error(msg: &str) -> io::Error {
+    io::Error::new(ErrorKind::InvalidInput, msg)
 }

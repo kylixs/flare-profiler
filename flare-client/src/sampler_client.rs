@@ -58,12 +58,12 @@ pub struct DashboardInfo {
 
 #[derive(Serialize, Deserialize)]
 pub struct SampleInfo {
-    sample_interval: i64,
-    sample_start_time: i64,
-    record_start_time: i64,
-    last_record_time: i64,
-    agent_addr: String,
-    sample_data_dir: String,
+    pub sample_interval: i64,
+    pub sample_start_time: i64,
+    pub record_start_time: i64,
+    pub last_record_time: i64,
+    pub agent_addr: String,
+    pub sample_data_dir: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -488,6 +488,26 @@ impl SamplerClient {
 
     pub fn get_sample_type(&self) -> String {
         self.sample_type.clone()
+    }
+
+    pub fn get_thread_cpu_time(&self, thread_id: &i64, start_time: i64, end_time: i64, unit_time_ms: i64) -> Option<TSResult> {
+//        match self.sample_cpu_ts_map.get(thread_id) {
+//            Some(ts) => {
+//                match ts {
+//                    Some(ts) => {
+//                        Some(ts.get_range_value(start_time, end_time, unit_time_ms as i32))
+//                    },
+//                    None => None,
+//                }
+//            },
+//            None => None
+//        }
+
+        self.sample_cpu_ts_map.get(thread_id).map_or(None,|ts|{
+            ts.as_ref().map( |ts| {
+                ts.get_range_value(start_time, end_time, unit_time_ms as i32)
+            })
+        })
     }
 
 //    pub fn write_all_call_trees(&self, writer: &mut std::io::Write, compact: bool) {

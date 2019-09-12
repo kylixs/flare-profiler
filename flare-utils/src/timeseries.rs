@@ -26,6 +26,15 @@ pub enum TSRangeValue {
     vec_f32(Vec<f32>),
 }
 
+impl TSRangeValue {
+    pub fn as_int64(&self) -> Option<Vec<i64>> {
+        match self {
+            TSRangeValue::vec_int64(x) => Some(x.clone()),
+            _ => None
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct TSResult {
     pub begin_time: i64,
@@ -67,7 +76,8 @@ pub struct TimeSeriesFileReader {
 pub struct TimeSeriesFileWriter {
     info: TimeSeriesFile,
     inited: bool,
-
+    last_save_time: i64,
+    last_sample_time: i64,
 }
 
 pub trait TimeSeries {
@@ -93,7 +103,7 @@ impl TimeSeriesFile {
             value_type,
             begin_time: 0,
             end_time: 0,
-            amount: 0
+            amount: 0,
         }
     }
 
@@ -312,7 +322,9 @@ impl TimeSeriesFileWriter {
                 let info = TimeSeriesFile::new(value_type, unit_time, &path, file);
                 let mut writer = TimeSeriesFileWriter {
                     info: info,
-                    inited: false
+                    inited: false,
+                    last_save_time: 0,
+                    last_sample_time: 0
                 };
                 writer.init(begin_time);
                 Ok(writer)
@@ -364,6 +376,8 @@ impl TimeSeriesFileWriter {
         //save data segment start offset
         info.data_offset = file.seek(SeekFrom::Current(0)).unwrap();
         //info.data_offset = file.stream_position().unwrap();
+
+        self.last_save_time = self.last_sample_time;
     }
 
 }
@@ -422,6 +436,11 @@ impl TimeSeries for TimeSeriesFileWriter {
             }
         }
 
+        //save header info periodically
+        self.last_sample_time = time;
+        if time - self.last_save_time > 1000 {
+            self.save_header_info();
+        }
         Ok(steps as u32)
     }
 
