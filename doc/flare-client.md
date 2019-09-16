@@ -259,7 +259,7 @@ FlareUI支持打开多个取样实例，sample_instance为全局唯一的实例�
 获取指定时间范围的线程CPU时间趋势数据
 ```json
 {
-   "cmd": "cpu_ts",
+   "cmd": "cpu_time",
    "options" : {
       "session_id": "localhost:2233",
       "thread_ids": [], // 为空时获取全部线程
@@ -273,7 +273,7 @@ FlareUI支持打开多个取样实例，sample_instance为全局唯一的实例�
 ```json
 {
    "result": "success",
-   "cmd": "cpu_ts",
+   "cmd": "cpu_time",
    "data": {
       "session_id": "localhost:2233",
       "threads": [{
@@ -284,6 +284,51 @@ FlareUI支持打开多个取样实例，sample_instance为全局唯一的实例�
           "unit_time_ms": 1000,
           "cpu_time_ms": 2342,
           "ts_data": [10,2,0,0,2,4] 
+      }]
+   }
+}
+```
+
+####7）获取线程的stacktrace统计数据
+获取指定时间范围的线程stacktrace统计数据
+```json
+{
+   "cmd": "stack_tree",
+   "options" : {
+      "session_id": "localhost:2233",
+      "thread_ids": [], // 为空时获取全部线程
+      "start_time": 1567669466207,
+      "end_time": 1567669485649,
+      "filter": {
+          
+      } 
+    }
+}
+```
+响应结果：
+```json
+{
+   "result": "success",
+   "cmd": "stack_tree",
+   "data": {
+      "session_id": "localhost:2233",
+      "threads": [{
+          "id": 132,
+          "name": "DiscoveryClient-1",
+          "start_time": 1567669466207,
+          "end_time": 1567669485649,
+          "cpu_time_ms": 2342,
+          "tree_data": [{
+            "parent": 0,
+            "id": 1,
+            "name": "Thread.run()",
+            "cost": 60
+          },{
+            "parent": 1,
+            "id": 2,
+            "name": "MyTask.do_job()",
+            "cost": 50
+          }] 
       }]
    }
 }
