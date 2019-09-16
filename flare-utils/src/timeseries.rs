@@ -108,14 +108,14 @@ impl TimeSeriesFile {
         }
     }
 
-    pub fn get_range_value(&self, start_time: i64, end_time: i64, unit_time_ms: i32) -> TSResult {
+    pub fn get_range_value(&self, origin_start_time: i64, origin_end_time: i64, unit_time_ms: i32) -> TSResult {
         let mut data_vec = vec![];
         // self.begin_time <= start_time <= self.end_time
-        let mut start_time = max(self.begin_time, start_time);
+        let mut start_time = max(self.begin_time, origin_start_time);
         start_time = min(start_time, self.end_time);
 
         // self.begin_time <= end_time <= self.end_time
-        let mut end_time = max(self.begin_time, end_time);
+        let mut end_time = max(self.begin_time, origin_end_time);
         end_time = min(end_time, self.end_time);
 
         //convert time to steps
@@ -171,6 +171,7 @@ impl TimeSeriesFile {
         if merge_num > 1 {
             let mut new_data_vec = vec![];
             let size = data_vec.len() / merge_num as usize;
+            //fill data
             for i in 0..size {
                 new_data_vec.push(ts_sum_int64(&data_vec[i*merge_num..(i+1)*merge_num]));
             }
@@ -195,6 +196,27 @@ impl TimeSeriesFile {
             }
         }
     }
+}
+
+//填充空的数据，使得返回的时序数据范围的一致的
+fn fill_null_data(mut data_vec: Vec<i64>, start_time: i64, end_time: i64, origin_start_time: i64, origin_end_time: i64, unit_time_ms: i32) -> Vec<i64> {
+    let fill_steps_before = (start_time - origin_start_time)/unit_time_ms as i64;
+    let fill_steps_after = (origin_end_time - end_time)/unit_time_ms as i64;
+    if fill_steps_before == 0 && fill_steps_after == 0 {
+        return data_vec;
+    }
+
+    let mut new_data_vec = Vec::with_capacity(data_vec.len()+(fill_steps_before+fill_steps_after) as usize);
+    for i in 0..fill_steps_before {
+        new_data_vec.push(0);
+    }
+
+    new_data_vec.append(&mut data_vec);
+
+    for i in 0..fill_steps_after {
+        new_data_vec.push(0);
+    }
+    new_data_vec
 }
 
 fn ts_avg_int16 (numbers: &[i16]) -> f32 {

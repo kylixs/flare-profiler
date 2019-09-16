@@ -52,30 +52,37 @@
                 cursor: pointer;
                 padding-bottom: 10px;
             }
+			.selected {
+				background-color: #c2e7b0;
+			}
 			.title {
 				margin-top: 0px;
 				margin-bottom: 10px;
 			}
 			.echarts_bar {
 				height: 30px;
-				width: 900px;
+				width: 1200px;
 				vertical-align: baseline;
+				overflow-x: auto;
 			}
 
 			.echarts_bar .thread_name {
 				height: 30px;
 				line-height: 30px;
-				width: 800px;
-				margin-right: 10px;
+				width: 240px;
+				margin-right: 5px;
 				float: left;
 				overflow: hidden;
 				text-overflow:ellipsis;
+				cursor: default;
+				word-break: break-all;
 			}
 			.echarts_bar .thread_bar {
 				height: 30px;
-				width: 800px;
+				width: 780px;
 				float: left;
 				color: #e74911;
+				overflow: hidden;
 			}
 
 		</style>
@@ -101,7 +108,8 @@
 							<div>
 								<input type="button" value="Sessions" onclick="profiler.list_sessions()" >
 								<input type="button" value="History" onclick="profiler.list_history()" >
-								<input type="button" value="Stop" onclick="profiler.stop_auto_refresh()" >
+								<input type="button" value="Stop Refresh" onclick="profiler.stop_auto_refresh()" >
+								<input type="button" value="Close" onclick="profiler.close_session()" >
 
 								<div v-show="profiler.show_history_samples">
 									<p>History samples:</p>
@@ -168,12 +176,12 @@
 							<div id="cpu_time_region">
 								<h4 class="title">CPU Time</h4>
 								<div id="cpu_time_content">
-									<div class="echarts_bar">
-										<div class="thread_name">Thread 0</div>
-										<div class="thread_bar" id="echartsId"></div>
-									</div>
-									<div v-for="thread,index in profiler.data.threads" class="echarts_bar">
-										<div class="thread_name">{{thread.name}}</div>
+<!--									<div class="echarts_bar">-->
+<!--										<div class="thread_name">Thread 0</div>-->
+<!--										<div class="thread_bar" id="echartsId"></div>-->
+<!--									</div>-->
+									<div v-for="thread,index in profiler.data.threads" @click="profiler.select_thread(thread.id)" class="echarts_bar" :class="{selected: profiler.selected_thread_id == thread.id}" >
+										<div class="thread_name" :title="thread.name" >{{thread.name}}</div>
 										<div class="thread_bar" v-bind:id="'thread_cpu_chart_'+thread.id"></div>
 									</div>
 								</div>
@@ -196,11 +204,13 @@
 				show_history_samples: false,
 				show_message: false,
 				show_sessions: false,
+				selected_thread_id: null,
 				data: {
 					sample_info: {},
 					threads: [],
 					history_samples: [],
 					sample_sessions: [],
+					thread_cpu_time_map: {},
 					session_id: "",
 					type: ""
 				},
@@ -252,10 +262,11 @@
                     	ratio = Math.floor(ratio/10)*10;
 					}
                     var unit_time_ms = ratio * sample_interval;
+					profiler.data.sample_info.unit_time_ms = unit_time_ms;
 
                     var request = {
-                        "cmd": "cpu_time",
-                        "options": {
+                        cmd: "cpu_time",
+                        options: {
                             "session_id": profiler.data.session_id,
                             "thread_ids": thread_ids,
                             "start_time": start_time,
@@ -289,6 +300,17 @@
 						}
 					};
 					socket.send(JSON.stringify(request));
+					this.connected = true;
+				},
+				close_session() {
+					this.connected = false;
+					var request = {
+						"cmd": "close_session",
+						"options": {
+							"session_id": profiler.data.session_id
+						}
+					};
+					socket.send(JSON.stringify(request));
 				},
 				open_sample: function (sample_data_dir) {
 					this.clear_session();
@@ -311,14 +333,33 @@
 					this.data.session_id = "";
 					this.data.threads = [];
 					this.data.sample_info = {};
+					this.data.thread_cpu_time_map = {};
 				},
 				on_cpu_time_result(data){
+					var start_time = profiler.data.sample_info.record_start_time;
+					var end_time = profiler.data.sample_info.last_record_time;
+					var unit_time_ms = profiler.data.sample_info.unit_time_ms;
+
 					for (let i = 0; i < data.thread_cpu_times.length; i++) {
 						let thread = data.thread_cpu_times[i];
 						if (thread.total_cpu_time > 0) {
-							create_echarts_bar("thread_cpu_chart_"+thread.id, thread.ts_data);
+							let ts_data = fill_ts_data(thread.ts_data, thread.start_time, thread.end_time, start_time, end_time, unit_time_ms);
+
+							let myChart = create_echarts_bar("thread_cpu_chart_"+thread.id, ts_data);
+							myChart.on('datazoom', function (evt) {
+								var axis = myChart.getModel().option.xAxis[0];
+								// var starttime = axis.data[axis.rangeStart];
+								// var endtime = axis.data[axis.rangeEnd];
+								let start_time = axis.rangeStart*unit_time_ms/1000;
+								let end_time = axis.rangeEnd*unit_time_ms/1000;
+								console.log("datazoom: thread:",thread.id, ", index:", axis.rangeStart,"-", axis.rangeEnd,", time:", start_time,"-", end_time );
+							})
 						}
+						profiler.data.thread_cpu_time_map[thread.id] = thread;
 					}
+				},
+				select_thread(thread_id) {
+					this.selected_thread_id = thread_id;
 				}
             }
 
@@ -414,7 +455,7 @@
 						left:'left'
 					}],
 					xAxis: {
-						// data: echartsData,
+						data: echartsData,
 						show:false
 					},
 					yAxis: {show:false},
@@ -431,6 +472,7 @@
 				}
 				var myChart = echarts.init(document.getElementById(elemId));
 				myChart.setOption(options);
+				return myChart;
 			}
 
 			var app = new Vue({
@@ -450,7 +492,7 @@
 
 				},
                 mounted(){
-                    create_echarts_bar('echartsId');
+                    //create_echarts_bar('echartsId');
 				},
 			});
 

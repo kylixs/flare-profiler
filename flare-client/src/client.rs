@@ -64,6 +64,14 @@ impl Profiler {
         Ok(instance_id)
     }
 
+    pub fn close_session(&mut self, session_id: &str) -> io::Result<()> {
+        if let Some(client) = self.sample_session_map.remove(session_id) {
+            println!("close session: {}", session_id);
+        }
+
+        Ok(())
+    }
+
     pub fn get_dashboard(&mut self, session_id: &str) -> io::Result<DashboardInfo> {
         if let Some(client) = self.sample_session_map.get(session_id) {
             Ok(client.lock().unwrap().get_dashboard())
@@ -237,6 +245,9 @@ impl Profiler {
             "connect_agent" => {
                 self.handle_connect_agent(sender, cmd, options)?;
             }
+            "close_session" => {
+                self.handle_close_session_request(sender, cmd, options)?;
+            }
             "dashboard" => {
                 self.handle_dashboard_request(sender, cmd, options)?;
             }
@@ -305,6 +316,13 @@ impl Profiler {
         let instance_id = self.connect_agent(agent_addr.unwrap())?;
         sender.send_message(&wrap_response(&cmd, &json!({ "session_id": instance_id, "type": "attach" })));
 
+        Ok(())
+    }
+
+    fn handle_close_session_request(&mut self, sender: &mut Writer<std::net::TcpStream>, cmd: &str, options: &serde_json::Map<String, serde_json::Value>) -> io::Result<()> {
+        let session_id = get_option_as_str_required(options, "session_id")?;
+        self.close_session(session_id)?;
+        sender.send_message(&wrap_response(&cmd, &json!({ "session_id": session_id})));
         Ok(())
     }
 
