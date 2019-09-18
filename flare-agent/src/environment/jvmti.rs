@@ -54,6 +54,7 @@ pub trait JVMTI {
     fn get_all_threads(&self) -> Result<Vec<ThreadId>, NativeError>;
     fn get_thread_cpu_time(&self, thread_id: &JavaThread) -> Result<JavaLong, NativeError>;
     fn get_thread_cpu_timer_info(&self) -> Result<jvmtiTimerInfo, NativeError>;
+    fn get_stack_trace(&self, thread_id: &JavaThread) -> Result<Vec<JavaStackFrame>, NativeError>;
 
 }
 
@@ -378,6 +379,29 @@ impl JVMTI for JVMTIEnvironment {
         }
     }
 
+    fn get_stack_trace(&self, thread_id: &JavaThread) -> Result<Vec<JavaStackFrame>, NativeError> {
+        const max_frame_count:jint = 100;
+        let mut frame_infos = [jvmtiFrameInfo{ method: 0 as jmethodID, location: 0};max_frame_count as usize];
+        let mut frame_count = 0;
+        unsafe {
+            match wrap_error((**self.jvmti).GetStackTrace.unwrap()(self.jvmti, *thread_id, 0, max_frame_count, frame_infos.as_mut_ptr(), &mut frame_count)){
+                NativeError::NoError => {
+                    let mut frames = vec![];
+//                    let frame_infos = unsafe { std::slice::from_raw_parts(frame_info_ptr, frame_count as usize ) };
+                    for i in 0..frame_count as usize {
+                        let frame = frame_infos[i];
+                        frames.push(JavaStackFrame{
+                            method: frame.method,
+                            location: frame.location
+                        });
+                    }
+                    Ok(frames)
+                },
+                err @ _ => Err(err)
+            }
+        }
+    }
+
 }
 
 #[derive(Eq, PartialEq, Hash, Clone, Debug)]
@@ -385,7 +409,8 @@ pub struct ThreadInfo {
     pub thread_id: JavaLong, // actual java thread id
     pub name: String,
     pub priority: u32,
-    pub is_daemon: bool
+    pub is_daemon: bool,
+    pub cpu_time: i64
 }
 
 pub struct JavaStackTrace {

@@ -7,7 +7,6 @@ use class::ClassSignature;
 use thread::{ThreadId, Thread};
 use environment::Environment;
 use serde::{Deserialize, Serialize};
-use serde_json::Result;
 use profile::tree::{TreeArena, NodeId};
 use std::collections::hash_map::Entry;
 use time::Duration;
@@ -15,6 +14,7 @@ use super::server::*;
 use chrono::Local;
 use profile::encoder::*;
 use std::sync::{Mutex, mpsc};
+use error::NativeError;
 //use std::sync::mpsc::{Sender, Receiver};
 
 #[derive(Serialize, Deserialize)]

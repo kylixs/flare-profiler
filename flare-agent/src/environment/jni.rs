@@ -16,7 +16,7 @@ pub trait JNI {
 
     fn get_method_id(&self, clazz: JavaClass, method_name: &str, method_sig: &str ) -> JavaMethod;
 
-    fn call_long_method(&self, thread: JavaThread, method_id: JavaMethod) -> JavaLong;
+    fn call_long_method(&self, obj: jobject, method_id: JavaMethod) -> JavaLong;
 
     fn delete_local_ref(&self, obj: jobject);
 
@@ -69,9 +69,9 @@ impl JNI for JNIEnvironment {
         }
     }
 
-    fn call_long_method(&self, thread: JavaThread, method_id: JavaMethod) -> JavaLong {
+    fn call_long_method(&self, obj: jobject, method_id: JavaMethod) -> JavaLong {
         unsafe {
-           let value = (**self.jni).CallLongMethod.unwrap()(self.jni, thread, method_id);
+           let value = (**self.jni).CallLongMethod.unwrap()(self.jni, obj, method_id);
             value
         }
     }

@@ -47,7 +47,7 @@ use bytecode::io::ClassWriter;
 use config::Config;
 use context::static_context;
 use instrumentation::asm::transformer::Transformer;
-use native::{JavaVMPtr, MutString, VoidPtr, ReturnValue};
+use native::{JavaVMPtr, MutString, VoidPtr, ReturnValue, JavaLong};
 use options::Options;
 use runtime::*;
 use std::io::{Cursor, Write};
@@ -58,11 +58,14 @@ use chrono::Local;
 use std::sync::{Mutex,Arc,RwLock};
 use time::{Duration,Tm};
 use environment::jvm::{JVMF, JVMAgent};
-use environment::jvmti::{JVMTI, JVMTIEnvironment};
+use environment::jvmti::{JVMTI, JVMTIEnvironment, JavaStackTrace, ThreadInfo};
 use profile::sample::*;
 use environment::Environment;
 use environment::jni::JNIEnvironment;
 use std::path::Path;
+use error::NativeError;
+use std::collections::HashMap;
+use std::cmp::max;
 
 
 
@@ -367,11 +370,19 @@ pub extern fn Agent_OnAttach(vm: JavaVMPtr, options: MutString, reserved: VoidPt
                     init_agent(&mut agent);
                     let jvmenv = &agent.jvm_env;
 
-                    let mut samples=0;
+                    let mut samples=0i64;
+                    let mut thread_info_map: HashMap<JavaLong, ThreadInfo> = HashMap::new();
+                    let mut last_get_cpu_time = 0i64;
+                    //let get_cpu_time_per_samples = max(1, 50/interval);
                     while is_trace_running() {
                         samples += 1;
-                        let t0 = time::now();
+                        let t0 = Local::now().timestamp_millis();
+                        let update_cpu_time = (t0 - last_get_cpu_time) > 50;
+                        if update_cpu_time {
+                            last_get_cpu_time = t0;
+                        }
                         match jvmenv.get_all_stacktraces() {
+//                        match get_stack_traces(jvmenv, &mut thread_info_map, update_cpu_time) {
                             Ok(stack_traces) => {
                                 let t1 = time::now();
                                 SAMPLER.lock().unwrap().add_stack_traces(jvmenv, &stack_traces);
@@ -402,6 +413,73 @@ pub extern fn Agent_OnAttach(vm: JavaVMPtr, options: MutString, reserved: VoidPt
     }
 
     return 0;
+}
+
+fn get_stack_traces(jvmenv: &Box<Environment>, thread_info_map: &mut HashMap<JavaLong, ThreadInfo>, update_cpu_time: bool) -> Result<Vec<JavaStackTrace>, NativeError> {
+    let mut stack_traces = vec![];
+    match jvmenv.get_all_threads() {
+        Err(e) => {
+            println!("get_all_threads failed: {:?}", e);
+            Err(e)
+        }
+        Ok(threads) => {
+            //println!("get_all_threads: {:?}", threads);
+            for thread in threads {
+                let java_thread_id = jvmenv.get_thread_id(&thread.native_id);
+                let mut thread_info = thread_info_map.get_mut(&java_thread_id);
+                let mut is_new_thread = false;
+                if thread_info.is_none() {
+                    is_new_thread = true;
+                    let mut new_thread_info;
+                    match jvmenv.get_thread_info_ex(&thread.native_id) {
+                        Ok(v) => {
+                            new_thread_info = v;
+                        },
+                        Err(e) => {
+                            println!("get_thread_info_ex failed: {:?}, java_thread_id: {}", e, java_thread_id);
+                            jvmenv.delete_local_ref(thread.native_id);
+                            continue;
+                        }
+                    }
+                    thread_info_map.insert(java_thread_id, new_thread_info);
+                    thread_info = thread_info_map.get_mut(&java_thread_id);
+                }
+                let thread_info = thread_info.unwrap();
+
+                //update thread cpu time discontinuous
+                let mut cpu_time = thread_info.cpu_time;
+                if update_cpu_time || is_new_thread {
+                    match jvmenv.get_thread_cpu_time(&thread.native_id) {
+                        Ok(t) => { cpu_time = t; },
+                        Err(e) => {
+                            println!("get_thread_cpu_time failed: {:?}, thread: {:?}", e, thread);
+                        },
+                    }
+                    thread_info.cpu_time = cpu_time;
+                }
+
+                let mut frames = vec![];
+                match jvmenv.get_stack_trace(&thread.native_id) {
+                    Ok(v) => { frames = v; },
+                    Err(e) => {
+                        println!("get_stack_trace failed: {:?}, thread: {:?}", e, thread);
+                    },
+                }
+
+                //检查是否为新线程
+                jvmenv.delete_local_ref(thread.native_id);
+
+                let mut stack_trace = JavaStackTrace {
+                    thread: thread_info.clone(),
+                    state: 0,
+                    cpu_time,
+                    frame_buffer: frames
+                };
+                stack_traces.push(stack_trace);
+            }
+            Ok(stack_traces)
+        },
+    }
 }
 
 fn init_agent(agent: &mut Agent) {

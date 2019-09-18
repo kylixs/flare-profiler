@@ -14,7 +14,7 @@ use thread::ThreadId;
 use native::jvmti_native::{jvmtiTimerInfo, jobject, jvmtiStackInfo};
 use std::cell::Cell;
 use std::ptr;
-use environment::jvmti::{ThreadInfo, JavaStackTrace};
+use environment::jvmti::{ThreadInfo, JavaStackTrace, JavaStackFrame};
 
 pub mod jni;
 pub mod jvm;
@@ -53,6 +53,12 @@ impl Environment {
         }
     }
 
+    pub fn get_thread_cpu_time_ex(&self, thread_id: JavaLong) -> i64 {
+//        let classid_management_factory = self.jni.find_class("java/lang/management/ManagementFactory");
+//        let method_getThreadMXBean = self.jni.get_method_id(classid_management_factory.native_id, "getThreadMXBean", "()J");
+        unimplemented!()
+    }
+
     //JNI methods
     pub fn get_object_class(&self, object_id: &JavaObject) -> ClassId {
         self.jni.get_object_class(object_id)
@@ -66,8 +72,8 @@ impl Environment {
         self.jni.get_method_id(clazz, method_name, method_sig)
     }
 
-    pub fn call_long_method(&self, thread: JavaThread, method_id: JavaMethod) -> JavaLong {
-        self.jni.call_long_method(thread, method_id)
+    pub fn call_long_method(&self, obj: jobject, method_id: JavaMethod) -> JavaLong {
+        self.jni.call_long_method(obj, method_id)
     }
 
     pub fn delete_local_ref(&self, obj: jobject) {
@@ -108,13 +114,14 @@ impl Environment {
     }
 
     pub fn get_thread_info_ex(&self, thread_id: &JavaThread) -> Result<ThreadInfo, NativeError> {
-        let mut thread = self.jvmti.get_thread_info(&self.jni, thread_id).unwrap();
         let java_thread_id = self.get_thread_id(&thread_id);
+        let mut thread = self.jvmti.get_thread_info(&self.jni, thread_id).unwrap();
         let thread_info = ThreadInfo{
             thread_id: java_thread_id,
             name: thread.name.clone(),
             priority: thread.priority,
-            is_daemon: thread.is_daemon
+            is_daemon: thread.is_daemon,
+            cpu_time: 0
         };
         //release jni local ref ?
         self.delete_local_ref(thread.thread_group);
@@ -157,6 +164,11 @@ impl Environment {
     pub fn get_thread_cpu_timer_info(&self) -> Result<jvmtiTimerInfo, NativeError> {
         self.jvmti.get_thread_cpu_timer_info()
     }
+
+    pub fn get_stack_trace(&self, thread_id: &JavaThread) -> Result<Vec<JavaStackFrame>, NativeError> {
+        self.jvmti.get_stack_trace(thread_id)
+    }
+
 }
 
 
