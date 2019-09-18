@@ -23,9 +23,12 @@ use std::cmp::min;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use flare_utils::file_utils::open_file;
+use call_tree::*;
+use std::ops::{Index, Deref, DerefMut};
 
 type JavaLong = i64;
 type JavaMethod = i64;
+
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct ThreadData {
@@ -41,7 +44,7 @@ pub struct ThreadData {
 }
 
 #[derive(Clone)]
-pub struct MethodData {
+pub struct MethodInfo {
     pub method_id: i64,
     pub full_name: String,
     pub hits_count: u32
@@ -97,7 +100,7 @@ pub struct SamplerClient {
     sample_cpu_ts_map: HashMap<JavaLong, Option<Box<TimeSeries+Send>>>,
     sample_stacktrace_map: HashMap<JavaLong, Option<TupleIndexedFile>>,
     sample_method_idx_file: Option<TupleIndexedFile>,
-//    method_cache: HashMap<MethodId, MethodInfo>,
+    method_cache: HashMap<JavaMethod, Option<MethodInfo>>,
 //    tree_arena: TreeArena
 }
 
@@ -136,7 +139,7 @@ impl SamplerClient {
             connected: false,
             agent_addr: "".to_string(),
             agent_stream: None,
-//            method_cache: HashMap::new(),
+            method_cache: HashMap::new(),
 //            tree_arena: TreeArena::new()
         }));
         //self ref for threads
@@ -370,7 +373,7 @@ impl SamplerClient {
         }
     }
 
-    fn on_thread_data(&mut self, data_vec: &Vec<Value>) {
+    fn on_thread_data(&mut self, data_vec: &Vec<Value>) -> io::Result<()> {
         //let map = parse_resp_properties(data_vec, 1);
         let sample_time= get_resp_property_as_int(data_vec, "time", 1, 0);
         let thread_id= get_resp_property_as_int(data_vec, "id", 1, 0);
@@ -404,6 +407,16 @@ impl SamplerClient {
         thread_data.cpu_time_delta = cpu_time_delta;
         thread_data.state = state.to_string();
         thread_data.name = name.to_string();
+        //stacktrace
+        let mut stack_frames = Vec::with_capacity(stacktrace.len());
+        for frame in stacktrace {
+            if let Value::Integer(method_id) = frame {
+                stack_frames.push(*method_id);
+            }
+        }
+        thread_data.stacktrace = stack_frames;
+        //clone: break mut ref of self
+        let thread_data = thread_data.clone();
 
         //prepare data dir
         self.check_and_roll_data_dir(sample_time);
@@ -444,9 +457,15 @@ impl SamplerClient {
             }
         });
         if let Some(idx_file) = thread_stack_idx {
-            let stack_data = Value::Array(stacktrace.clone());
-            idx_file.add_value(TupleValue::uint32(ts_steps), stack_data.encode().as_slice());
+            //save thread stacktrace as encoded resp::Value bytes
+//            let stack_data = Value::Array(stacktrace.clone());
+//            idx_file.add_value(TupleValue::uint32(ts_steps), stack_data.encode().as_slice());
+
+            let data = serde_json::to_vec(&thread_data)?;
+            idx_file.add_value(TupleValue::uint32(ts_steps), &data);
         }
+
+        Ok(())
     }
 
     fn save_method_info(&mut self, method_id: i64, method_name: &String) {
@@ -510,6 +529,128 @@ impl SamplerClient {
         })
     }
 
+    pub fn get_call_tree(&mut self, thread_ids: &[i64], start_time: i64, end_time: i64) -> io::Result<CallStackTree> {
+        //TODO
+        let mut stack_tree = CallStackTree::new(0, "CallStack");
+
+        for thread_id in thread_ids {
+            let mut start_step = 0;
+            let mut end_step = 0;
+            if let Some(ts_file) = self.sample_cpu_ts_map.get(thread_id).unwrap_or(&None) {
+                start_step = ts_file.time_to_step(start_time);
+                end_step = ts_file.time_to_step(end_time);
+            }else {
+                continue;
+            }
+
+            //TODO 可能单次读取的数据比较多，导致内存消耗太大
+            let mut thread_data_vec = vec![];
+            self.sample_stacktrace_map.get_mut(thread_id).unwrap_or(&mut None).as_mut().map(|idx_file| {
+                idx_file.get_range_value(&TupleValue::uint32(start_step), &TupleValue::uint32(end_step), |bytes|{
+                    //parse stack data
+                    if let Ok(thread_data) = serde_json::from_slice::<ThreadData>(bytes.as_slice()) {
+                        thread_data_vec.push(thread_data);
+                    }
+                });
+            });
+
+            //thread cpu_time 延时更新，暂时将增量时间平均分配到两次更新CPU时间中的方法调用上
+            let mut last_divide_cpu_time = 0;
+            let mut start = 0;
+            let mut end = 0;
+            for (i,thread_data) in thread_data_vec.iter().enumerate() {
+                if last_divide_cpu_time == 0 {
+                    last_divide_cpu_time = thread_data.cpu_time;
+                }
+                if thread_data.cpu_time != last_divide_cpu_time {
+                    end = i;
+                    let curr_cpu_time = thread_data.cpu_time;
+                    self.divide_cpu_time(&mut stack_tree, &thread_data_vec[start..end+1], last_divide_cpu_time, curr_cpu_time);
+                    last_divide_cpu_time = curr_cpu_time;
+                    start = end;
+                }
+            }
+
+            //proc remain stack trace
+            if thread_data_vec.len() > end + 1 {
+                for thread_data in &thread_data_vec[end..thread_data_vec.len()] {
+                    self.add_stack_trace(&mut stack_tree, thread_data, -1);
+                }
+            }
+
+//            if let Some(method_idx) = self.sample_method_idx_file.as_mut() {
+//                for method in stack_frames {
+//                    let bytes = method_idx.get_value(&TupleValue::int64(method))?;
+//                    let method_name = std::str::from_utf8(bytes.as_slice())?;
+//                }
+//            }
+
+        }
+
+        Ok(stack_tree)
+    }
+
+    fn divide_cpu_time(&mut self, mut stack_tree: &mut CallStackTree, thread_data_batch: &[ThreadData], last_cpu_time: i64, curr_cpu_time: i64) {
+        let cpu_time_per_trace = (curr_cpu_time - last_cpu_time) / thread_data_batch.len() as i64;
+        let mut thread_cpu_time = last_cpu_time;
+        for (i,thread_data) in thread_data_batch.iter().enumerate() {
+            if i < thread_data_batch.len() {
+                thread_cpu_time += cpu_time_per_trace;
+            }else {
+                thread_cpu_time = curr_cpu_time;
+            }
+            self.add_stack_trace(&mut stack_tree, thread_data, thread_cpu_time);
+        }
+    }
+
+    fn add_stack_trace(&mut self, call_tree: &mut CallStackTree, thread_data: &ThreadData, thread_cpu_time: i64) {
+        let cpu_time: i64 = if thread_cpu_time > 0 {thread_cpu_time} else {thread_data.cpu_time};
+
+        call_tree.reset_top_call_stack_node();
+        let duration = call_tree.start_call_stack(cpu_time);
+
+        //save nodes in temp vec, process it after build call tree, avoid second borrow muttable *self
+        let mut naming_nodes: Vec<(NodeId, JavaMethod)> = vec![];
+
+        //reverse call
+        for method_id in thread_data.stacktrace.iter().rev() {
+            if !call_tree.begin_call(method_id, duration) {
+                naming_nodes.push((call_tree.get_top_node().data.node_id, method_id.clone()));
+            }
+        }
+
+        //call_tree.end_last_call(cpu_time);
+        //println!("add call stack: {} cpu_time:{}", thread_info.name, cpu_time);
+
+        //get method call_name of node
+        for (node_id, method_id) in naming_nodes {
+            if let Some(method_info) = self.get_method_info(method_id) {
+                call_tree.get_mut_node(&node_id).data.name = method_info.full_name.clone();
+
+            }
+        }
+    }
+
+    fn get_method_info(&mut self, method: JavaMethod) -> &Option<MethodInfo> {
+        let method_idx_file = self.sample_method_idx_file.as_mut();
+        self.method_cache.entry(method).or_insert_with(|| {
+            if let Some(method_idx) = method_idx_file {
+                if let Ok(bytes) = method_idx.get_value(&TupleValue::int64(method)){
+                    let mut method_name = std::str::from_utf8(bytes.as_slice()).unwrap_or("").to_string();
+                    if method_name == "" {
+                        method_name = method.to_string();
+                    }
+                    return Some(MethodInfo {
+                        method_id: method,
+                        full_name: method_name.to_string(),
+                        hits_count: 0
+                    });
+                }
+            }
+            return None;
+        })
+    }
+
 //    pub fn write_all_call_trees(&self, writer: &mut std::io::Write, compact: bool) {
 //        for (thread_id, call_tree) in self.tree_arena.get_all_call_trees() {
 //            let tree_name = &call_tree.get_root_node().data.name;
@@ -517,64 +658,6 @@ impl SamplerClient {
 //
 //            writer.write_all(call_tree.format_call_tree(compact).as_bytes());
 //            writer.write_all("\n".as_bytes());
-//        }
-//    }
-//
-//    pub fn add_stack_traces(&mut self, jvm_env: &Box<Environment>, stack_traces: &Vec<JavaStackTrace>) {
-//        //merge to call stack tree
-//        for (i, stack_info) in stack_traces.iter().enumerate() {
-//            if let Ok(thread_info) = jvm_env.get_thread_info(&stack_info.thread) {
-//                let mut cpu_time: i64 = 0_i64;
-//                //if std::time::Instant::now()
-//                if let Ok(t) = jvm_env.get_thread_cpu_time(&stack_info.thread) {
-//                    cpu_time = t;
-//                    //ignore inactive thread call
-//                    if cpu_time == 0_i64 {
-//                        continue;
-//                    }
-//                } else {
-//                    println!("get_thread_cpu_time error");
-//                }
-//
-//                let call_tree = self.tree_arena.get_call_tree(&thread_info);
-//                call_tree.reset_top_call_stack_node();
-//                if call_tree.total_duration == cpu_time {
-//                    continue;
-//                }
-//
-//                let mut call_methods :Vec<JavaMethod> = vec![];
-//                for stack_frame in &stack_info.frame_buffer {
-//                    call_methods.push(stack_frame.method);
-//                }
-//                //save nodes in temp vec, process it after build call tree, avoid second borrow muttable *self
-//                let mut naming_nodes: Vec<(NodeId, JavaMethod)> = vec![];
-//
-//                //reverse call
-//                for method_id in call_methods.iter().rev() {
-//                    if !call_tree.begin_call(method_id) {
-//                        naming_nodes.push((call_tree.get_top_node().data.node_id, method_id.clone()));
-//                    }
-//                }
-//
-//                call_tree.end_last_call(cpu_time);
-//                //println!("add call stack: {} cpu_time:{}", thread_info.name, cpu_time);
-//
-//                //get method call_name of node
-//                let mut node_methods: Vec<(NodeId, String)> = vec![];
-//                for (node_id, method_id) in naming_nodes {
-//                    let method_info = self.get_method_info(jvm_env, method_id);
-//                    let call_name = format!("{}.{}()", &method_info.class.name, &method_info.method.name);
-//                    node_methods.push((node_id, call_name));
-//                }
-//
-//                //set node's call_name
-//                let call_tree = self.tree_arena.get_call_tree(&thread_info);
-//                for (node_id, call_name) in node_methods {
-//                    call_tree.get_mut_node(&node_id).data.name = call_name;
-//                }
-//            }else {
-//                //warn!("Thread UNKNOWN [{:?}]: (cpu_time = {})", stack_info.thread, cpu_time);
-//            }
 //        }
 //    }
 //
@@ -606,20 +689,7 @@ impl SamplerClient {
 //        result
 //    }
 //
-//    fn get_method_info(&mut self, jvm_env: &Box<Environment>, method: JavaMethod) -> &MethodInfo {
-//        let method_id = MethodId { native_id: method };
-//        self.method_cache.entry(method_id).or_insert_with(|| {
-//            let method = jvm_env.get_method_name(&method_id).unwrap();
-//            let class_id = jvm_env.get_method_declaring_class(&method_id).unwrap();
-//            let class = jvm_env.get_class_signature(&class_id).unwrap();
-//            MethodInfo {
-//                method_id: method_id,
-//                method,
-//                class
-//            }
-//        })
-//        //self.method_cache.get(&method_id).unwrap()
-//    }
+
 }
 
 

@@ -8,6 +8,7 @@ use std::sync::Mutex;
 use std::sync::RwLock;
 use std::sync::Arc;
 use time::Duration;
+use serde_json::{json, Value};
 
 use log::{debug, info, warn};
 
@@ -83,12 +84,15 @@ impl CallStackTree {
         self.top_call_stack_node = self.root_node;
     }
 
-    pub fn begin_call(&mut self, method_id: &JavaMethod) -> bool {
+    pub fn begin_call(&mut self, method_id: &JavaMethod, duration: i64) -> bool {
         //find exist call node
         let topNode = self.get_top_node();
-        match topNode.find_child(method_id) {
+        let child = topNode.find_child(method_id).map(|x|*x).clone();
+        match child {
             Some(child_id) => {
-                let node = self.get_node(child_id);
+                let node = self.get_mut_node(&child_id);
+                node.data.call_count += 1;
+                node.data.call_duration += duration;
                 self.top_call_stack_node = node.data.node_id.clone();
                 true
             },
@@ -98,11 +102,13 @@ impl CallStackTree {
                 let next_index = self.nodes.len();
 
                 let topNode = self.get_mut_top_node();
-                let node_data = TreeNode::newCallNode(topNode, next_index, method_id);
-                self.top_call_stack_node = node_data.data.node_id.clone();
+                let mut node = TreeNode::newCallNode(topNode, next_index, method_id);
+                node.data.call_count += 1;
+                node.data.call_duration += duration;
+                self.top_call_stack_node = node.data.node_id.clone();
 
                 // Push the node into the arena
-                self.nodes.push(node_data);
+                self.nodes.push(node);
                 false
             }
         }
@@ -135,15 +141,25 @@ impl CallStackTree {
         }
     }
 
-    pub fn end_last_call(&mut self, total_duration: i64) {
+//    pub fn end_last_call(&mut self, total_duration: i64) {
+//        let last_duration = self.total_duration;
+//        let top_node = self.get_mut_top_node();
+//        //ignore first call duration
+//        if(last_duration > 0){
+//            top_node.data.call_duration += (total_duration - last_duration);
+//        }
+//        top_node.data.call_count += 1;
+//        self.total_duration = total_duration;
+//    }
+
+    pub fn start_call_stack(&mut self, total_duration: i64) -> i64 {
         let last_duration = self.total_duration;
-        let top_node = self.get_mut_top_node();
-        //ignore first call duration
-        if(last_duration > 0){
-            top_node.data.call_duration += (total_duration - last_duration);
-        }
-        top_node.data.call_count += 1;
         self.total_duration = total_duration;
+        if last_duration > 0 {
+            total_duration - last_duration
+        }else {
+            0
+        }
     }
 
     //
@@ -187,6 +203,25 @@ impl CallStackTree {
 
         for child in node.children.values() {
             self.format_tree_node(result,&child, compact);
+        }
+    }
+
+    pub fn to_json(&self) -> serde_json::Value {
+        self.node_to_json(&self.root_node)
+    }
+
+    fn node_to_json(&self, nodeid: &NodeId) -> serde_json::Value {
+        let node = self.get_node(&nodeid);
+
+        let mut children = vec![];
+        for child in node.children.values() {
+            children.push(self.node_to_json(&child));
+        }
+        let label = format!("[cost={},calls={}] {}", node.data.call_duration/1000_1000, node.data.call_count, node.data.name);
+        if children.len() > 0 {
+            json!({"id": nodeid.index, "label": label, "children": children })
+        } else {
+            json!({"id": nodeid.index, "label": label })
         }
     }
 

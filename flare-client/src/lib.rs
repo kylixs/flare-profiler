@@ -20,6 +20,7 @@ pub use client::*;
 
 pub mod sampler_client;
 mod client;
+mod tree;
 mod call_tree;
 mod client_utils;
 mod client_encoder;

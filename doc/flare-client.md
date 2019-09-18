@@ -293,7 +293,7 @@ FlareUI支持打开多个取样实例，sample_instance为全局唯一的实例�
 获取指定时间范围的线程stacktrace统计数据
 ```json
 {
-   "cmd": "stack_tree",
+   "cmd": "call_tree",
    "options" : {
       "session_id": "localhost:2233",
       "thread_ids": [], // 为空时获取全部线程
@@ -309,7 +309,7 @@ FlareUI支持打开多个取样实例，sample_instance为全局唯一的实例�
 ```json
 {
    "result": "success",
-   "cmd": "stack_tree",
+   "cmd": "call_tree",
    "data": {
       "session_id": "localhost:2233",
       "threads": [{
@@ -322,12 +322,14 @@ FlareUI支持打开多个取样实例，sample_instance为全局唯一的实例�
             "parent": 0,
             "id": 1,
             "name": "Thread.run()",
-            "cost": 60
+            "cost": 60,
+            "calls": 1
           },{
             "parent": 1,
             "id": 2,
             "name": "MyTask.do_job()",
-            "cost": 50
+            "cost": 20,
+            "calls": 2
           }] 
       }]
    }

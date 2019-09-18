@@ -72,12 +72,18 @@ impl Profiler {
         Ok(())
     }
 
-    pub fn get_dashboard(&mut self, session_id: &str) -> io::Result<DashboardInfo> {
+    fn get_sample_client(&mut self, session_id: &str) -> io::Result<Arc<Mutex<SamplerClient>>> {
         if let Some(client) = self.sample_session_map.get(session_id) {
-            Ok(client.lock().unwrap().get_dashboard())
+            Ok(client.clone())
         }else {
             Err(io::Error::new(ErrorKind::NotFound, "sample session not found"))
         }
+    }
+
+    pub fn get_dashboard(&mut self, session_id: &str) -> io::Result<DashboardInfo> {
+        let client = self.get_sample_client(session_id)?;
+        let data = client.lock().unwrap().get_dashboard();
+        Ok(data)
     }
 
     pub fn get_thread_cpu_times(&mut self, session_id: &str, thread_ids: &[i64], mut start_time: i64, mut end_time: i64, mut unit_time_ms: i64, graph_width: i64) -> io::Result<Vec<Value>> {
@@ -131,6 +137,15 @@ impl Profiler {
         }else {
             Err(io::Error::new(ErrorKind::NotFound, "sample session not found"))
         }
+    }
+
+    pub fn get_call_tree(&mut self, session_id: &str, thread_ids: &[i64], start_time: i64, end_time: i64) -> io::Result<Value> {
+        //xxx
+        let client = self.get_sample_client(session_id)?;
+        let call_tree = client.lock().unwrap().get_call_tree(thread_ids, start_time, end_time)?;
+
+        //convert to json
+        Ok(call_tree.to_json())
     }
 
     pub fn get_sample_info(&mut self, session_id: &str) -> io::Result<SampleInfo> {
@@ -254,6 +269,9 @@ impl Profiler {
             "cpu_time" => {
                 self.handle_cpu_time_request(sender, cmd, options)?;
             }
+            "call_tree" => {
+                self.handle_call_tree_request(sender, cmd, options)?;
+            }
             _ => {
                 println!("unknown cmd: {}, request: {}", cmd, json_str);
             }
@@ -357,6 +375,24 @@ impl Profiler {
             sender.send_message(&wrap_response(&cmd, &result));
             start = end;
         }
+        Ok(())
+    }
+
+    fn handle_call_tree_request(&mut self, sender: &mut Writer<std::net::TcpStream>, cmd: &str, options: &serde_json::Map<String, serde_json::Value>) -> io::Result<()> {
+        let session_id = get_option_as_str_required(options, "session_id")?;
+        let thread_ids = get_option_as_int_array(options, "thread_ids")?;
+        let start_time = get_option_as_int(options, "start_time", -1);
+        let end_time = get_option_as_int(options, "end_time", -1);
+        let t1 = Local::now().timestamp_millis();
+
+        let call_tree = self.get_call_tree(session_id, thread_ids.as_slice(), start_time, end_time)?;
+        let result = json!({
+                "session_id": session_id,
+                "call_tree_data": [call_tree]
+            });
+        let t2 = Local::now().timestamp_millis();
+        println!("build thread call tree data cost: {}ms, threads: {:?}", t2-t1, &thread_ids);
+        sender.send_message(&wrap_response(&cmd, &result));
         Ok(())
     }
 

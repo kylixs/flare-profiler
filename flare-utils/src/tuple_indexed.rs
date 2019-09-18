@@ -19,6 +19,7 @@ use super::{ValueType, get_unit_len};
 
 //bulk data handler
 type BulkDataConsumer = fn(Vec<u8>);
+//type BulkDataConsumer = fn(&[u8]);
 
 //Tuple-Indexed file Header Segment: TIHS (4 bytes)
 static TUPLE_INDEXED_HEADER_SEGMENT_FLAG: &str = "TIHS";
@@ -41,6 +42,31 @@ pub enum TupleValue {
 //    float64(f64)
 }
 
+impl TupleValue {
+    pub fn as_int(&self) -> i64 {
+        match self {
+            TupleValue::int16(x) => *x as i64,
+            TupleValue::uint16(x) => *x as i64,
+            TupleValue::int32(x) => *x as i64,
+            TupleValue::uint32(x) => *x as i64,
+            TupleValue::int64(x) => *x,
+        }
+    }
+}
+
+impl std::cmp::Ord for TupleValue {
+
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.as_int().cmp(&other.as_int())
+    }
+}
+
+impl PartialOrd for TupleValue {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        self.as_int().partial_cmp(&other.as_int())
+    }
+}
+
 fn get_value_type(value: &TupleValue) -> ValueType {
     match value {
         TupleValue::int16(_) => ValueType::INT16,
@@ -61,6 +87,7 @@ pub struct TupleIndexedFile {
     inited: bool,
     writable: bool,
     index_map: HashMap<TupleValue, TupleValue>,
+    index_vec: Vec<TupleValue>,
 
     //indexed file
     indexed_file: File,
@@ -120,6 +147,7 @@ impl TupleIndexedFile {
             inited: false,
             writable,
             index_map: HashMap::new(),
+            index_vec: vec![],
             indexed_file,
             indexed_path,
             indexed_data_offset: 0,
@@ -271,6 +299,7 @@ impl TupleIndexedFile {
         let bulk_offset_value = TupleValue::uint32(bulk_offset as u32);
         self.write_indexed_value(&bulk_offset_value, self.bulk_offset_type);
 
+        self.index_vec.push(index.clone());
         self.index_map.insert(index, bulk_offset_value);
         self.amount += 1;
 
@@ -348,6 +377,7 @@ impl TupleIndexedFile {
         loop {
             if let Ok(index_value) = TupleIndexedFile::read_indexed_value(&mut reader, &self.index_type) {
                 if let Ok(bulk_offset_value) = TupleIndexedFile::read_indexed_value(&mut reader, &self.bulk_offset_type) {
+                    self.index_vec.push(index_value.clone());
                     self.index_map.insert(index_value, bulk_offset_value);
                 } else {
                     break;
@@ -383,17 +413,21 @@ impl TupleIndexedFile {
         Ok((buf, new_offset as u32))
     }
 
-    pub fn get_range_value(&mut self, start_index: &TupleValue, end_index: &TupleValue, handler: BulkDataConsumer) -> io::Result<()> {
+    pub fn get_range_value<F>(&mut self, start_index: &TupleValue, end_index: &TupleValue, mut handler: F) -> io::Result<()>
+        where F: FnMut(Vec<u8>) {
+        let new_start_index = self.search_index(start_index).clone();
+        let new_end_index = self.search_index(end_index).clone();
         let mut start_offset = 0u32;
         let mut end_offset = 0u32;
         let mut found = false;
-        if let Some(TupleValue::uint32(offset1)) = self.index_map.get(start_index) {
+        if let Some(TupleValue::uint32(offset1)) = self.index_map.get(&new_start_index) {
             start_offset = *offset1;
-            if let Some(TupleValue::uint32(offset2)) = self.index_map.get(end_index) {
+            if let Some(TupleValue::uint32(offset2)) = self.index_map.get(&new_end_index) {
                 end_offset = *offset2;
                 found = true;
             }
         }
+
         if found {
             let mut offset = start_offset;
             loop {
@@ -407,6 +441,16 @@ impl TupleIndexedFile {
             Ok(())
         }else {
             Err(io::Error::new(ErrorKind::NotFound, "index not found"))
+        }
+    }
+
+    fn search_index(&mut self, start_index: &TupleValue) -> &TupleValue {
+        match self.index_vec.binary_search(start_index) {
+            Ok(index) => &self.index_vec[index],
+            Err(index) => {
+                let index = min(index, self.index_vec.len() - 1);
+                &self.index_vec[index]
+            },
         }
     }
 }

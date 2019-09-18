@@ -4,6 +4,8 @@
 		<meta charset="utf-8">
 		<title>Flare Client Test</title>
 		<script src="vue.js" ></script>
+		<script src="element-ui/index.js"></script>
+		<link rel="stylesheet" href="element-ui/theme-chalk/index.css">
 		<script src="simple.js" ></script>
 		<style type="text/css" >
 			#dashboard {
@@ -35,8 +37,8 @@
 			}
 
 			.message {
-				/*color: #DD0000;*/
-				color: #409eff;
+				color: #DD0000;
+				/*color: #409eff;*/
 			}
 			#layout td {
 				vertical-align: top;
@@ -85,6 +87,21 @@
 				overflow: hidden;
 			}
 
+			.tree {
+				overflow-y: auto;
+				overflow-x: scroll;
+				width: 900px;
+				height: 600px;
+				background-color: #ffffff;
+			}
+			.el-tree {
+				min-width: 100%;
+				display: inline-block !important;
+			}
+
+			.el-tree-node > .el-tree-node__children {
+				overflow: visible;
+			}
 		</style>
 	</head>
 	<body>
@@ -138,7 +155,22 @@
 						</td>
 						<td>
 							<div id="stack_tree_region">
-								<p>Thread Stack</p>
+								<h4 class="title">Call Stack</h4>
+								<el-input
+										placeholder="输入关键字进行过滤"
+										v-model="treeFilterText">
+								</el-input>
+
+								<div class="tree">
+									<el-tree
+											class="filter-tree"
+											:data="profiler.data.call_tree_data"
+											:props="treeProps"
+											default-expand-all
+											:filter-node-method="filterNode"
+											ref="tree">
+									</el-tree>
+								</div>
 							</div>
 						</td>
 					</tr>
@@ -212,7 +244,15 @@
 					sample_sessions: [],
 					thread_cpu_time_map: {},
 					session_id: "",
-					type: ""
+					type: "",
+					call_tree_data: [{
+						id: 1,
+						label: '方法调用',
+						children: [{
+							id: 4,
+							label: '二级 1-1'
+						}]
+					}]
 				},
 				start_auto_refresh() {
 					if (this.dashboard_timer == null) {
@@ -336,30 +376,74 @@
 					this.data.thread_cpu_time_map = {};
 				},
 				on_cpu_time_result(data){
-					var start_time = profiler.data.sample_info.record_start_time;
-					var end_time = profiler.data.sample_info.last_record_time;
+					var sess_start_time = profiler.data.sample_info.record_start_time;
+					var sess_end_time = profiler.data.sample_info.last_record_time;
 					var unit_time_ms = profiler.data.sample_info.unit_time_ms;
 
 					for (let i = 0; i < data.thread_cpu_times.length; i++) {
 						let thread = data.thread_cpu_times[i];
 						if (thread.total_cpu_time > 0) {
-							let ts_data = fill_ts_data(thread.ts_data, thread.start_time, thread.end_time, start_time, end_time, unit_time_ms);
+							let ts_data = fill_ts_data(thread.ts_data, thread.start_time, thread.end_time, sess_start_time, sess_end_time, unit_time_ms);
 
 							let myChart = create_echarts_bar("thread_cpu_chart_"+thread.id, ts_data);
 							myChart.on('datazoom', function (evt) {
 								var axis = myChart.getModel().option.xAxis[0];
 								// var starttime = axis.data[axis.rangeStart];
 								// var endtime = axis.data[axis.rangeEnd];
-								let start_time = axis.rangeStart*unit_time_ms/1000;
-								let end_time = axis.rangeEnd*unit_time_ms/1000;
+								let start_time = sess_start_time + axis.rangeStart*unit_time_ms;
+								let end_time = sess_start_time + axis.rangeEnd*unit_time_ms;
 								console.log("datazoom: thread:",thread.id, ", index:", axis.rangeStart,"-", axis.rangeEnd,", time:", start_time,"-", end_time );
+								profiler.update_call_stack_tree([thread.id], start_time, end_time);
 							})
 						}
 						profiler.data.thread_cpu_time_map[thread.id] = thread;
 					}
 				},
+				update_call_stack_tree(thread_ids, start_time, end_time) {
+					var request = {
+						"cmd": "call_tree",
+						"options": {
+							"session_id": profiler.data.session_id,
+							"thread_ids": thread_ids,
+							"start_time": start_time,
+							"end_time": end_time
+						}
+					};
+					socket.send(JSON.stringify(request));
+				},
 				select_thread(thread_id) {
 					this.selected_thread_id = thread_id;
+				},
+				onmessage(json){
+					var success = (json.result == "success");
+					profiler.show_message = !success;
+					//将response属性赋值到共享对象
+					Object.assign(profiler.data, json.data);
+					if (!success) {
+						profiler.stop_auto_refresh();
+					}
+					switch (json.cmd) {
+						case "dashboard":
+							//profiler.on_dashboard_result(json.data);
+							break;
+						case "open_sample":
+							profiler.start_auto_refresh();
+							break;
+						case "connect_agent":
+							profiler.start_auto_refresh();
+							break;
+						case "history_samples":
+							profiler.show_history_samples = true;
+							break;
+						case "cpu_time":
+							profiler.on_cpu_time_result(json.data);
+							break;
+						case "call_tree":
+							break;
+						default:
+							console.log("unknown message: ", json);
+							break;
+					}
 				}
             }
 
@@ -372,7 +456,7 @@
 			}
 
 			socket.onclose = function(evt) {
-				console.log("Disconnected to flare profiler.");
+				console.log("Disconnected from flare profiler.");
 				profiler.connected = false;
 			}
 
@@ -384,34 +468,7 @@
 			socket.onmessage = function (event) {
 				//parse result
 				var json = JSON.parse(event.data);
-				var success = (json.result == "success");
-				profiler.show_message = !success;
-
-				//将response属性赋值到共享对象
-				Object.assign(profiler.data, json.data);
-				if (!success) {
-					profiler.stop_auto_refresh();
-				}
-				switch (json.cmd) {
-					case "dashboard":
-					    //profiler.on_dashboard_result(json.data);
-						break;
-					case "open_sample":
-						profiler.start_auto_refresh();
-						break;
-					case "connect_agent":
-						profiler.start_auto_refresh();
-						break;
-					case "history_samples":
-						profiler.show_history_samples = true;
-						break;
-					case "cpu_time":
-						profiler.on_cpu_time_result(json.data);
-						break;
-					default:
-						console.log("unknown message: ", json);
-						break;
-				}
+				profiler.onmessage(json);
 			};
 
 			function send(element) {
@@ -479,9 +536,23 @@
 				el: '#app',
 				data: {
 					message: '',
+					treeFilterText: '',
+					treeProps: {
+						children: 'children',
+						label: 'label'
+					},
 					profiler: profiler
 				},
+				watch: {
+					treeFilterText(val) {
+						this.$refs.tree.filter(val);
+					}
+				},
 				methods: {
+					filterNode(value, data) {
+						if (!value) return true;
+						return data.label.indexOf(value) !== -1;
+					}
 				},
 				filters: {
 					cpuTimeFilter(value) {

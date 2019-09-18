@@ -90,6 +90,15 @@ pub trait TimeSeries {
     fn add_value(&mut self, time: i64, value: TSValue) -> Result<u32, Error>;
 
     fn get_range_value(&self, start_time: i64, end_time: i64, unit_time_ms: i32) -> TSResult;
+
+    fn time_to_step(&self, time: i64) -> u32 {
+        let info = self.get_header_info();
+        let mut steps = (time - info.begin_time) / info.unit_time as i64;
+        if steps < 0 {
+            steps = 0;
+        }
+        steps as u32
+    }
 }
 
 impl TimeSeriesFile {
