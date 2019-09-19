@@ -17,6 +17,7 @@ pub mod timeseries;
 pub mod tuple_indexed;
 pub mod file_utils;
 pub mod collections;
+pub mod stopwatch;
 
 use byteorder::{WriteBytesExt, ReadBytesExt, NetworkEndian};
 use std::io;

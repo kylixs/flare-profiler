@@ -11,9 +11,9 @@ extern crate serde;
 extern crate env_logger;
 extern crate resp;
 extern crate chrono;
-extern crate flare_utils;
 extern crate websocket;
 extern crate timer;
+extern crate flare_utils;
 
 //re-export
 pub use client::*;
@@ -22,8 +22,8 @@ pub mod sampler_client;
 mod client;
 mod tree;
 mod call_tree;
-mod client_utils;
-mod client_encoder;
+pub mod client_utils;
+pub mod client_encoder;
 
 
 

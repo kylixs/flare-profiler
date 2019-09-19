@@ -25,6 +25,8 @@ use serde_json::json;
 use flare_utils::file_utils::open_file;
 use call_tree::*;
 use std::ops::{Index, Deref, DerefMut};
+use flare_utils::stopwatch::*;
+
 
 type JavaLong = i64;
 type JavaMethod = i64;
@@ -532,16 +534,19 @@ impl SamplerClient {
     pub fn get_call_tree(&mut self, thread_ids: &[i64], start_time: i64, end_time: i64) -> io::Result<CallStackTree> {
         //TODO
         let mut stack_tree = CallStackTree::new(0, "CallStack");
+        let mut sw = Stopwatch::start_new();
 
         for thread_id in thread_ids {
             let mut start_step = 0;
             let mut end_step = 0;
+            sw.start();
             if let Some(ts_file) = self.sample_cpu_ts_map.get(thread_id).unwrap_or(&None) {
                 start_step = ts_file.time_to_step(start_time);
                 end_step = ts_file.time_to_step(end_time);
             }else {
                 continue;
             }
+            println!("thread: {}, convert time to step cost:{}, steps:{}", thread_id, sw.lap(), end_step-start_step);
 
             //TODO 可能单次读取的数据比较多，导致内存消耗太大
             let mut thread_data_vec = vec![];
@@ -553,6 +558,7 @@ impl SamplerClient {
                     }
                 });
             });
+            println!("thread: {}, load stacktrace cost:{}, count:{}", thread_id, sw.lap(), thread_data_vec.len());
 
             //thread cpu_time 延时更新，暂时将增量时间平均分配到两次更新CPU时间中的方法调用上
             let mut last_divide_cpu_time = 0;
@@ -577,6 +583,7 @@ impl SamplerClient {
                     self.add_stack_trace(&mut stack_tree, thread_data, -1);
                 }
             }
+            println!("thread: {}, build tree cost:{}", thread_id, sw.lap());
 
 //            if let Some(method_idx) = self.sample_method_idx_file.as_mut() {
 //                for method in stack_frames {
@@ -586,6 +593,7 @@ impl SamplerClient {
 //            }
 
         }
+        println!("total threads: {}, total cost:{}", thread_ids.len(), sw.elapsed_ms());
 
         Ok(stack_tree)
     }

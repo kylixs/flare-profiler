@@ -13,6 +13,8 @@ use serde_json::{json, Value};
 use log::{debug, info, warn};
 
 use std::collections::hash_map::IterMut;
+use tree;
+
 type JavaLong = i64;
 type JavaMethod = i64;
 
@@ -206,6 +208,7 @@ impl CallStackTree {
         }
     }
 
+    //too slowly
     pub fn to_json(&self) -> serde_json::Value {
         self.node_to_json(&self.root_node)
     }
@@ -223,6 +226,22 @@ impl CallStackTree {
         } else {
             json!({"id": nodeid.index, "label": label })
         }
+    }
+
+    //more faster
+    pub fn to_tree(&self) -> tree::TreeNode {
+        self.build_node(&self.root_node)
+    }
+
+    fn build_node(&self, nodeid: &NodeId) -> tree::TreeNode {
+        let node = self.get_node(&nodeid);
+
+        let mut children = vec![];
+        for child in node.children.values() {
+            children.push(Box::new(self.build_node(&child)));
+        }
+        let label = format!("[cost={},calls={}] {}", node.data.call_duration/1000_1000, node.data.call_count, node.data.name);
+        tree::TreeNode{ parent: None, id: nodeid.index as i64, label: label, children: children }
     }
 
     pub fn get_top_node(&self) -> &TreeNode {

@@ -15,6 +15,8 @@ use std::io::ErrorKind;
 use serde_json::{json, Value};
 use std::cmp::{min, max};
 use chrono::Local;
+use flare_utils::stopwatch::Stopwatch;
+use tree::TreeNode;
 
 type JsonValue = serde_json::Value;
 
@@ -139,13 +141,13 @@ impl Profiler {
         }
     }
 
-    pub fn get_call_tree(&mut self, session_id: &str, thread_ids: &[i64], start_time: i64, end_time: i64) -> io::Result<Value> {
+    pub fn get_call_tree(&mut self, session_id: &str, thread_ids: &[i64], start_time: i64, end_time: i64) -> io::Result<TreeNode> {
         //xxx
         let client = self.get_sample_client(session_id)?;
         let call_tree = client.lock().unwrap().get_call_tree(thread_ids, start_time, end_time)?;
 
         //convert to json
-        Ok(call_tree.to_json())
+        Ok(call_tree.to_tree())
     }
 
     pub fn get_sample_info(&mut self, session_id: &str) -> io::Result<SampleInfo> {
@@ -383,16 +385,20 @@ impl Profiler {
         let thread_ids = get_option_as_int_array(options, "thread_ids")?;
         let start_time = get_option_as_int(options, "start_time", -1);
         let end_time = get_option_as_int(options, "end_time", -1);
-        let t1 = Local::now().timestamp_millis();
+        let mut sw = Stopwatch::start_new();
 
         let call_tree = self.get_call_tree(session_id, thread_ids.as_slice(), start_time, end_time)?;
+        println!("build call tree data cost: {}ms, threads: {:?}", sw.lap(), &thread_ids);
+
         let result = json!({
                 "session_id": session_id,
                 "call_tree_data": [call_tree]
             });
-        let t2 = Local::now().timestamp_millis();
-        println!("build thread call tree data cost: {}ms, threads: {:?}", t2-t1, &thread_ids);
-        sender.send_message(&wrap_response(&cmd, &result));
+        let message = wrap_response(&cmd, &result);
+        println!("wrap message cost: {}ms", sw.lap());
+
+        sender.send_message(&message);
+        println!("handle_call_tree_request total cost: {}ms", sw.elapsed_ms());
         Ok(())
     }
 
