@@ -20,7 +20,7 @@ const NULL_ARRAY_BYTES: &'static [u8] = b"*-1\r\n";
 /// assert_eq!(encode(&val), vec![43, 79, 75, 13, 10]);
 /// ```
 pub fn encode(value: &Value) -> Vec<u8> {
-    let mut res: Vec<u8> = Vec::new();
+    let mut res: Vec<u8> = Vec::with_capacity(1024);
     buf_encode(value, &mut res);
     res
 }
@@ -62,32 +62,44 @@ fn buf_encode(value: &Value, buf: &mut Vec<u8>) {
         }
         Value::Integer(ref val) => {
             buf.push(b':');
-            buf.extend_from_slice(val.to_string().as_bytes());
+            write_int(buf, val);
+            //buf.extend_from_slice(val.to_string().as_bytes());
             buf.extend_from_slice(CRLF_BYTES);
         }
         Value::Bulk(ref val) => {
             buf.push(b'$');
-            buf.extend_from_slice(val.len().to_string().as_bytes());
+            write_int(buf, &(val.len() as i64));
+            //buf.extend_from_slice(val.len().to_string().as_bytes());
             buf.extend_from_slice(CRLF_BYTES);
             buf.extend_from_slice(val.as_bytes());
             buf.extend_from_slice(CRLF_BYTES);
         }
         Value::BufBulk(ref val) => {
             buf.push(b'$');
-            buf.extend_from_slice(val.len().to_string().as_bytes());
+            write_int(buf, &(val.len() as i64));
+            //buf.extend_from_slice(val.len().to_string().as_bytes());
             buf.extend_from_slice(CRLF_BYTES);
             buf.extend_from_slice(val);
             buf.extend_from_slice(CRLF_BYTES);
         }
         Value::Array(ref val) => {
             buf.push(b'*');
-            buf.extend_from_slice(val.len().to_string().as_bytes());
+            write_int(buf, &(val.len() as i64));
+            //buf.extend_from_slice(val.len().to_string().as_bytes());
             buf.extend_from_slice(CRLF_BYTES);
             for item in val {
                 buf_encode(item, buf);
             }
         }
     }
+}
+
+//itoa is faster than int.to_string()
+fn write_int(buf: &mut Vec<u8>, val: &i64) {
+    //itoa::write(buf, *val);
+    let mut itoa_buf = itoa::Buffer::new();
+    let bytes = itoa_buf.format(*val).as_bytes();
+    buf.extend_from_slice(bytes);
 }
 
 /// A streaming RESP Decoder.
@@ -138,7 +150,7 @@ impl<R: Read> Decoder<R> {
 
     /// It will read buffers from the inner BufReader, decode it to a Value.
     pub fn decode(&mut self) -> Result<Value> {
-        let mut res: Vec<u8> = Vec::new();
+        let mut res: Vec<u8> = Vec::with_capacity(1024);
         self.reader.read_until(b'\n', &mut res)?;
 
         let len = res.len();
@@ -169,9 +181,13 @@ impl<R: Read> Decoder<R> {
                                           format!("invalid bulk length: {}", int)));
                 }
 
-                let mut buf: Vec<u8> = Vec::new();
                 let int = int as usize;
-                buf.resize(int + 2, 0);
+//                let mut buf: Vec<u8> = Vec::new();
+//                buf.resize(int+2, 0);
+                // set_len is faster than vec.resize()
+                let mut buf: Vec<u8> = Vec::with_capacity(int+2);
+                unsafe { buf.set_len(int+2); }
+
                 self.reader.read_exact(buf.as_mut_slice())?;
                 if !is_crlf(buf[int], buf[int + 1]) {
                     return Err(Error::new(ErrorKind::InvalidInput,

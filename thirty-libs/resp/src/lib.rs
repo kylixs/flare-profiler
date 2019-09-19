@@ -7,6 +7,8 @@
 
 //! RESP(Redis Serialization Protocol) Serialization for Rust.
 
+extern crate itoa;
+
 pub use self::value::Value;
 pub use self::serialize::{encode, encode_slice, Decoder};
 
