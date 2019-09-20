@@ -193,7 +193,8 @@ impl<R: Read> Decoder<R> {
                     return Err(Error::new(ErrorKind::InvalidInput,
                                           format!("invalid CRLF: {:?}", buf)));
                 }
-                buf.truncate(int);
+//                buf.truncate(int);
+                unsafe { buf.set_len(int);}
                 if self.buf_bulk {
                     return Ok(Value::BufBulk(buf));
                 }
