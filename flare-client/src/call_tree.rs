@@ -67,6 +67,7 @@ pub struct CallStackTree {
     root_node: NodeId,
     top_call_stack_node: NodeId,
     pub total_duration: i64,
+    pub total_cpu: i64,
     pub thread_id: JavaLong
 }
 
@@ -78,7 +79,8 @@ impl CallStackTree {
             root_node: NodeId { index: 0 },
             top_call_stack_node: NodeId { index: 0 },
             total_duration: 0,
-            thread_id: thread_id
+            total_cpu: 0,
+            thread_id
         }
     }
 
@@ -86,7 +88,7 @@ impl CallStackTree {
         self.top_call_stack_node = self.root_node;
     }
 
-    pub fn begin_call(&mut self, method_id: &JavaMethod, duration: i64) -> bool {
+    pub fn begin_call(&mut self, method_id: &JavaMethod, duration: i64, cpu_time: i64) -> bool {
         //find exist call node
         let topNode = self.get_top_node();
         let child = topNode.find_child(method_id).map(|x|*x).clone();
@@ -95,6 +97,7 @@ impl CallStackTree {
                 let node = self.get_mut_node(&child_id);
                 node.data.call_count += 1;
                 node.data.call_duration += duration;
+                node.data.call_cpu += cpu_time;
                 self.top_call_stack_node = node.data.node_id.clone();
                 true
             },
@@ -107,6 +110,7 @@ impl CallStackTree {
                 let mut node = TreeNode::newCallNode(topNode, next_index, method_id);
                 node.data.call_count += 1;
                 node.data.call_duration += duration;
+                node.data.call_cpu += cpu_time;
                 self.top_call_stack_node = node.data.node_id.clone();
 
                 // Push the node into the arena
@@ -116,32 +120,32 @@ impl CallStackTree {
         }
     }
 
-    pub fn end_call(&mut self, method_id: JavaMethod, call_name: &String, duration: i64) {
-        //let top_node = self.nodes[self.top_call_stack_node.index];
-        let top_node = self.get_mut_top_node();
-        if top_node.data.name == *call_name {
-            top_node.data.call_duration += duration;
-            top_node.data.call_count += 1;
-
-            debug!("end_call: {} {}, call_count:{}", call_name, duration, top_node.data.call_count);
-
-            //pop stack
-            //let parentNode = self.get_node(top_node.parent);
-            //self.top_call_stack_node = top_node.parent.unwrap().clone();
-            match &top_node.parent {
-                Some(nodeid) => {
-                    self.top_call_stack_node = nodeid.clone();
-                },
-                None => {
-                    println!("parent node not found, pop call stack failed, call_name: {}, stack: {}, depth: {}",
-                             call_name, top_node.data.name, top_node.data.depth)
-                }
-            }
-        } else {
-            println!("call name mismatch, pop call stack failed, call_name: {}, top_node:{}, stack:{}, depth: {} ",
-                     call_name, top_node.data.name, top_node.data.name, top_node.data.depth);
-        }
-    }
+//    pub fn end_call(&mut self, method_id: JavaMethod, call_name: &String, duration: i64) {
+//        //let top_node = self.nodes[self.top_call_stack_node.index];
+//        let top_node = self.get_mut_top_node();
+//        if top_node.data.name == *call_name {
+//            top_node.data.call_duration += duration;
+//            top_node.data.call_count += 1;
+//
+//            debug!("end_call: {} {}, call_count:{}", call_name, duration, top_node.data.call_count);
+//
+//            //pop stack
+//            //let parentNode = self.get_node(top_node.parent);
+//            //self.top_call_stack_node = top_node.parent.unwrap().clone();
+//            match &top_node.parent {
+//                Some(nodeid) => {
+//                    self.top_call_stack_node = nodeid.clone();
+//                },
+//                None => {
+//                    println!("parent node not found, pop call stack failed, call_name: {}, stack: {}, depth: {}",
+//                             call_name, top_node.data.name, top_node.data.depth)
+//                }
+//            }
+//        } else {
+//            println!("call name mismatch, pop call stack failed, call_name: {}, top_node:{}, stack:{}, depth: {} ",
+//                     call_name, top_node.data.name, top_node.data.name, top_node.data.depth);
+//        }
+//    }
 
 //    pub fn end_last_call(&mut self, total_duration: i64) {
 //        let last_duration = self.total_duration;
@@ -154,14 +158,15 @@ impl CallStackTree {
 //        self.total_duration = total_duration;
 //    }
 
-    pub fn start_call_stack(&mut self, total_duration: i64) -> i64 {
+    //开始合并调用栈，返回本次增量时间 (delta_duration, delta_cpu)
+    pub fn start_call_stack(&mut self, total_duration: i64, total_cpu: i64) -> (i64,i64) {
         let last_duration = self.total_duration;
+        let last_cpu = self.total_cpu;
         self.total_duration = total_duration;
-        if last_duration > 0 {
-            total_duration - last_duration
-        }else {
-            0
-        }
+        self.total_cpu = total_cpu;
+        let delta_duration = if last_duration > 0 { total_duration - last_duration }else { 0 };
+        let delta_cpu = if last_cpu > 0 {total_cpu - last_cpu} else { 0 };
+        (delta_duration, delta_cpu)
     }
 
     //
@@ -208,27 +213,7 @@ impl CallStackTree {
         }
     }
 
-    //too slowly
-    pub fn to_json(&self) -> serde_json::Value {
-        self.node_to_json(&self.root_node)
-    }
-
-    fn node_to_json(&self, nodeid: &NodeId) -> serde_json::Value {
-        let node = self.get_node(&nodeid);
-
-        let mut children = vec![];
-        for child in node.children.values() {
-            children.push(self.node_to_json(&child));
-        }
-        let label = format!("[cost={},calls={}] {}", node.data.call_duration/1000_1000, node.data.call_count, node.data.name);
-        if children.len() > 0 {
-            json!({"id": nodeid.index, "label": label, "children": children })
-        } else {
-            json!({"id": nodeid.index, "label": label })
-        }
-    }
-
-    //more faster
+    //fast generate display tree
     pub fn to_tree(&self) -> tree::TreeNode {
         self.build_node(&self.root_node)
     }
@@ -240,8 +225,13 @@ impl CallStackTree {
         for child in node.children.values() {
             children.push(Box::new(self.build_node(&child)));
         }
-        let label = format!("[cost={},calls={}] {}", node.data.call_duration/1000_1000, node.data.call_count, node.data.name);
-        tree::TreeNode{ parent: None, id: nodeid.index as i64, label: label, children: children }
+        //TODO
+        let id = nodeid.index as i64;
+        let label = node.data.name.to_string();
+        let calls = node.data.call_count as i64;
+        let cpu = node.data.call_cpu / 1000; //micros
+        let duration = node.data.call_duration; //mills
+        tree::TreeNode{ parent: None, id, label, calls, cpu, duration, children}
     }
 
     pub fn get_top_node(&self) -> &TreeNode {
@@ -273,6 +263,7 @@ pub struct NodeData {
 //    path: String,
     pub call_count: u32, // call count
     pub call_duration: i64, // call duration
+    pub call_cpu: i64,
     pub children_size: u32 //children size
 }
 
@@ -301,6 +292,7 @@ impl TreeNode {
 //                path: name.to_string(),
                 call_count: 0,
                 call_duration: 0,
+                call_cpu: 0,
                 children_size: 0,
             },
             parent: None,
@@ -329,6 +321,7 @@ impl TreeNode {
                 depth: parentNode.data.depth + 1,
                 call_count: 0,
                 call_duration: 0,
+                call_cpu: 0,
                 children_size: 0,
             },
             parent: Some(parentNode.data.node_id.clone()),

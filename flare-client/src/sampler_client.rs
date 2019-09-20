@@ -42,6 +42,8 @@ pub struct ThreadData {
     pub cpu_time: i64,
     pub cpu_time_delta: i64,
     pub sample_time: i64,
+    #[serde(default)]
+    pub duration: i64,
     pub stacktrace: Vec<i64>
 }
 
@@ -401,6 +403,7 @@ impl SamplerClient {
                 cpu_time: cpu_time,
                 cpu_time_delta: cpu_time_delta,
                 sample_time: sample_time,
+                duration: 0,
                 stacktrace: vec![]
             }
         });
@@ -550,10 +553,15 @@ impl SamplerClient {
 
             //TODO 可能单次读取的数据比较多，导致内存消耗太大
             let mut thread_data_vec = vec![];
+            let mut last_sample_time = 0;
             self.sample_stacktrace_map.get_mut(thread_id).unwrap_or(&mut None).as_mut().map(|idx_file| {
                 idx_file.get_range_value(&TupleValue::uint32(start_step), &TupleValue::uint32(end_step), |bytes|{
                     //parse stack data
-                    if let Ok(thread_data) = serde_json::from_slice::<ThreadData>(bytes.as_slice()) {
+                    if let Ok(mut thread_data) = serde_json::from_slice::<ThreadData>(bytes.as_slice()) {
+                        if last_sample_time != 0 {
+                            thread_data.duration = thread_data.sample_time - last_sample_time;
+                        }
+                        last_sample_time = thread_data.sample_time;
                         thread_data_vec.push(thread_data);
                     }
                 });
@@ -564,24 +572,24 @@ impl SamplerClient {
             let mut last_divide_cpu_time = 0;
             let mut start = 0;
             let mut end = 0;
-            for (i,thread_data) in thread_data_vec.iter().enumerate() {
+            let mut pending_thread_data_vec: Vec<&mut ThreadData> = vec![];
+            for (i,thread_data) in thread_data_vec.iter_mut().enumerate() {
                 if last_divide_cpu_time == 0 {
                     last_divide_cpu_time = thread_data.cpu_time;
                 }
                 if thread_data.cpu_time != last_divide_cpu_time {
                     end = i;
                     let curr_cpu_time = thread_data.cpu_time;
-                    self.divide_cpu_time(&mut stack_tree, &thread_data_vec[start..end+1], last_divide_cpu_time, curr_cpu_time);
+                    self.divide_cpu_time(pending_thread_data_vec, last_divide_cpu_time, curr_cpu_time);
+                    pending_thread_data_vec = vec![];
                     last_divide_cpu_time = curr_cpu_time;
                     start = end;
                 }
+                pending_thread_data_vec.push(thread_data);
             }
 
-            //proc remain stack trace
-            if thread_data_vec.len() > end + 1 {
-                for thread_data in &thread_data_vec[end..thread_data_vec.len()] {
-                    self.add_stack_trace(&mut stack_tree, thread_data, -1);
-                }
+            for thread_data in &thread_data_vec {
+                self.add_stack_trace(&mut stack_tree, thread_data);
             }
             println!("thread: {}, build tree cost:{}", thread_id, sw.lap());
 
@@ -598,31 +606,34 @@ impl SamplerClient {
         Ok(stack_tree)
     }
 
-    fn divide_cpu_time(&mut self, mut stack_tree: &mut CallStackTree, thread_data_batch: &[ThreadData], last_cpu_time: i64, curr_cpu_time: i64) {
+    fn divide_cpu_time(&mut self, mut thread_data_batch: Vec<&mut ThreadData>, last_cpu_time: i64, curr_cpu_time: i64){
         let cpu_time_per_trace = (curr_cpu_time - last_cpu_time) / thread_data_batch.len() as i64;
         let mut thread_cpu_time = last_cpu_time;
-        for (i,thread_data) in thread_data_batch.iter().enumerate() {
-            if i < thread_data_batch.len() {
+        let mut i=0;
+        let len = thread_data_batch.len();
+        for thread_data in thread_data_batch.as_mut_slice() {
+            if i < len {
                 thread_cpu_time += cpu_time_per_trace;
             }else {
                 thread_cpu_time = curr_cpu_time;
             }
-            self.add_stack_trace(&mut stack_tree, thread_data, thread_cpu_time);
+            i += 1;
+            (*thread_data).cpu_time = thread_cpu_time;
+            //thread_data.cpu_time_delta =
         }
     }
 
-    fn add_stack_trace(&mut self, call_tree: &mut CallStackTree, thread_data: &ThreadData, thread_cpu_time: i64) {
-        let cpu_time: i64 = if thread_cpu_time > 0 {thread_cpu_time} else {thread_data.cpu_time};
+    fn add_stack_trace(&mut self, call_tree: &mut CallStackTree, thread_data: &ThreadData) {
 
         call_tree.reset_top_call_stack_node();
-        let duration = call_tree.start_call_stack(cpu_time);
+        let (delta_duration, delta_cpu_time) = call_tree.start_call_stack(thread_data.sample_time, thread_data.cpu_time);
 
         //save nodes in temp vec, process it after build call tree, avoid second borrow muttable *self
         let mut naming_nodes: Vec<(NodeId, JavaMethod)> = vec![];
 
         //reverse call
         for method_id in thread_data.stacktrace.iter().rev() {
-            if !call_tree.begin_call(method_id, duration) {
+            if !call_tree.begin_call(method_id, delta_duration, delta_cpu_time) {
                 naming_nodes.push((call_tree.get_top_node().data.node_id, method_id.clone()));
             }
         }

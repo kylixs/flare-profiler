@@ -19,3 +19,13 @@ function fill_ts_data(thread_ts_data, thread_start_time, thread_end_time, start_
     }
     return new_data_vec;
 }
+
+//"hello {0}, {1}".format("Tom", "Great")
+String.prototype.format = function()
+{
+    var args = arguments;
+    return this.replace(/\{(\d+)\}/g,
+        function(m,i){
+            return args[i];
+        });
+}

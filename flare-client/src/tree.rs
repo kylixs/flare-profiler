@@ -11,8 +11,9 @@ pub struct TreeNode {
     pub children: Vec<Box<TreeNode>>,
     pub id: i64,
     pub label: String,
-//    cost: i64,
-//    calls: i64
+    pub calls: i64,
+    pub cpu: i64,
+    pub duration: i64,
 }
 
 impl TreeNode {
@@ -22,6 +23,9 @@ impl TreeNode {
             children: vec![],
             id,
             label,
+            calls: 0,
+            cpu: 0,
+            duration: 0
         }
     }
 

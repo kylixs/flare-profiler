@@ -111,7 +111,7 @@
 					<tr style="height: 500px">
 						<td width="900px">
 							<div>
-								<p>Start Sample:
+								<p>Profiler Agent:
 									<input class="input-field" type="text" v-model="profiler.agent_addr">
 									<input type="button" value="Connect" onclick="profiler.connect_agent()" >
 								</p>
@@ -163,12 +163,23 @@
 
 								<div class="tree">
 									<el-tree
-											class="filter-tree"
-											:data="profiler.data.call_tree_data"
-											:props="treeProps"
-											default-expand-all
-											:filter-node-method="filterNode"
-											ref="tree">
+										class="filter-tree"
+										:data="profiler.data.call_tree_data"
+										:props="treeProps"
+										default-expand-all
+										:filter-node-method="filterNode"
+										ref="tree">
+										<span class="custom-tree-node" slot-scope="{ node, data }">
+												<span>{{ data | nodeLabelRender }}</span>
+<!--												<span>-->
+<!--												  <el-button-->
+<!--														  type="text"-->
+<!--														  size="mini"-->
+<!--														  @click="() => remove(node, data)">-->
+<!--													Delete-->
+<!--												  </el-button>-->
+<!--												</span>-->
+											</span>
 									</el-tree>
 								</div>
 							</div>
@@ -557,6 +568,9 @@
 				filters: {
 					cpuTimeFilter(value) {
 						return (value/1000000000).toFixed(2);
+					},
+					nodeLabelRender(node) {
+						return "[dura={0},cpu={1},calls={2}] {3}".format(node.duration||0, (node.cpu||0)/1000, node.calls||0, node.label);
 					}
 				},
 				created(){

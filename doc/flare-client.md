@@ -1,3 +1,4 @@
+##5、客户端设计
 ###5.1 取样数据保存格式  
 
 对于每个线程的数据分为两个文件，一个记录时序数据，一个记录具体的调用栈数据。
@@ -68,8 +69,30 @@ unit type (1byte)| unit size (1bytes) | begin_time(8 bytes) | end_time(8 bytes)|
 |头部信息|方法信息|方法信息|方法信息
 ```
 
+####5）线程结束事件
 
-###6. Flare UI交互接口
+
+
+###5.2 数据分析
+cpu_time与duration的概念定义如下：  
+1）cpu_time   
+通过JVMTI GetThreadCpuTime()获取到JVM线程CPU时间统计的值，此值不是很准确，延时比较大（通常间隔1~2秒才更新），难以对应到具体的方法调用上。CPU时间可以理解为CPU占用率的一个指标，对计算密集型优化由很大的参考意义。  
+2）duration   
+理解为方法调用的持续时间，包含wait/sleep时间，比较直观反映代码执行的耗时，对阻塞性问题分析价值比较大。
+
+
+###5.2 方法调用统计树
+支持CPU时间及持续时间，还有取样次数，可以指定根据那个属性排序。
+
+
+###5.3 方法调用火焰图
+火焰图以方法调用持续时间为基础，通过图形表达代码执行过程的时间分布。
+https://www.slideshare.net/brendangregg/scale2015-linux-perfprofiling (P33)
+On-CPU：占用CPU，线程执行期间
+Off-CPU: 释放CPU，线程休眠
+
+
+##6、Flare UI交互接口
 Flare UI 通过WebSocket协议发送查询分析指令到Flare Client， Flare Client根据指令读取相应的数据文件进行统计分析，然后返回结果。
 请求及响应都为json格式，通用格式如下：
 ```json

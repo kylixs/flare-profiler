@@ -41,8 +41,10 @@ fn main() -> io::Result<()> {
     }
     println!("to json: {}", sw.lap());
 
+    let mut thread_data_vec = Vec::with_capacity(run_times);
     for s in json_vec {
-        let obj = serde_json::from_str::<ThreadData>(&s);
+        let obj = serde_json::from_str::<ThreadData>(&s)?;
+        thread_data_vec.push(obj);
     }
     println!("parse json: {}", sw.lap());
 
@@ -57,11 +59,13 @@ fn main() -> io::Result<()> {
 
 
     let mut thread_data_vec = Vec::with_capacity(run_times);
+//    let mut tmp_vec = Vec::with_capacity(run_times);
     for buf in resp_vec {
         let val = resp::Decoder::with_buf_bulk(BufReader::new(buf.as_slice())).decode()?;
         if let resp::Value::Array(data_vec) = &val {
             thread_data_vec.push(resp_decode_thread_data(data_vec));
         }
+//        tmp_vec.push(val);
     }
     println!("parse resp: {}", sw.lap());
     println!("parse thread_data: {}", serde_json::to_string(&thread_data_vec[0])?);
