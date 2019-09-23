@@ -90,6 +90,14 @@ cpu_time与duration的概念定义如下：
 https://www.slideshare.net/brendangregg/scale2015-linux-perfprofiling (P33)
 On-CPU：占用CPU，线程执行期间
 Off-CPU: 释放CPU，线程休眠
+生成火焰图步骤：
+1）将调用栈格式化为collapse格式
+2）使用inferno工具生成火焰图
+
+两种不同的维度：
+1)先统计合并，然后将每个分支格式化为collapse格式
+2)直接将每个线程栈格式化为collapse格式输出
+
 
 
 ##6、Flare UI交互接口
@@ -355,6 +363,32 @@ FlareUI支持打开多个取样实例，sample_instance为全局唯一的实例�
             "calls": 2
           }] 
       }]
+   }
+}
+```
+
+####8）获取火焰图
+
+获取指定时间范围的线程方法调用栈的火焰图
+```json
+{
+   "cmd": "flame_graph",
+   "options" : {
+      "session_id": "localhost:2233",
+      "thread_id": 23,
+      "start_time": 1567669466207,
+      "end_time": 1567669485649
+    }
+}
+```
+响应结果：
+```json
+{
+   "result": "success",
+   "cmd": "flame_graph",
+   "data": {
+      "session_id": "localhost:2233",
+      "flame_graph_data": "<svg data>"
    }
 }
 ```

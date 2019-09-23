@@ -114,8 +114,10 @@ pub fn resp_decode_thread_data(data_vec: &Vec<resp::Value>) -> ThreadData {
         cpu_time: cpu_time,
         cpu_time_delta: cpu_time_delta,
         sample_time: sample_time,
+        stacktrace: stacktrace,
         duration: 0,
-        stacktrace: stacktrace
+        self_duration: 0,
+        self_cpu_time: 0
     }
 }
 

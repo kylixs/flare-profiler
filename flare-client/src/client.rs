@@ -17,6 +17,10 @@ use std::cmp::{min, max};
 use chrono::Local;
 use flare_utils::stopwatch::Stopwatch;
 use tree::TreeNode;
+use inferno::flamegraph::*;
+use inferno::flamegraph;
+use std::str::FromStr;
+use inferno::flamegraph::color::BackgroundColor;
 
 type JsonValue = serde_json::Value;
 
@@ -150,6 +154,32 @@ impl Profiler {
         Ok(call_tree.to_tree())
     }
 
+    pub fn create_flame_graph_svg(&mut self, session_id: &str, thread_id: i64, start_time: i64, end_time: i64) -> io::Result<String> {
+        let client = self.get_sample_client(session_id)?;
+        let call_stacks = client.lock().unwrap().get_collapsed_call_stacks(thread_id, start_time, end_time)?;
+
+        //create frame graph
+        let mut options = flamegraph::Options {
+            colors: Palette::from_str("java").unwrap(),
+            bgcolors: Some(BackgroundColor::from_str("blue").unwrap()),
+            //hash: true,
+            no_sort: false,
+            ..Default::default()
+        };
+        let mut writer = vec![];
+        let input = call_stacks.join("\n");
+//        println!("call_stacks:");
+//        println!("{}", input);
+        if let Err(e) = flamegraph::from_lines(&mut options, input.lines(), &mut writer) {
+            return Err(new_error(ErrorKind::Other, &format!("create flame graph failed: {}", e)));
+        }
+
+        match std::str::from_utf8(&writer) {
+            Ok(svg) => Ok(svg.to_string()),
+            Err(e) => Err(new_error(ErrorKind::Other, &format!("flame graph to string failed: {}", e)))
+        }
+    }
+
     pub fn get_sample_info(&mut self, session_id: &str) -> io::Result<SampleInfo> {
         if let Some(client) = self.sample_session_map.get(session_id) {
             Ok(client.lock().unwrap().get_sample_info())
@@ -273,6 +303,9 @@ impl Profiler {
             }
             "call_tree" => {
                 self.handle_call_tree_request(sender, cmd, options)?;
+            }
+            "flame_graph" => {
+                self.handle_flame_graph_request(sender, cmd, options)?;
             }
             _ => {
                 println!("unknown cmd: {}, request: {}", cmd, json_str);
@@ -399,6 +432,29 @@ impl Profiler {
 
         sender.send_message(&message);
         println!("handle_call_tree_request total cost: {}ms", sw.elapsed_ms());
+        Ok(())
+    }
+
+    fn handle_flame_graph_request(&mut self, sender: &mut Writer<std::net::TcpStream>, cmd: &str, options: &serde_json::Map<String, serde_json::Value>) -> io::Result<()> {
+        let session_id = get_option_as_str_required(options, "session_id")?;
+        let thread_id = get_option_as_int(options, "thread_id", -1);
+        let start_time = get_option_as_int(options, "start_time", -1);
+        let end_time = get_option_as_int(options, "end_time", -1);
+        let mut sw = Stopwatch::start_new();
+
+        if thread_id <= 0 {
+            return Err(new_invalid_input_error("missing or invalid option 'thread_id'"));
+        }
+
+        let svg = self.create_flame_graph_svg(session_id, thread_id, start_time, end_time)?;
+        let result = json!({
+                "session_id": session_id,
+                "flame_graph_data": svg
+            });
+        let message = wrap_response(&cmd, &result);
+        sender.send_message(&message);
+        println!("handle_flame_graph_request total cost: {}ms", sw.elapsed_ms());
+
         Ok(())
     }
 

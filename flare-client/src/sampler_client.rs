@@ -42,9 +42,15 @@ pub struct ThreadData {
     pub cpu_time: i64,
     pub cpu_time_delta: i64,
     pub sample_time: i64,
+    pub stacktrace: Vec<i64>,
+
+    //dynamic calc attrs
     #[serde(default)]
     pub duration: i64,
-    pub stacktrace: Vec<i64>
+    #[serde(default)]
+    pub self_duration: i64,
+    #[serde(default)]
+    pub self_cpu_time: i64,
 }
 
 #[derive(Clone)]
@@ -158,10 +164,10 @@ impl SamplerClient {
         self.sample_data_dir = sample_data_dir.to_string();
         let dir_meta = std::fs::metadata(sample_data_dir);
         if dir_meta.is_err() {
-            return new_error(ErrorKind::NotFound, "sample data dir not found");
+            return Err(new_error(ErrorKind::NotFound, "sample data dir not found"));
         }
         if !dir_meta.unwrap().is_dir() {
-            return new_error(ErrorKind::NotFound, "sample data dir is not a directory");
+            return Err(new_error(ErrorKind::NotFound, "sample data dir is not a directory"));
         }
 
         self.sample_data_dir = sample_data_dir.to_string();
@@ -173,7 +179,7 @@ impl SamplerClient {
         let summary = serde_json::from_str::<SummaryInfo>(&json);
         if summary.is_err() {
             println!("load summary info json failed: {}", summary.err().unwrap());
-            return new_error(ErrorKind::InvalidData, "load summary info json failed");
+            return Err(new_error(ErrorKind::InvalidData, "load summary info json failed"));
         }
         let summary = summary.unwrap();
 
@@ -403,8 +409,10 @@ impl SamplerClient {
                 cpu_time: cpu_time,
                 cpu_time_delta: cpu_time_delta,
                 sample_time: sample_time,
+                stacktrace: vec![],
                 duration: 0,
-                stacktrace: vec![]
+                self_duration: 0,
+                self_cpu_time: 0
             }
         });
         thread_data.sample_time = sample_time;
@@ -412,6 +420,7 @@ impl SamplerClient {
         thread_data.cpu_time_delta = cpu_time_delta;
         thread_data.state = state.to_string();
         thread_data.name = name.to_string();
+
         //stacktrace
         let mut stack_frames = Vec::with_capacity(stacktrace.len());
         for frame in stacktrace {
@@ -532,6 +541,61 @@ impl SamplerClient {
                 ts.get_range_value(start_time, end_time, unit_time_ms as i32)
             })
         })
+    }
+
+    pub fn get_collapsed_call_stacks(&mut self, thread_id: i64, start_time: i64, end_time: i64) -> io::Result<Vec<String>> {
+        let mut start_step = 0;
+        let mut end_step = 0;
+        let mut sw = Stopwatch::start_new();
+        sw.start();
+        if let Some(ts_file) = self.sample_cpu_ts_map.get(&thread_id).unwrap_or(&None) {
+            start_step = ts_file.time_to_step(start_time);
+            end_step = ts_file.time_to_step(end_time);
+        }else {
+            return Err(new_error(ErrorKind::NotFound, "thread cpu time file not found"));
+        }
+        println!("thread: {}, convert time to step cost:{}, steps:{}", thread_id, sw.lap(), end_step-start_step);
+
+        //TODO 可能单次读取的数据比较多，导致内存消耗太大
+        let mut thread_data_vec = vec![];
+        let mut last_sample_time = 0;
+        self.sample_stacktrace_map.get_mut(&thread_id).unwrap_or(&mut None).as_mut().map(|idx_file| {
+            idx_file.get_range_value(&TupleValue::uint32(start_step), &TupleValue::uint32(end_step), |bytes|{
+                //parse stack data
+                if let Ok(mut thread_data) = serde_json::from_slice::<ThreadData>(bytes.as_slice()) {
+                    if last_sample_time != 0 {
+                        thread_data.duration = thread_data.sample_time - last_sample_time;
+                    }
+                    last_sample_time = thread_data.sample_time;
+                    thread_data_vec.push(thread_data);
+                }
+            });
+        });
+        println!("thread: {}, load stacktrace cost:{}, count:{}", thread_id, sw.lap(), thread_data_vec.len());
+
+        let mut collapsed_stacks = vec![];
+        let mut last_cpu_time = 0;
+        for thread_data in &thread_data_vec {
+            let mut collapsed_stack = String::new();
+            for method in thread_data.stacktrace.iter().rev() {
+                if let Some(method_info) = self.get_method_info(*method) {
+                    if collapsed_stack.len() > 0 {
+                        collapsed_stack += ";";
+                    }
+                    collapsed_stack += &method_info.full_name;
+                }else {
+                    collapsed_stack += ";";
+                    collapsed_stack += &method.to_string();
+                }
+            }
+            //duration micros
+            let duration = thread_data.duration;
+            collapsed_stack += " ";
+            collapsed_stack += &duration.to_string();
+            collapsed_stacks.push(collapsed_stack);
+        }
+
+        Ok(collapsed_stacks)
     }
 
     pub fn get_call_tree(&mut self, thread_ids: &[i64], start_time: i64, end_time: i64) -> io::Result<CallStackTree> {

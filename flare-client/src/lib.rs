@@ -14,6 +14,7 @@ extern crate chrono;
 extern crate websocket;
 extern crate timer;
 extern crate flare_utils;
+extern crate inferno;
 
 //re-export
 pub use client::*;

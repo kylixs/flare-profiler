@@ -127,8 +127,8 @@ pub fn get_option_as_int_array(options: &serde_json::Map<String, serde_json::Val
     Ok(data)
 }
 
-pub fn new_error(kind: ErrorKind, msg: &str) -> io::Result<()> {
-    Err(io::Error::new(kind, msg))
+pub fn new_error(kind: ErrorKind, msg: &str) -> io::Error {
+    io::Error::new(kind, msg)
 }
 
 pub fn new_invalid_input_error(msg: &str) -> io::Error {

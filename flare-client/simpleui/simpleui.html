@@ -14,7 +14,7 @@
 				overflow: auto;
 			}
 
-			#stack_tree_region {
+			#stats_result_region {
 				/*background: #e6a23c;*/
 				width: 900px;
 			}
@@ -102,6 +102,12 @@
 			.el-tree-node > .el-tree-node__children {
 				overflow: visible;
 			}
+
+			#flame_graph_svg {
+				width: 900px;
+				min-height: 500px;
+				scroll: auto;
+			}
 		</style>
 	</head>
 	<body>
@@ -154,33 +160,39 @@
 							</div>
 						</td>
 						<td>
-							<div id="stack_tree_region">
-								<h4 class="title">Call Stack</h4>
-								<el-input
-										placeholder="输入关键字进行过滤"
-										v-model="treeFilterText">
-								</el-input>
+							<div id="stats_result_region">
+								<div id="call_tree" v-show="profiler.show_call_tree">
+									<h4 class="title">Call Stack</h4>
+									<el-input
+											placeholder="输入关键字进行过滤"
+											v-model="treeFilterText">
+									</el-input>
 
-								<div class="tree">
-									<el-tree
-										class="filter-tree"
-										:data="profiler.data.call_tree_data"
-										:props="treeProps"
-										default-expand-all
-										:filter-node-method="filterNode"
-										ref="tree">
+									<div class="tree">
+										<el-tree
+												class="filter-tree"
+												:data="profiler.data.call_tree_data"
+												:props="treeProps"
+												default-expand-all
+												:filter-node-method="filterNode"
+												ref="tree">
 										<span class="custom-tree-node" slot-scope="{ node, data }">
 												<span>{{ data | nodeLabelRender }}</span>
-<!--												<span>-->
-<!--												  <el-button-->
-<!--														  type="text"-->
-<!--														  size="mini"-->
-<!--														  @click="() => remove(node, data)">-->
-<!--													Delete-->
-<!--												  </el-button>-->
-<!--												</span>-->
+											<!--												<span>-->
+											<!--												  <el-button-->
+											<!--														  type="text"-->
+											<!--														  size="mini"-->
+											<!--														  @click="() => remove(node, data)">-->
+											<!--													Delete-->
+											<!--												  </el-button>-->
+											<!--												</span>-->
 											</span>
-									</el-tree>
+										</el-tree>
+									</div>
+								</div>
+								<div id="flame_graph" v-show="profiler.show_flame_graph">
+									<h4 class="title">Flame Graph</h4>
+									<div id="flame_graph_svg" v-html="profiler.data.flame_graph_data"></div>
 								</div>
 							</div>
 						</td>
@@ -247,6 +259,8 @@
 				show_history_samples: false,
 				show_message: false,
 				show_sessions: false,
+				show_call_tree: false,
+				show_flame_graph: true,
 				selected_thread_id: null,
 				data: {
 					sample_info: {},
@@ -263,7 +277,9 @@
 							id: 4,
 							label: '二级 1-1'
 						}]
-					}]
+					}],
+					flame_graph_svg: "",
+					flame_graph_data: ""
 				},
 				start_auto_refresh() {
 					if (this.dashboard_timer == null) {
@@ -404,7 +420,8 @@
 								let start_time = sess_start_time + axis.rangeStart*unit_time_ms;
 								let end_time = sess_start_time + axis.rangeEnd*unit_time_ms;
 								console.log("datazoom: thread:",thread.id, ", index:", axis.rangeStart,"-", axis.rangeEnd,", time:", start_time,"-", end_time );
-								profiler.update_call_stack_tree([thread.id], start_time, end_time);
+								// profiler.update_call_stack_tree([thread.id], start_time, end_time);
+								profiler.update_flame_graph(thread.id, start_time, end_time);
 							})
 						}
 						profiler.data.thread_cpu_time_map[thread.id] = thread;
@@ -416,6 +433,18 @@
 						"options": {
 							"session_id": profiler.data.session_id,
 							"thread_ids": thread_ids,
+							"start_time": start_time,
+							"end_time": end_time
+						}
+					};
+					socket.send(JSON.stringify(request));
+				},
+				update_flame_graph(thread_id, start_time, end_time) {
+					var request = {
+						"cmd": "flame_graph",
+						"options": {
+							"session_id": profiler.data.session_id,
+							"thread_id": thread_id,
 							"start_time": start_time,
 							"end_time": end_time
 						}
@@ -449,7 +478,8 @@
 						case "cpu_time":
 							profiler.on_cpu_time_result(json.data);
 							break;
-						case "call_tree":
+						case "flame_graph":
+							//profiler.data.flame_graph_svg="data:image/svg+xml;utf8,"+json.data.flame_graph_data.replace(/<\?xml.*?\>.*\<!DOCTYPE.*\<svg/, "<svg");
 							break;
 						default:
 							console.log("unknown message: ", json);

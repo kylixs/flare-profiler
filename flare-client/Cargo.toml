@@ -34,3 +34,4 @@ resp = { path = "../thirty-libs/resp" }
 websocket = "0.23.0"
 timer = "0.2.0"
 #stopwatch = "0.0.7"
+inferno = "0.9.0"
