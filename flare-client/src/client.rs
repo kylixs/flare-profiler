@@ -154,16 +154,29 @@ impl Profiler {
         Ok(call_tree.to_tree())
     }
 
-    pub fn create_flame_graph_svg(&mut self, session_id: &str, thread_id: i64, start_time: i64, end_time: i64) -> io::Result<String> {
+    pub fn create_flame_graph_svg(&mut self, session_id: &str, thread_id: i64, start_time: i64, end_time: i64, stats_type_str: &str, image_width: usize) -> io::Result<String> {
+        let mut stats_type = StatsType::DURATION;
+        if let Ok(x) = StatsType::from_str(stats_type_str) {
+            stats_type = x;
+        }else {
+            return Err(new_invalid_input_error(&format!("invalid stats_type: {}", stats_type_str)));
+        }
+        let count_name = match stats_type {
+            StatsType::DURATION => "ms",
+            StatsType::CPU_TIME => "micros",
+            StatsType::SAMPLES => "samples",
+        };
         let client = self.get_sample_client(session_id)?;
-        let call_stacks = client.lock().unwrap().get_collapsed_call_stacks(thread_id, start_time, end_time)?;
+        let call_stacks = client.lock().unwrap().get_collapsed_call_stacks(thread_id, start_time, end_time, stats_type)?;
 
         //create frame graph
         let mut options = flamegraph::Options {
-            colors: Palette::from_str("java").unwrap(),
-            bgcolors: Some(BackgroundColor::from_str("blue").unwrap()),
+            //colors: Palette::from_str("java").unwrap(),
+            //bgcolors: Some(BackgroundColor::from_str("blue").unwrap()),
             //hash: true,
             no_sort: false,
+            image_width: Some(image_width),
+            count_name: count_name.to_string(),
             ..Default::default()
         };
         let mut writer = vec![];
@@ -440,15 +453,25 @@ impl Profiler {
         let thread_id = get_option_as_int(options, "thread_id", -1);
         let start_time = get_option_as_int(options, "start_time", -1);
         let end_time = get_option_as_int(options, "end_time", -1);
+        let mut image_width = get_option_as_int(options, "image_width", 900);
+        if image_width <= 0 {
+            image_width = 900;
+        }
+        let stats_type = get_option_as_str(options, "stats_type", "duration");
         let mut sw = Stopwatch::start_new();
 
         if thread_id <= 0 {
             return Err(new_invalid_input_error("missing or invalid option 'thread_id'"));
         }
 
-        let svg = self.create_flame_graph_svg(session_id, thread_id, start_time, end_time)?;
+        let svg = self.create_flame_graph_svg(session_id, thread_id, start_time, end_time, stats_type, image_width as usize)?;
         let result = json!({
                 "session_id": session_id,
+                "thread_id": thread_id,
+                "start_time": start_time,
+                "end_time": end_time,
+                "stats_type": stats_type,
+                "image_width": image_width,
                 "flame_graph_data": svg
             });
         let message = wrap_response(&cmd, &result);

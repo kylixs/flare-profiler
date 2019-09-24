@@ -369,7 +369,13 @@ FlareUI支持打开多个取样实例，sample_instance为全局唯一的实例�
 
 ####8）获取火焰图
 
-获取指定时间范围的线程方法调用栈的火焰图
+获取指定时间范围的线程方法调用栈的火焰图。
+选项说明：
+stats_type： 火焰图统计方式，包含以下值：
+duration: 持续时间(ms)
+cpu_time: CPU时间(micros)
+samples: 取样次数
+
 ```json
 {
    "cmd": "flame_graph",
@@ -377,7 +383,9 @@ FlareUI支持打开多个取样实例，sample_instance为全局唯一的实例�
       "session_id": "localhost:2233",
       "thread_id": 23,
       "start_time": 1567669466207,
-      "end_time": 1567669485649
+      "end_time": 1567669485649,
+      "image_width": 900,
+      "stats_type": "duration"
     }
 }
 ```
@@ -388,6 +396,11 @@ FlareUI支持打开多个取样实例，sample_instance为全局唯一的实例�
    "cmd": "flame_graph",
    "data": {
       "session_id": "localhost:2233",
+      "thread_id": 23,
+      "start_time": 1567669466207,
+      "end_time": 1567669485649,
+      "image_width": 900,
+      "stats_type": "duration",
       "flame_graph_data": "<svg data>"
    }
 }

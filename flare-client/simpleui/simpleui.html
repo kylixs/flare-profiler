@@ -17,6 +17,8 @@
 			#stats_result_region {
 				/*background: #e6a23c;*/
 				width: 900px;
+				height: 500px;
+				overflow: auto;
 			}
 
 			#cpu_time_region {
@@ -105,8 +107,7 @@
 
 			#flame_graph_svg {
 				width: 900px;
-				min-height: 500px;
-				scroll: auto;
+				min-height: 468px;
 			}
 		</style>
 	</head>
@@ -262,6 +263,7 @@
 				show_call_tree: false,
 				show_flame_graph: true,
 				selected_thread_id: null,
+				stats_type: "duration",
 				data: {
 					sample_info: {},
 					threads: [],
@@ -446,7 +448,9 @@
 							"session_id": profiler.data.session_id,
 							"thread_id": thread_id,
 							"start_time": start_time,
-							"end_time": end_time
+							"end_time": end_time,
+							"stats_type": profiler.stats_type,
+							"image_width": 900
 						}
 					};
 					socket.send(JSON.stringify(request));

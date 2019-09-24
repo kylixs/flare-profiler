@@ -91,6 +91,18 @@ pub fn get_option_as_str_required<'a>(options: &'a serde_json::Map<String, serde
     }
 }
 
+pub fn get_option_as_str<'a>(options: &'a serde_json::Map<String, serde_json::Value>, key: &str, default_value: &'a str) -> &'a str {
+    match options.get(key) {
+        Some(val) => {
+            match val.as_str() {
+                Some(s) => s,
+                None => default_value
+            }
+        },
+        None => default_value
+    }
+}
+
 pub fn get_option_as_int(options: &serde_json::Map<String, serde_json::Value>, key: &str, default_value: i64) -> i64 {
     match options.get(key) {
         Some(val) => {

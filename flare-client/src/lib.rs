@@ -15,6 +15,11 @@ extern crate websocket;
 extern crate timer;
 extern crate flare_utils;
 extern crate inferno;
+// Strum contains all the trait definitions
+extern crate strum;
+#[macro_use]
+extern crate strum_macros;
+
 
 //re-export
 pub use client::*;

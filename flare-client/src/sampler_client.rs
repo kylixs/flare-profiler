@@ -26,6 +26,7 @@ use flare_utils::file_utils::open_file;
 use call_tree::*;
 use std::ops::{Index, Deref, DerefMut};
 use flare_utils::stopwatch::*;
+use std::str::FromStr;
 
 
 type JavaLong = i64;
@@ -83,6 +84,19 @@ pub struct SampleInfo {
 pub struct SummaryInfo {
     sample_info: SampleInfo,
     threads: Vec<ThreadData>
+}
+
+// 统计方式
+#[derive(Eq, PartialEq, Debug, EnumString)]
+pub enum StatsType {
+    #[strum(serialize="duration")]
+    DURATION,
+
+    #[strum(serialize="cpu_time")]
+    CPU_TIME,
+
+    #[strum(serialize="samples")]
+    SAMPLES,
 }
 
 pub struct SamplerClient {
@@ -543,7 +557,7 @@ impl SamplerClient {
         })
     }
 
-    pub fn get_collapsed_call_stacks(&mut self, thread_id: i64, start_time: i64, end_time: i64) -> io::Result<Vec<String>> {
+    pub fn get_collapsed_call_stacks(&mut self, thread_id: i64, start_time: i64, end_time: i64, stats_type: StatsType) -> io::Result<Vec<String>> {
         let mut start_step = 0;
         let mut end_step = 0;
         let mut sw = Stopwatch::start_new();
@@ -564,7 +578,7 @@ impl SamplerClient {
                 //parse stack data
                 if let Ok(mut thread_data) = serde_json::from_slice::<ThreadData>(bytes.as_slice()) {
                     if last_sample_time != 0 {
-                        thread_data.duration = thread_data.sample_time - last_sample_time;
+                        thread_data.self_duration = thread_data.sample_time - last_sample_time;
                     }
                     last_sample_time = thread_data.sample_time;
                     thread_data_vec.push(thread_data);
@@ -588,10 +602,14 @@ impl SamplerClient {
                     collapsed_stack += &method.to_string();
                 }
             }
-            //duration micros
-            let duration = thread_data.duration;
+            //get stats value
+            let stats_value = match stats_type {
+                StatsType::DURATION => thread_data.self_duration,
+                StatsType::CPU_TIME => thread_data.self_cpu_time,
+                StatsType::SAMPLES => 1,
+            };
             collapsed_stack += " ";
-            collapsed_stack += &duration.to_string();
+            collapsed_stack += &stats_value.to_string();
             collapsed_stacks.push(collapsed_stack);
         }
 
