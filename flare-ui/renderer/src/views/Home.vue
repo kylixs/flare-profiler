@@ -1,13 +1,14 @@
 <template>
     <div class="home">
         <div class="el-header">
-            <el-tabs v-model="flareTabsValue" type="card" @tab-click="handleClick">
+            <el-tabs v-model="flareTabsValue" type="card" @tab-click="handleClick" @tab-remove="close_session">
                 <el-tab-pane
                         v-for="(item, index) in flareTabs"
                         :key="item.name"
                         :label="item.title"
                         :name="item.name"
                         :closable="item.closable"
+                        stretch="true"
                 >
                 </el-tab-pane>
             </el-tabs>
@@ -26,23 +27,13 @@
         },
         data() {
             return {
-                flareTabsValue: '1',
+                flareTabsValue: 'samples',
                 flareTabs: [{
                     title: 'samples',
-                    name: '1',
+                    name: 'samples',
                     router: '/samples',
                     closable: false
-                }/*, {
-                    title: 'Tab 2',
-                    name: '2',
-                    router: '/tab2',
-                    closable: true
-                }, {
-                    title: 'Tab 3',
-                    name: '3',
-                    router: '/tab3',
-                    closable: true
-                }*/],
+                }],
             }
         },
         computed: {
@@ -51,7 +42,13 @@
             },
             exampleInfo() {
                 return this.$store.state.exampleInfo;
-            }
+            },
+            sampleInfo() {
+                return this.$store.state.sampleInfo;
+            },
+            historySamples() {
+                return this.$store.state.historySamples;
+            },
         },
         methods: {
             handleClick(tab, event) {
@@ -61,12 +58,11 @@
                 });
             },
             setSessionOptions() {
-                debugger
                 let sessionList = this.sessionOptions;//this.exampleInfo.sample_sessions;
                 if (sessionList) {
                     this.flareTabs = [{
                         title: 'samples',
-                        name: '1',
+                        name: 'samples',
                         router: '/samples',
                         closable: false
                     }];
@@ -81,18 +77,38 @@
                     })
                 }
             },
-            setSessionThreads() {
+            /*setSessionThreads() {
                 let sessionThreadsList = this.exampleInfo.threads;
                 if (sessionThreadsList) {
                     this.$store.commit('session_threads', sessionThreadsList);
                 }
-            }
+            },*/
+            close_session(sessionId) {
+                var request = {
+                    "cmd": "close_session",
+                    "options": {
+                        "session_id": sessionId
+                    }
+                };
+                this.flareTabs = this.flareTabs.filter((item => {
+                    if (item.name != sessionId) {
+                        return item;
+                    }
+                }))
+                this.$webSocket.webSocketSendMessage(JSON.stringify(request));
+                this.flareTabsValue = 'samples';
+                //if (this.flareTabs.length == 1) {
+                    this.$router.push({
+                        path:'/samples'
+                    });
+                //}
+            },
         },
         watch:{
             sessionOptions() {
                 this.flareTabs = [{
                     title: 'samples',
-                    name: '1',
+                    name: 'samples',
                     router: '/samples',
                     closable: false
                 }];
@@ -105,12 +121,6 @@
                     }
                     this.flareTabs.push(info);
                 })
-            },
-            exampleInfo() {
-                // sessionId list
-                //this.setSessionOptions();
-                // session threads List
-                //this.setSessionThreads();
             },
 
         }

@@ -22,23 +22,23 @@
         name: 'session',
         data() {
             return {
-                flareTabsValue: '1',
+                flareTabsValue: 'dashboard',
                 flareTabs: [
                     {
                         title: 'dashboard',
-                        name: '1',
+                        name: 'dashboard',
                         router: '/dashboard',
                         closable: true
                     },
                     {
                         title: 'cpu',
-                        name: '2',
+                        name: 'cpu',
                         router: '/cpu',
                         closable: false
                     },
                     {
                         title: 'call',
-                        name: '3',
+                        name: 'call',
                         router: '/call',
                         closable: true
                     },
@@ -51,31 +51,62 @@
             },
             exampleInfo() {
                 return this.$store.state.exampleInfo;
-            }
+            },
+            sessionTabsValue() {
+                return this.$store.state.sessionTabsValue;
+            },
+        },
+        created() {
+            this.initSessionTabs();
         },
         methods: {
             handleClick(tab, event) {
                 let curTab = this.flareTabs[tab.index];
-                //debugger
+
+                let tabsValueArray = this.sessionTabsValue.filter(item => {
+                    if (item.sessionId != this.sessionInfo) {
+                        return item
+                    }
+                });
+                let tabsInfo = {sessionId: this.sessionInfo, tabsValue: curTab.name}
+                tabsValueArray.push(tabsInfo);
+                this.$store.commit('session_tabs_value', tabsValueArray);
+
                 let router = this.sessionInfo + curTab.router;
                 this.$router.push({
                     path:`/${router}`
                 });
                 console.log(router)
-                //this.$router.push({path: router, query: {t: new Date().getTime()}});
             },
-            getThreads(){
-
+            initSessionTabs(){
+                if (this.sessionTabsValue.length > 0) {
+                    let tabsValueList = this.sessionTabsValue.filter(item => {
+                        if (item.sessionId == this.sessionInfo) {
+                            return item
+                        }
+                    });
+                    if (tabsValueList.length > 0) {
+                        this.flareTabsValue = tabsValueList[0].tabsValue
+                    }
+                } else {
+                    this.flareTabsValue = 'dashboard';
+                }
+                let router = this.sessionInfo + '/' + this.flareTabsValue;
+                this.$router.push({
+                    path:`/${router}`
+                });
             },
         },
         watch:{
             '$route': function (to, from) {
-                // this.flareTabsValue = 1;
-                // this.$router.push({
-                //     name: to.fullPath,
-                //     query: {t: new Date().getMilliseconds()}       //   params: {toseId: toseId}
-                // })
-            }
+                if (!this.sessionInfo) {
+                    this.$router.push('/samples')
+                }
+                this.initSessionTabs();
+            },
+            sessionTabsValue() {
+                this.initSessionTabs();
+            },
         }
     }
 </script>

@@ -28,18 +28,7 @@
         name: 'dashboard',
         data() {
             return {
-                threads: [
-                    {
-                        id:'',
-                        name:'',
-                        group:'',
-                        priority:'',
-                        state:'',
-                        cpu_util:'',
-                        cpu_time:'',
-                        daemon:'',
-                    }
-                ],
+                threads: [{}],
             }
         },
         computed: {
@@ -51,14 +40,31 @@
             },
             sessionId() {
                 return this.$route.params.sessionInfo;
-            }
+            },
+            historySamples() {
+                return this.$store.state.historySamples;
+            },
         },
         created() {
             this.getThreads();
         },
         methods: {
             getThreads(){
-                this.threads = this.sessionThreads.get(this.sessionId);
+                if (this.sessionId && this.sessionThreads.length > 0) {
+                    let threadsInfo = this.sessionThreads.filter(item => {
+                        if (item.sessionId == this.sessionId) {
+                            return item;
+                        }
+                    });
+                    if (threadsInfo.length > 0) {
+                        this.threads = threadsInfo[0].threads;
+                    }
+                }
+                if (this.historySamples.length <= 0) {
+                    this.$router.push({
+                        path:'/samples'
+                    });
+                }
             },
         },
         filters: {
@@ -66,6 +72,11 @@
                 return (value/1000000000).toFixed(2);
             }
         },
+        watch: {
+            '$route': (to, from) => {
+
+            }
+        }
     }
 </script>
 

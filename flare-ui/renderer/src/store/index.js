@@ -7,9 +7,12 @@ let state = {
     sampleInfo: {}, // 信息
     sessionOptions: [],// session数组
     exampleInfo: {}, // 实例对象
-    sessionThreads: new Map(),// session thread   key: sessionId  value: threads
-    sessionCpuTimes: new Map(), // session cpu  key: sessionId  value: cpuTime
-    sessionFlameGraph: {}, // flame_graph_data
+    sessionThreads: [],// session thread
+    sessionCpuTimes: [], // session cpu times
+    sessionFlameGraph: [], // flame_graph_data
+    historySamples: [], // history
+    sessionTabsValue: [], // session组件 tagb默认值
+    selectCpuRow: [], // cpu列表选中行
 }
 
 let mutations = {
@@ -30,6 +33,15 @@ let mutations = {
     },
     session_flame_graph: (state, data) => {
         state.sessionFlameGraph = data;
+    },
+    history_samples: (state, data) => {
+        state.historySamples = data;
+    },
+    session_tabs_value: (state, data) => {
+        state.sessionTabsValue = data;
+    },
+    select_cpu_row: (state, data) => {
+        state.selectCpuRow = data;
     }
 }
 
