@@ -655,7 +655,7 @@ impl SamplerClient {
     pub fn build_ordinal_tree(&mut self, thread_data_vec: &Vec<ThreadData>) -> io::Result<Box<tree::TreeNode>> {
         let mut root = Box::new(tree::TreeNode::new(0, "root"));
         for thread_data in thread_data_vec {
-            let mut node = &root;
+            let mut node = &mut root;
             for method in thread_data.stacktrace.iter().rev() {
                 let tmp;
                 let method_name = if let Some(method_info) = self.get_method_info(*method) {
@@ -664,7 +664,24 @@ impl SamplerClient {
                     tmp = method.to_string();
                     &tmp
                 };
-                node = tree::TreeNode::merge_or_create_last_child(node, method_name, thread_data.self_duration, thread_data.self_cpu_time, 1)
+                node.duration += thread_data.self_duration;
+                node.cpu += thread_data.self_cpu_time;
+                node.calls += 1;
+                //merge_last_child fn return bool instead of node reference for avoiding second borrow mutable node
+                if node.merge_last_child(method_name, thread_data.self_duration, thread_data.self_cpu_time, 1) {
+                    //merge success, next is just last child
+                    node = node.last_child().unwrap();
+                } else {
+                    node = node.append_child(tree::TreeNode{
+                        parent: None,
+                        children: vec![],
+                        id: 0,
+                        label: method_name.to_string(),
+                        calls: 1,
+                        cpu: thread_data.self_cpu_time,
+                        duration: thread_data.self_duration
+                    })
+                }
             }
         }
         Ok(root)

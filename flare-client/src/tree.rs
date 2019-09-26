@@ -30,34 +30,28 @@ impl TreeNode {
         }
     }
 
-    pub fn append_child<'a>(&'a mut self, childNode: TreeNode) -> &'a Box<TreeNode> {
+    pub fn append_child<'a>(&'a mut self, childNode: TreeNode) -> &'a mut Box<TreeNode> {
 //        self.cost += childNode.cost;
         let node = Box::new(childNode);
         self.children.push(node);
-        self.children.last().as_mut().unwrap()
+        self.children.last_mut().unwrap()
     }
 
-    pub fn last_child(&self) -> Option<&Box<TreeNode>> {
-        self.children.last()
+    pub fn last_child(&mut self) -> Option<&mut Box<TreeNode>> {
+        self.children.last_mut()
     }
 
-    pub fn merge_or_create_last_child<'a>(node: &'a mut Box<TreeNode>, method_name: &str, self_duration: i64, self_cpu_time: i64, samples: i64) -> &'a mut Box<TreeNode> {
-        let mut last_node = node.children.last();
-        if last_node.is_none() {
-            last_node = Some(node.append_child(TreeNode{
-                parent: None,
-                children: vec![],
-                id: 0,
-                label: method_name.to_string(),
-                calls: 0,
-                cpu: 0,
-                duration: 0
-            }));
+    pub fn merge_last_child(&mut self, method_name: &str, self_duration: i64, self_cpu_time: i64, samples: i64) -> bool {
+        let mut last_node = self.last_child();
+        if last_node.is_some() {
+            let last_node = last_node.unwrap();
+            if last_node.label == method_name {
+                last_node.duration += self_duration;
+                last_node.cpu += self_cpu_time;
+                last_node.calls += samples;
+                return true;
+            }
         }
-        let mut last_node = last_node.unwrap();
-        last_node.duration += self_duration;
-        last_node.cpu += self_cpu_time;
-        last_node.calls += samples;
-        last_node
+        return false;
     }
 }
