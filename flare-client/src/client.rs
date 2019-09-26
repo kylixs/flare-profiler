@@ -21,6 +21,7 @@ use inferno::flamegraph::*;
 use inferno::flamegraph;
 use std::str::FromStr;
 use inferno::flamegraph::color::BackgroundColor;
+use tree;
 
 type JsonValue = serde_json::Value;
 
@@ -174,6 +175,8 @@ impl Profiler {
             //colors: Palette::from_str("java").unwrap(),
             //bgcolors: Some(BackgroundColor::from_str("blue").unwrap()),
             //hash: true,
+            //top-down flame graph
+            direction: Direction::Inverted,
             no_sort: false,
             image_width: Some(image_width),
             count_name: count_name.to_string(),
@@ -191,6 +194,12 @@ impl Profiler {
             Ok(svg) => Ok(svg.to_string()),
             Err(e) => Err(new_error(ErrorKind::Other, &format!("flame graph to string failed: {}", e)))
         }
+    }
+
+    pub fn create_d3_flame_graph_stacks(&mut self, session_id: &str, thread_id: i64, start_time: i64, end_time: i64, stats_type_str: &str) -> io::Result<Box<tree::TreeNode>> {
+        let client = self.get_sample_client(session_id)?;
+        let result = client.lock().unwrap().get_d3_flame_graph_stacks(thread_id, start_time, end_time);
+        result
     }
 
     pub fn get_sample_info(&mut self, session_id: &str) -> io::Result<SampleInfo> {
@@ -319,6 +328,9 @@ impl Profiler {
             }
             "flame_graph" => {
                 self.handle_flame_graph_request(sender, cmd, options)?;
+            }
+            "d3_flame_graph" => {
+                self.handle_d3_flame_graph_request(sender, cmd, options)?;
             }
             _ => {
                 println!("unknown cmd: {}, request: {}", cmd, json_str);
@@ -477,6 +489,34 @@ impl Profiler {
         let message = wrap_response(&cmd, &result);
         sender.send_message(&message);
         println!("handle_flame_graph_request total cost: {}ms", sw.elapsed_ms());
+
+        Ok(())
+    }
+
+    fn handle_d3_flame_graph_request(&mut self, sender: &mut Writer<std::net::TcpStream>, cmd: &str, options: &serde_json::Map<String, serde_json::Value>) -> io::Result<()> {
+        let session_id = get_option_as_str_required(options, "session_id")?;
+        let thread_id = get_option_as_int(options, "thread_id", -1);
+        let start_time = get_option_as_int(options, "start_time", -1);
+        let end_time = get_option_as_int(options, "end_time", -1);
+        let stats_type = get_option_as_str(options, "stats_type", "duration");
+        let mut sw = Stopwatch::start_new();
+
+        if thread_id <= 0 {
+            return Err(new_invalid_input_error("missing or invalid option 'thread_id'"));
+        }
+
+        let stacks = self.create_d3_flame_graph_stacks(session_id, thread_id, start_time, end_time, stats_type)?;
+        let result = json!({
+                "session_id": session_id,
+                "thread_id": thread_id,
+                "start_time": start_time,
+                "end_time": end_time,
+                "stats_type": stats_type,
+                "d3_flame_graph_stacks": stacks
+            });
+        let message = wrap_response(&cmd, &result);
+        sender.send_message(&message);
+        println!("handle_d3_flame_graph_request total cost: {}ms", sw.elapsed_ms());
 
         Ok(())
     }

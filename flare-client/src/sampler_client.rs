@@ -27,6 +27,7 @@ use call_tree::*;
 use std::ops::{Index, Deref, DerefMut};
 use flare_utils::stopwatch::*;
 use std::str::FromStr;
+use tree;
 
 
 type JavaLong = i64;
@@ -614,6 +615,59 @@ impl SamplerClient {
         }
 
         Ok(collapsed_stacks)
+    }
+
+    pub fn get_d3_flame_graph_stacks(&mut self, thread_id: i64, start_time: i64, end_time: i64) -> io::Result<Box<tree::TreeNode>> {
+        let mut start_step = 0;
+        let mut end_step = 0;
+        let mut sw = Stopwatch::start_new();
+        sw.start();
+        if let Some(ts_file) = self.sample_cpu_ts_map.get(&thread_id).unwrap_or(&None) {
+            start_step = ts_file.time_to_step(start_time);
+            end_step = ts_file.time_to_step(end_time);
+        } else {
+            return Err(new_error(ErrorKind::NotFound, "thread cpu time file not found"));
+        }
+        println!("thread: {}, convert time to step cost:{}, steps:{}", thread_id, sw.lap(), end_step - start_step);
+
+        //TODO 可能单次读取的数据比较多，导致内存消耗太大
+        let mut thread_data_vec = vec![];
+        let mut last_sample_time = 0;
+        self.sample_stacktrace_map.get_mut(&thread_id).unwrap_or(&mut None).as_mut().map(|idx_file| {
+            idx_file.get_range_value(&TupleValue::uint32(start_step), &TupleValue::uint32(end_step), |bytes| {
+                //parse stack data
+                if let Ok(mut thread_data) = serde_json::from_slice::<ThreadData>(bytes.as_slice()) {
+                    if last_sample_time != 0 {
+                        thread_data.self_duration = thread_data.sample_time - last_sample_time;
+                    }
+                    last_sample_time = thread_data.sample_time;
+                    thread_data_vec.push(thread_data);
+                }
+            });
+        });
+        println!("thread: {}, load stacktrace cost:{}, count:{}", thread_id, sw.lap(), thread_data_vec.len());
+
+        self.build_ordinal_tree(&thread_data_vec)
+    }
+
+    //火焰图的顺序树
+    //每一层与最后一个节点相同时进行合并，不同时append新节点
+    pub fn build_ordinal_tree(&mut self, thread_data_vec: &Vec<ThreadData>) -> io::Result<Box<tree::TreeNode>> {
+        let mut root = Box::new(tree::TreeNode::new(0, "root"));
+        for thread_data in thread_data_vec {
+            let mut node = &root;
+            for method in thread_data.stacktrace.iter().rev() {
+                let tmp;
+                let method_name = if let Some(method_info) = self.get_method_info(*method) {
+                    &method_info.full_name
+                }else {
+                    tmp = method.to_string();
+                    &tmp
+                };
+                node = tree::TreeNode::merge_or_create_last_child(node, method_name, thread_data.self_duration, thread_data.self_cpu_time, 1)
+            }
+        }
+        Ok(root)
     }
 
     pub fn get_call_tree(&mut self, thread_ids: &[i64], start_time: i64, end_time: i64) -> io::Result<CallStackTree> {
