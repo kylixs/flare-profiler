@@ -14,15 +14,15 @@
             <el-button @click="stop_auto_refresh">Stop Refresh</el-button>
             <el-button @click="close_session">Close</el-button>
 
-            <div v-show="show_history_samples">
+            <div style="margin-top: 10px">
                 <p>History samples:</p>
                 <ul class="list-content">
-                    <li class="list-item" v-for="sample in data.history_samples"
-                        @click='open_sample(sample.path)'>[{{sample.type}}]{{sample.path}}
+                    <li class="list-item" v-for="sample in history_samples_list">
+                        <el-link :underline="false" @click='open_sample(sample.path)'>[{{sample.type}}]{{sample.path}}</el-link>
                     </li>
                 </ul>
             </div>
-            <div class="list-div" v-show="show_sessions">
+            <!--<div class="list-div" style="margin-top: 10px">
                 <p>Sample sessions:</p>
                 <ul class="list-content">
                     <li class="list-item" v-for="session in data.sample_sessions"
@@ -30,11 +30,11 @@
                         [{{session.type}}]{{session.session_id}}
                     </li>
                 </ul>
-            </div>
+            </div>-->
         </div>
 
-        <div class="message" v-show="show_message">
-            <!--				<p>操作指令：{{profiler.data.cmd}}</p>-->
+        <!--<div class="message" v-show="show_message">
+            &lt;!&ndash;				<p>操作指令：{{profiler.data.cmd}}</p>&ndash;&gt;
             <p>错误信息：{{data.message}}</p>
         </div>
         <div style="margin-top: 10px">
@@ -43,7 +43,7 @@
             <p>Record Start Time: {{data.sample_info.record_start_time}}</p>
             <p>Last Record Time: {{data.sample_info.last_record_time}}</p>
             <p>Record Duration: {{(data.sample_info.last_record_time - data.sample_info.record_start_time)/1000}}s</p>
-        </div>
+        </div>-->
     </div>
 </template>
 
@@ -102,11 +102,29 @@
             },
             sessionCpuTimes() {
                 return this.$store.state.sessionCpuTimes;
-            }
+            },
+            sessionFlameGraph() {
+                return this.$store.state.sessionFlameGraph;
+            },
+            sampleInfo() {
+                return this.$store.state.sampleInfo;
+            },
+            exampleInfo() {
+                return this.$store.state.exampleInfo;
+            },
+            historySamples() {
+                return this.$store.state.historySamples;
+            },
         },
         created() {
+            this.getHistorySamples();
         },
         methods: {
+            getHistorySamples() {
+                if (this.historySamples) {
+                    this.history_samples_list = this.historySamples;
+                }
+            },
             /*websocket*/
             webSocketOnOpen(){
                 console.log("websocket建立连接");
@@ -127,13 +145,20 @@
                     this.stop_auto_refresh();
                 }
 
+                let sessionId = json.data.session_id
                 this.$store.commit('example_info', json.data);
                 switch (json.cmd) {
                     case "dashboard":
                         if (json.data.threads) {
-                            let threadsMap = this.sessionThreads;
-                            threadsMap.set(json.data.sample_info.sample_data_dir, json.data.threads);
-                            this.$store.commit('session_threads', threadsMap);
+                            let threadsArray = this.sessionThreads.filter(item => {
+                                if (item.sessionId != json.data.sample_info.sample_data_dir) {
+                                    return item;
+                                }
+                            });
+
+                            let threadsInfo = {sessionId: json.data.sample_info.sample_data_dir, threads: json.data.threads};
+                            threadsArray.push(threadsInfo);
+                            this.$store.commit('session_threads', threadsArray);
                         }
                         this.$store.commit('sample_info', json.data.sample_info);
                         break;
@@ -144,49 +169,54 @@
                         this.start_auto_refresh();
                         break;
                     case "history_samples":
+                        console.log('json.data.history_samples', json.data.history_samples)
+                        if (json.data.history_samples) {
+                            this.$store.commit('history_samples', json.data.history_samples);
+                        }
                         this.show_history_samples = true;
                         break;
                     case "list_sessions":
                         // session tag
-                        this.$store.commit('session_options', json.data.sample_sessions)
+                        if (json.data.sample_sessions) {
+                            this.$store.commit('session_options', json.data.sample_sessions)
+                        }
                         this.show_sessions = true;
                         break;
                     case "cpu_time":
-                        //debugger
-                        let sessionId = json.data.session_id
-                        let cpuTimeMap = this.sessionCpuTimes;
-                        let cpuTimeList = [];
-                        if (cpuTimeMap.has(sessionId)) {
-                            let cpuTimeList1 = cpuTimeMap.get(sessionId);
+                        let sessionCpuTimeArray = [];
+                        let cpuTimeArray = this.sessionCpuTimes.filter(item => {
+                            if (item.sessionId != sessionId) {
+                                return item;
+                            } else {
+                                item.cpuTimeData.forEach(item1 => {
+                                    if (!sessionCpuTimeArray.includes(item1.id)) {
+                                        sessionCpuTimeArray.push(item1);
+                                    }
+                                })
+                            }
+                        });
+                        json.data.thread_cpu_times.forEach(item => {
+                            if (!sessionCpuTimeArray.includes(item.id)) {
+                                sessionCpuTimeArray.push(item);
+                            }
+                        })
 
-                            cpuTimeList = [...cpuTimeList1]
-                            // cpuTimeList1.forEach(item => {
-                            //     cpuTimeList.push(item);
-                            // })
+                        let cpuTimeInfo = {sessionId: sessionId, cpuTimeData: sessionCpuTimeArray};
+                        cpuTimeArray.push(cpuTimeInfo);
 
-                            json.data.thread_cpu_times.forEach(item1 => {
-                                console.log('!cpuTimeList.includes(item1.id)', !cpuTimeList.includes(item1.id))
-                                if (!cpuTimeList.includes(item1.id)) {
-                                    cpuTimeList.push(item1);
-                                }
-                                console.log('cpuTimeList', cpuTimeList);
-                            })
-                        } else {
-                            json.data.thread_cpu_times.forEach(item1 => {
-                                cpuTimeList.push(item1);
-                            })
-                        }
-
-                        cpuTimeMap.set(sessionId, cpuTimeList);
-                        this.$store.commit('session_cpu_times', cpuTimeMap);
+                        this.$store.commit('session_cpu_times', cpuTimeArray);
                         break;
                     case "call_tree":
                         break;
                     case "flame_graph":
-                        console.log('接收到flame_graph消息，内容：', json.data)
                         if (json.data.flame_graph_data) {
-                            this.$store.commit('session_flame_graph', json.data)
-                            console.log('json.data.flame_graph_data', json.data.flame_graph_data)
+                            let flameGraphList = this.sessionFlameGraph.filter(item => {
+                                if (item.session_id != sessionId) {
+                                    return item;
+                                }
+                            });
+                            flameGraphList.push(json.data);
+                            this.$store.commit('session_flame_graph', flameGraphList)
                         }
                         //profiler.data.flame_graph_svg="data:image/svg+xml;utf8,"+json.data.flame_graph_data.replace(/<\?xml.*?\>.*\<!DOCTYPE.*\<svg/, "<svg");
                         break;
@@ -216,10 +246,16 @@
                 var request = {
                     "cmd": "close_session",
                     "options": {
-                        "session_id": this.data.session_id
+                        "session_id": this.sampleInfo.sample_data_dir
                     }
                 };
                 this.$webSocket.webSocketSendMessage(JSON.stringify(request));
+                let sessionOption = this.sessionOptions.filter((item => {
+                    if (item.session_id != this.sampleInfo.sample_data_dir) {
+                        return item;
+                    }
+                }))
+                this.$store.commit('session_options', sessionOption);
             },
             clear_session: function () {
                 this.stop_auto_refresh();
@@ -313,6 +349,7 @@
                     }
                 };
                 this.$webSocket.webSocketSendMessage(JSON.stringify(request));
+                this.list_sessions()
             },
             active_session:function (session_id, type) {
                 this.clear_session();
@@ -320,6 +357,11 @@
                 this.data.type = type;
                 this.start_auto_refresh();
             },
+        },
+        watch: {
+            historySamples() {
+                this.history_samples_list = this.historySamples;
+            }
         }
     }
 </script>
