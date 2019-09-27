@@ -1,27 +1,52 @@
+//! Frames for flame graph generation.
+
 use std::collections::HashMap;
 use std::io;
 use std::iter;
 
 use log::warn;
 
+/// Frame location
 #[derive(Debug, PartialEq, Eq, Hash)]
-pub(super) struct Frame<'a> {
-    pub(super) function: &'a str,
-    pub(super) depth: usize,
+pub struct Frame<'a> {
+    /// method name
+    pub function: &'a str,
+    /// call depth
+    pub depth: usize,
 }
 
+///TimedFrame
 #[derive(Debug, PartialEq)]
-pub(super) struct TimedFrame<'a> {
-    pub(super) location: Frame<'a>,
-    pub(super) start_time: usize,
-    pub(super) end_time: usize,
-    pub(super) delta: Option<isize>,
+pub struct TimedFrame<'a> {
+    /// Frame location
+    pub location: Frame<'a>,
+    /// relative start time
+    pub start_time: usize,
+    /// end time
+    pub end_time: usize,
+    /// delta time
+    pub delta: Option<isize>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub(super) struct FrameTime {
     pub(super) start_time: usize,
     pub(super) delta: Option<isize>,
+}
+
+impl <'a> TimedFrame<'a> {
+    /// new TimedFrame
+    pub fn new(function: &'a str, depth: usize, start_time: usize, end_time: usize, delta: Option<isize>) -> TimedFrame {
+        TimedFrame {
+        location: Frame {
+            function,
+            depth
+        },
+        start_time,
+        end_time,
+        delta
+        }
+    }
 }
 
 fn flow<'a, LI, TI>(

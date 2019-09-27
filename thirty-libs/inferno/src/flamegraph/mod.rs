@@ -8,7 +8,7 @@ macro_rules! args {
 mod attrs;
 
 pub mod color;
-mod merge;
+pub mod merge;
 mod rand;
 mod svg;
 
@@ -34,6 +34,7 @@ pub use self::attrs::FuncFrameAttrsMap;
 pub use self::color::Palette;
 use self::color::{Color, SearchColor};
 use self::svg::{Dimension, StyleOptions};
+use crate::flamegraph::merge::TimedFrame;
 
 const XPAD: usize = 10; // pad left and right
 const FRAMEPAD: usize = 1; // vertical padding for frames
@@ -376,6 +377,28 @@ where
         warn!("Ignored {} lines with invalid format", ignored);
     }
 
+    from_frames(opt, writer, &mut frames, time, delta_max)
+}
+
+/// Produce a flame graph from an iterator over frames.
+///
+/// This function expects each folded stack to contain the following whitespace-separated fields:
+///
+///  - A semicolon-separated list of frame names (e.g., `main;foo;bar;baz`).
+///  - A sample count for the given stack.
+///  - An optional second sample count.
+///
+/// If two sample counts are provided, a [differential flame graph] is produced. In this mode, the
+/// flame graph uses the difference between the two sample counts to show how the sample counts for
+/// each stack has changed between the first and second profiling.
+///
+/// The resulting flame graph will be written out to `writer` in SVG format.
+///
+/// [differential flame graph]: http://www.brendangregg.com/blog/2014-11-09/differential-flame-graphs.html
+#[allow(clippy::cognitive_complexity)]
+pub fn from_frames<W>(opt: &mut Options, writer: W, frames: &mut Vec<TimedFrame>, time: usize, delta_max: usize) -> quick_xml::Result<()>
+    where W: Write
+{
     let mut buffer = StrStack::new();
 
     // let's start writing the svg!
