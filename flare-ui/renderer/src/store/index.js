@@ -4,7 +4,8 @@ import Vuex from 'vuex'
 Vue.use(Vuex)
 
 let state = {
-    sampleInfo: {}, // 信息
+    sampleInfo: {},
+    sessionSampleInfo: [], // 信息
     sessionOptions: [],// session数组
     exampleInfo: {}, // 实例对象
     sessionThreads: [],// session thread
@@ -13,9 +14,14 @@ let state = {
     historySamples: [], // history
     sessionTabsValue: [], // session组件 tagb默认值
     selectCpuRow: [], // cpu列表选中行
+    echartsDataZoomPosition: [], // echarts 组件 默认显示位置
+    sessionCallTabs: [], // session 下 call tab
 }
 
 let mutations = {
+    session_sample_info: (state, data) => {
+        state.sessionSampleInfo = data;
+    },
     sample_info: (state, data) => {
         state.sampleInfo = data;
     },
@@ -42,7 +48,13 @@ let mutations = {
     },
     select_cpu_row: (state, data) => {
         state.selectCpuRow = data;
-    }
+    },
+    echarts_dataZoom_position: (state, data) => {
+        state.echartsDataZoomPosition = data;
+    },
+    session_call_tabs: (state, data) => {
+        state.sessionCallTabs = data;
+}
 }
 
 let actions = {
