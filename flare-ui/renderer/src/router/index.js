@@ -27,20 +27,22 @@ const router = new Router({
                     path: 'cpu',
                     name: 'cpu',
                     component: () => import('@/views/components/cpu.vue'),
+                    // meat: {keepAlive:true}
                 },
                 {
-                    path: 'call',
+                    path: 'call/:call',
                     name: 'call',
                     component: () => import('@/views/components/call.vue'),
+                    // meat: {keepAlive:false}
                 },
                 {
                     path: 'dashboard',
                     name: 'dashboard',
                     component: () => import('@/views/components/dashboard.vue'),
+                    // meat: {keepAlive:false}
                 },
             ]
         },
-
     ],
     scrollBehavior(to, from, savedPosition) {
         if (savedPosition) {
@@ -50,7 +52,7 @@ const router = new Router({
         }
     },
 });
-
+console.log('routes', router.options)
 router.beforeEach((to, from, next) => {
     /*权限判断*/
     if (to.matched.some(res => res.meta.requireAuth)) {// 判断是否需要登录权限

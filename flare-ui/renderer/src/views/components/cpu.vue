@@ -34,6 +34,9 @@
             sampleInfo() {
                 return this.$store.state.sampleInfo;
             },
+            sessionSampleInfo() {
+                return this.$store.state.sessionSampleInfo;
+            },
             exampleInfo() {
                 return this.$store.state.exampleInfo;
             },
@@ -55,6 +58,9 @@
             selectCpuRow() {
                 return this.$store.state.selectCpuRow;
             },
+            sessionCallTabs() {
+                return this.$store.state.sessionCallTabs;
+            },
         },
         mounted(){
             this.$nextTick(()=>{
@@ -66,29 +72,60 @@
         },
         methods: {
             selectCurRow(row, column, event){
-                console.log('row', row);
-                console.log('column', column)
-                console.log('event', event)
 
                 let tabsValueArray = this.sessionTabsValue.filter(item => {
                     if (item.sessionId != this.sessionId) {
                         return item
                     }
                 });
-                let tabsInfo = {sessionId: this.sessionId, tabsValue: 'call'}
+                let tabsInfo = {sessionId: this.sessionId, tabsValue: row.id + ''}
                 tabsValueArray.push(tabsInfo);
                 this.$store.commit('session_tabs_value', tabsValueArray);
 
-                let cpuRowArray = this.selectCpuRow.filter(item => {
+                let cpuRowList = [];
+                let sessionCpuRowArray = this.selectCpuRow.filter(item => {
                     if (item.sessionId != this.sessionId) {
                         return item;
+                    } else {
+                        //cpuRowList.push(item);
+                        item.selectRow.forEach(item1 => {
+                            if (item1.threadName != row.id) {
+                                cpuRowList.push(item1)
+                            }
+                        })
                     }
                 });
-                let selectRowInfo = {sessionId: this.sessionId, selectRow: row};
-                cpuRowArray.push(selectRowInfo);
-                this.$store.commit('select_cpu_row', cpuRowArray);
 
-                this.$router.push({path: '/' + this.sessionId + '/call'})
+                cpuRowList.push({threadName: row.id, threadInfo: row});
+
+                let selectRowInfo = {sessionId: this.sessionId, selectRow: cpuRowList};
+                sessionCpuRowArray.push(selectRowInfo);
+                this.$store.commit('select_cpu_row', sessionCpuRowArray);
+
+                let callTabs = [];
+
+                let callTab = {
+                    title: row.name,
+                    name: row.id + '',
+                    router: '/call/' + row.id,
+                    closable: true
+                };
+                let callTabsArray = this.sessionCallTabs.filter(item => {
+                    if (item.sessionId != this.sessionId) {
+                        return item;
+                    } else {
+                        item.callTabs.forEach((item2) => {
+                            if (item2.name != row.id) {
+                                callTabs.push(item2);
+                            }
+                        })
+                    }
+                });
+
+                callTabs.push(callTab)
+                let sessionCalls = {sessionId: this.sessionId, callTabs: callTabs};
+                callTabsArray.push(sessionCalls)
+                this.$store.commit('session_call_tabs', callTabsArray);
             },
             select_thread(thread_id) {
                 this.selected_thread_id = thread_id;
@@ -111,48 +148,41 @@
                 }
             },
             on_cpu_time_result(){
-
                 let cpuTimeArray = this.sessionCpuTimes.filter(item => {
                     if (item.sessionId == this.sessionId) {
                         return item;
                     }
                 })
+                if (cpuTimeArray.length <= 0) {
+                    return false;
+                }
+                console.log('当前cpu time：', cpuTimeArray);
                 let data = cpuTimeArray[0].cpuTimeData;
 
                 if (!data) {
                     return false;
                 }
-                var sess_start_time = this.sampleInfo.record_start_time;
-                var sess_end_time = this.sampleInfo.last_record_time;
-                var unit_time_ms = this.sampleInfo.unit_time_ms;
+
+                let sessionSampleInfoArray = this.sessionSampleInfo.filter(item => {
+                    if (item.sessionId == this.sessionId) {
+                        return item;
+                    }
+                });
+
+                let sessionSample = sessionSampleInfoArray[0].sessionSample
+
+                let sess_start_time = sessionSample.record_start_time;
+                let sess_end_time = sessionSample.last_record_time;
+                let unit_time_ms = sessionSample.unit_time_ms;
+
+                console.log('sess_start_time:',sess_start_time,'sess_end_time:',sess_end_time,'unit_time_ms:',unit_time_ms)
 
                 for (let i = 0; i < data.length; i++) {
                     let thread = data[i];
                     if (thread.total_cpu_time > 0) {
                         let ts_data = this.fill_ts_data(thread.ts_data, thread.start_time, thread.end_time, sess_start_time, sess_end_time, unit_time_ms);
-
                         let myChart = this.create_echarts_bar("thread_cpu_chart_"+thread.id, ts_data);
-                        /*myChart.on('datazoom', (evt) => {
-                            var axis = myChart.getModel().option.xAxis[0];
-                            // var starttime = axis.data[axis.rangeStart];
-                            // var endtime = axis.data[axis.rangeEnd];
-                            let start_time = sess_start_time + axis.rangeStart*unit_time_ms;
-                            let end_time = sess_start_time + axis.rangeEnd*unit_time_ms;
-                            console.log("datazoom: thread:",thread.id, ", index:", axis.rangeStart,"-", axis.rangeEnd,", time:", start_time,"-", end_time );
-                            this.update_call_stack_tree(thread.id, start_time, end_time);
-                        })*/
                     }
-                    //profiler.data.thread_cpu_time_map[thread.id] = thread;
-                }
-
-                //debugger
-                let cpuRowList = this.selectCpuRow.filter(item => {
-                    if (item.sessionId == this.sessionId) {
-                        return item;
-                    }
-                })
-                if (cpuRowList.length > 0) {
-                    this.$refs.cpuTable.setCurrentRow(cpuRowList[0].selectRow);
                 }
             },
             update_call_stack_tree(thread_id, start_time, end_time) {
@@ -250,9 +280,7 @@
         },
         watch: {
             '$route': (to, from) => {
-                this.on_cpu_time_result();
-                this.getThreads();
-                if (!this.sessionThreads) {
+                if (!this.sessionThreads || this.sessionThreads.length <= 0) {
                     this.$router.push('/samples')
                 }
             }

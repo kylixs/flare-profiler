@@ -1,6 +1,21 @@
 <template>
     <div class="session">
         <div id="flame_graph" v-show="show_flame_graph">
+            <!--<el-select v-model="selectValue" style="width: 100%">
+                <el-option
+                        v-for="item in threads"
+                        :key="item.name"
+                        :label="item.name"
+                        :value="item.name" style="width: 100%">
+                    <div style="width: 100%">
+                        <div style="float: left; width: 400px">
+                            {{ item.name }}
+                        </div>
+                        <div class="thread_bar" v-bind:id="'thread_select_cpu_chart_' + item.id+''"></div>
+                    </div>
+                </el-option>
+            </el-select>-->
+
             <el-table :data="selectCpuRowArray">
                 <el-table-column width="400">
                     <template slot-scope="scope">
@@ -14,7 +29,7 @@
                 </el-table-column>
             </el-table>
             <!--<h4 class="title">Flame Graph</h4>-->
-            <div id="flame_graph_svg" v-html="flame_graph_data"></div>
+            <div id="flame_graph_svg" style="margin-top: 20px;" v-html="flame_graph_data"></div>
         </div>
     </div>
 </template>
@@ -27,17 +42,28 @@
                 show_flame_graph: true,
                 flame_graph_data: "",
                 selectCpuRowArray:[],
+                dataZoomStart: 0,
+                dataZoomEnd: 10,
             }
         },
         computed: {
             sampleInfo() {
                 return this.$store.state.sampleInfo;
             },
+            sessionSampleInfo() {
+                return this.$store.state.sessionSampleInfo;
+            },
             exampleInfo() {
                 return this.$store.state.exampleInfo;
             },
             sessionId() {
                 return this.$route.params.sessionInfo;
+            },
+            callName() {
+                return this.$route.params.call;
+            },
+            sessionThreads() {
+                return this.$store.state.sessionThreads;
             },
             sessionCpuTimes() {
                 return this.$store.state.sessionCpuTimes;
@@ -54,27 +80,36 @@
             selectCpuRow() {
                 return this.$store.state.selectCpuRow;
             },
+            echartsDataZoomPosition() {
+                return this.$store.state.echartsDataZoomPosition;
+            },
         },
         mounted(){
             this.$nextTick(()=>{
                 this.on_cpu_time_result();
             })
         },
+        /*activated(){
+            this.getFlameGraphData();
+            this.$nextTick(()=>{
+                this.on_cpu_time_result();
+            })
+        },*/
         created() {
             this.getFlameGraphData();
         },
         methods: {
             getFlameGraphData(){
-                if (!this.sessionFlameGraph && this.sessionFlameGraph.length > 0) {
-                    let flareGrapList = this.sessionFlameGraph.filter(item => {
-                        if (item.session_id == this.sessionId) {
-                            return item;
-                        }
-                    })
-                    if (flareGrapList.length > 0) {
-                        this.flame_graph_data = flareGrapList[0].flame_graph_data;
+                let flareGrapList = this.sessionFlameGraph.filter(item => {
+                    if (item.sessionId == this.sessionId) {
+                        item.flameGraphList.filter(item1 => {
+                            if (item1.threadId == this.callName) {
+                                this.flame_graph_data = item1.flameGraphData.flame_graph_data;
+                            }
+                        })
                     }
-                }
+                })
+
                 if (this.historySamples.length <= 0) {
                     this.$router.push({
                         path:'/samples'
@@ -86,8 +121,14 @@
                         return item;
                     }
                 })
+
+                this.selectCpuRowArray = [];
                 cpuRowList.forEach(item => {
-                    this.selectCpuRowArray.push(item.selectRow)
+                    item.selectRow.forEach(item1 => {
+                        if (item1.threadName == this.callName) {
+                            this.selectCpuRowArray.push(item1.threadInfo)
+                        }
+                    })
                 })
             },
             on_cpu_time_result(){
@@ -104,9 +145,18 @@
                 if (!data) {
                     return false;
                 }
-                var sess_start_time = this.sampleInfo.record_start_time;
-                var sess_end_time = this.sampleInfo.last_record_time;
-                var unit_time_ms = this.sampleInfo.unit_time_ms;
+
+                let sessionSampleInfoArray = this.sessionSampleInfo.filter(item => {
+                    if (item.sessionId == this.sessionId) {
+                        return item;
+                    }
+                });
+
+                let sessionSample = sessionSampleInfoArray[0].sessionSample
+
+                var sess_start_time = sessionSample.record_start_time;
+                var sess_end_time = sessionSample.last_record_time;
+                var unit_time_ms = sessionSample.unit_time_ms;
 
                 let cpuInfo = data.filter(item => {
                     if (item.id == this.selectCpuRowArray[0].id) {
@@ -118,8 +168,34 @@
                 if (thread.total_cpu_time > 0) {
                     let ts_data = this.fill_ts_data(thread.ts_data, thread.start_time, thread.end_time, sess_start_time, sess_end_time, unit_time_ms);
 
-                    let myChart = this.create_echarts_bar("thread_select_cpu_chart_"+thread.id, ts_data);
+                    let myChart = this.create_echarts_bar("thread_select_cpu_chart_"+thread.id, ts_data, thread);
                     myChart.on('datazoom', (evt) => {
+                        console.log('evt start', evt.start, 'evt end', evt.end)
+
+                        let postitionArray = [];
+                        let dataZoomPositionArray = this.echartsDataZoomPosition.filter(item => {
+                            if (item.sessionId == this.sessionId) {
+                                return item;
+                            } else {
+                                postitionArray.push(item);
+                            }
+                        });
+
+                        let dataZoomPosition = [];
+                        dataZoomPositionArray.filter(item => {
+                            item.dataZoomPosition.forEach(item1 => {
+                                if (item1.threadName != this.callName) {
+                                    dataZoomPosition.push(item1);
+                                    //return item;
+                                }
+                            })
+                        });
+                        let curDataZoomPosition = {threadName: this.callName, dataZoomStart: evt.start, dataZoomEnd: evt.end};
+                        dataZoomPosition.push(curDataZoomPosition);
+                        postitionArray.push({sessionId: this.sessionId, dataZoomPosition:dataZoomPosition})
+                        console.log('postitionArray', postitionArray, 'thread', thread);
+                        this.$store.commit('echarts_dataZoom_position', postitionArray);
+
                         var axis = myChart.getModel().option.xAxis[0];
                         // var starttime = axis.data[axis.rangeStart];
                         // var endtime = axis.data[axis.rangeEnd];
@@ -142,7 +218,7 @@
                 };
                 this.$webSocket.webSocketSendMessage(JSON.stringify(request));
             },
-            create_echarts_bar(elemId, echartsData) {
+            create_echarts_bar(elemId, echartsData, thread) {
                 if (!echartsData) {
                     echartsData = [];
                     for (let i = 0; i < 3000; i++) {
@@ -150,11 +226,36 @@
                     }
                 }
 
+                if (!thread.hasOwnProperty('id') || thread.id == undefined || !('id' in thread)) {
+                    console.log("id为空，", thread)
+                    return false;
+                }
+
+                let dataZoomPositionArray = this.echartsDataZoomPosition.filter(item => {
+                    if (item.sessionId == this.sessionId) {
+                        return item;
+                    }
+                });
+
+                if (dataZoomPositionArray.length > 0) {
+                    let dataZoomPosition = {};
+                    dataZoomPositionArray.filter(item => {
+                        item.dataZoomPosition.forEach(item1 => {
+                            if (item1.threadName == this.callName) {
+                                dataZoomPosition = {...item1};
+                            }
+                        })
+                    });
+
+                    this.dataZoomStart = dataZoomPosition.dataZoomStart | 0;
+                    this.dataZoomEnd = dataZoomPosition.dataZoomEnd | 10;
+                }
+
                 let options = {
                     dataZoom: [{
                         type: 'inside',
-                        start: 0,
-                        end: 10,
+                        start: this.dataZoomStart,
+                        end: this.dataZoomEnd,
                         moveOnMouseMove: false,
                         moveOnMouseWheel: false,
                         zoomOnMouseWheel: false
@@ -194,7 +295,7 @@
                 }
                 let myChart = this.$echarts.init(document.getElementById(elemId));
                 myChart.setOption(options);
-
+                console.log('myChart', myChart)
                 return myChart;
             },
             fill_ts_data(thread_ts_data, thread_start_time, thread_end_time, start_time, end_time, unit_time_ms) {
@@ -218,19 +319,24 @@
             },
         },
         watch: {
-            '$route': (to, from) => {
-                this.getFlameGraphData();
-            },
             sessionFlameGraph() {
-                //this.getFlameGraphData();
                 if (this.sessionFlameGraph.length > 0) {
                     let flareGrapList = this.sessionFlameGraph.filter(item => {
-                        if (item.session_id == this.sessionId) {
-                            return item;
+                        if (item.sessionId == this.sessionId) {
+                            item.flameGraphList.filter(item1 => {
+                                if (item1.threadId == this.callName) {
+                                    this.flame_graph_data = item1.flameGraphData.flame_graph_data;
+                                }
+                            })
                         }
                     })
-                    this.flame_graph_data = flareGrapList[0].flame_graph_data;
                 }
+            },
+            callName() {
+                this.getFlameGraphData();
+                this.$nextTick(()=>{
+                    this.on_cpu_time_result();
+                })
             },
         }
     }
@@ -240,7 +346,7 @@
 <style scoped>
     .thread_bar {
         height: 30px;
-        width: 100%;
+        width: 900px;
         float: left;
         color: #e74911;
         overflow: hidden;

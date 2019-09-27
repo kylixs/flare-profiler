@@ -14,7 +14,9 @@
             </el-tabs>
         </div>
         <div class="routerBox">
-            <router-view :key="$router.fullPath"></router-view>
+            <!--<keep-alive>-->
+                <router-view :key="$router.fullPath"></router-view>
+            <!--</keep-alive>-->
         </div>
     </div>
 </template>
@@ -48,6 +50,9 @@
             },
             historySamples() {
                 return this.$store.state.historySamples;
+            },
+            sessionCallTabs() {
+                return this.$store.state.sessionCallTabs;
             },
         },
         methods: {
@@ -95,13 +100,19 @@
                         return item;
                     }
                 }))
+
+                let callTabsArray = this.sessionCallTabs.filter(item => {
+                    if (item.sessionId != sessionId) {
+                        return item;
+                    }
+                });
+                this.$store.commit('session_call_tabs', callTabsArray);
+
                 this.$webSocket.webSocketSendMessage(JSON.stringify(request));
                 this.flareTabsValue = 'samples';
-                //if (this.flareTabs.length == 1) {
-                    this.$router.push({
-                        path:'/samples'
-                    });
-                //}
+                this.$router.push({
+                    path:'/samples'
+                });
             },
         },
         watch:{

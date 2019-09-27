@@ -109,6 +109,9 @@
             sampleInfo() {
                 return this.$store.state.sampleInfo;
             },
+            sessionSampleInfo() {
+                return this.$store.state.sessionSampleInfo;
+            },
             exampleInfo() {
                 return this.$store.state.exampleInfo;
             },
@@ -149,17 +152,32 @@
                 this.$store.commit('example_info', json.data);
                 switch (json.cmd) {
                     case "dashboard":
+                        let threadSessionId = json.data.sample_info.sample_data_dir;
                         if (json.data.threads) {
                             let threadsArray = this.sessionThreads.filter(item => {
-                                if (item.sessionId != json.data.sample_info.sample_data_dir) {
+                                if (item.sessionId != threadSessionId) {
                                     return item;
                                 }
                             });
 
-                            let threadsInfo = {sessionId: json.data.sample_info.sample_data_dir, threads: json.data.threads};
+                            let threadsInfo = {
+                                sessionId: threadSessionId,
+                                threads: json.data.threads,
+                                threadSampleInfo: {...json.data.sample_info}
+                            };
                             threadsArray.push(threadsInfo);
                             this.$store.commit('session_threads', threadsArray);
                         }
+
+                        let sessionSampleInfoArray = this.sessionSampleInfo.filter(item => {
+                            if (item.sessionId != threadSessionId) {
+                                return item;
+                            }
+                        });
+                        let sessionSampleInfo = {sessionId: threadSessionId, sessionSample: json.data.sample_info};
+                        sessionSampleInfoArray.push(sessionSampleInfo)
+
+                        this.$store.commit('session_sample_info', sessionSampleInfoArray);
                         this.$store.commit('sample_info', json.data.sample_info);
                         break;
                     case "open_sample":
@@ -210,12 +228,25 @@
                         break;
                     case "flame_graph":
                         if (json.data.flame_graph_data) {
+                            let graphInfoList = [];
                             let flameGraphList = this.sessionFlameGraph.filter(item => {
-                                if (item.session_id != sessionId) {
+                                if (item.sessionId != sessionId) {
                                     return item;
+                                } else {
+                                    item.flameGraphList.filter(item1 => {
+                                        if (item1.threadId != json.data.thread_id) {
+                                            graphInfoList.push(item1);
+                                        }
+                                    })
                                 }
                             });
-                            flameGraphList.push(json.data);
+
+                            graphInfoList.push({threadId: json.data.thread_id, flameGraphData: json.data});
+                            let graphInfo = {
+                                sessionId: sessionId,
+                                flameGraphList: graphInfoList
+                            };
+                            flameGraphList.push(graphInfo);
                             this.$store.commit('session_flame_graph', flameGraphList)
                         }
                         //profiler.data.flame_graph_svg="data:image/svg+xml;utf8,"+json.data.flame_graph_data.replace(/<\?xml.*?\>.*\<!DOCTYPE.*\<svg/, "<svg");
