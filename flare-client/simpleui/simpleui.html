@@ -400,8 +400,8 @@
 				show_message: false,
 				show_sessions: false,
 				show_call_tree: false,
-				show_flame_graph: false,
-				show_d3_flame_graph: true,
+				show_flame_graph: true,
+				show_d3_flame_graph: false,
 				selected_thread_id: null,
 				stats_type: "duration",
 				data: {
@@ -562,9 +562,13 @@
 								let start_time = sess_start_time + axis.rangeStart*unit_time_ms;
 								let end_time = sess_start_time + axis.rangeEnd*unit_time_ms;
 								console.log("datazoom: thread:",thread.id, ", index:", axis.rangeStart,"-", axis.rangeEnd,", time:", start_time,"-", end_time );
-								// profiler.update_call_stack_tree([thread.id], start_time, end_time);
-								// profiler.update_flame_graph(thread.id, start_time, end_time);
-								profiler.update_flame_graph(thread.id, start_time, end_time);
+								if(profiler.show_call_tree){
+									profiler.update_call_stack_tree([thread.id], start_time, end_time);
+								} else if(profiler.show_flame_graph){
+									profiler.update_flame_graph(thread.id, start_time, end_time);
+								} else if(profiler.show_d3_flame_graph){
+									profiler.update_d3_flame_graph(thread.id, start_time, end_time);
+								}
 							})
 						}
 						profiler.data.thread_cpu_time_map[thread.id] = thread;
@@ -640,7 +644,9 @@
 							//profiler.data.flame_graph_svg="data:image/svg+xml;utf8,"+json.data.flame_graph_data.replace(/<\?xml.*?\>.*\<!DOCTYPE.*\<svg/, "<svg");
 							break;
 						case "d3_flame_graph":
-							set_d3_flamegraph_data(json.data.d3_flame_graph_stacks);
+							let stack = json.data.d3_flame_graph_stacks;
+							process_d3_flamegraph_stack(stack)
+							set_d3_flamegraph_data(stack);
 							break;
 						default:
 							console.log("unknown message: ", json);
@@ -648,6 +654,16 @@
 					}
 				}
             }
+
+            function process_d3_flamegraph_stack(stack) {
+				stack.name = stack.label;
+				stack.value = stack.duration;
+				if (stack.children) {
+					for(var i=0;i<stack.children.length;i++){
+						process_d3_flamegraph_stack(stack.children[i]);
+					}
+				}
+			}
 
 			var socket = new WebSocket("ws://"+profiler.profiler_addr, "flare-profiler");
 			socket.onopen = function(evt) {
