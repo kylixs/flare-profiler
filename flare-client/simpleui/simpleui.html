@@ -405,6 +405,7 @@
 				selected_thread_id: null,
 				stats_type: "duration",
 				data: {
+					requests: {},
 					sample_info: {},
 					threads: [],
 					history_samples: [],
@@ -587,10 +588,12 @@
 					socket.send(JSON.stringify(request));
 				},
 				update_flame_graph(thread_id, start_time, end_time) {
+					var request_time = new Date().getTime();
 					var request = {
 						"cmd": "flame_graph",
 						"options": {
 							"session_id": profiler.data.session_id,
+							"request_time": request_time,
 							"thread_id": thread_id,
 							"start_time": start_time,
 							"end_time": end_time,
@@ -598,6 +601,7 @@
 							"image_width": 900
 						}
 					};
+					profiler.data.requests['flame_graph'] = request;
 					socket.send(JSON.stringify(request));
 				},
 				update_d3_flame_graph(thread_id, start_time, end_time) {

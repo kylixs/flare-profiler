@@ -52,7 +52,7 @@ pub struct ThreadData {
     #[serde(default)]
     pub self_duration: i64,
     #[serde(default)]
-    pub self_cpu_time: i64,
+    pub self_cpu_time: i64
 }
 
 #[derive(Clone)]
@@ -654,8 +654,16 @@ impl SamplerClient {
     //每一层与最后一个节点相同时进行合并，不同时append新节点
     pub fn build_ordinal_tree(&mut self, thread_data_vec: &Vec<ThreadData>) -> io::Result<Box<tree::TreeNode>> {
         let mut root = Box::new(tree::TreeNode::new(0, "root"));
+        let mut first_sample_time = 0;
         for thread_data in thread_data_vec {
+            root.duration += thread_data.self_duration;
+            root.cpu += thread_data.self_cpu_time;
+            root.calls += 1;
             let mut node = &mut root;
+            if first_sample_time == 0 {
+                first_sample_time = thread_data.sample_time;
+            }
+            let start_time = thread_data.sample_time - first_sample_time - thread_data.self_duration;
             for method in thread_data.stacktrace.iter().rev() {
                 let tmp;
                 let method_name = if let Some(method_info) = self.get_method_info(*method) {
@@ -664,22 +672,22 @@ impl SamplerClient {
                     tmp = method.to_string();
                     &tmp
                 };
-                node.duration += thread_data.self_duration;
-                node.cpu += thread_data.self_cpu_time;
-                node.calls += 1;
                 //merge_last_child fn return bool instead of node reference for avoiding second borrow mutable node
                 if node.merge_last_child(method_name, thread_data.self_duration, thread_data.self_cpu_time, 1) {
                     //merge success, next is just last child
                     node = node.last_child().unwrap();
                 } else {
+                    let child_depth = node.depth+1;
                     node = node.append_child(tree::TreeNode{
                         parent: None,
                         children: vec![],
+                        depth: child_depth,
                         id: 0,
                         label: method_name.to_string(),
                         calls: 1,
                         cpu: thread_data.self_cpu_time,
-                        duration: thread_data.self_duration
+                        duration: thread_data.self_duration,
+                        start_time
                     })
                 }
             }

@@ -22,6 +22,7 @@ use inferno::flamegraph;
 use std::str::FromStr;
 use inferno::flamegraph::color::BackgroundColor;
 use tree;
+use inferno::flamegraph::merge::{TimedFrame, Frame};
 
 type JsonValue = serde_json::Value;
 
@@ -168,8 +169,6 @@ impl Profiler {
             StatsType::SAMPLES => "samples",
         };
         let client = self.get_sample_client(session_id)?;
-        let call_stacks = client.lock().unwrap().get_collapsed_call_stacks(thread_id, start_time, end_time, stats_type)?;
-
         //create frame graph
         let mut options = flamegraph::Options {
             //colors: Palette::from_str("java").unwrap(),
@@ -183,16 +182,42 @@ impl Profiler {
             ..Default::default()
         };
         let mut writer = vec![];
-        let input = call_stacks.join("\n");
-//        println!("call_stacks:");
-//        println!("{}", input);
-        if let Err(e) = flamegraph::from_lines(&mut options, input.lines(), &mut writer) {
+
+//        let call_stacks = client.lock().unwrap().get_collapsed_call_stacks(thread_id, start_time, end_time, stats_type)?;
+//        let input = call_stacks.join("\n");
+//        if let Err(e) = flamegraph::from_lines(&mut options, input.lines(), &mut writer) {
+//            return Err(new_error(ErrorKind::Other, &format!("create flame graph failed: {}", e)));
+//        }
+
+        let stack_tree = client.lock().unwrap().get_d3_flame_graph_stacks(thread_id, start_time, end_time)?;
+        let mut frames = vec![];
+        let mut time = stack_tree.duration as usize;
+        let mut delta_max = 0;
+        self.prepare_flame_graph_frames(&stack_tree, &mut frames, &mut delta_max);
+
+        if let Err(e) = flamegraph::from_frames(&mut options, &mut writer, &mut frames, time, delta_max) {
             return Err(new_error(ErrorKind::Other, &format!("create flame graph failed: {}", e)));
         }
 
         match std::str::from_utf8(&writer) {
             Ok(svg) => Ok(svg.to_string()),
             Err(e) => Err(new_error(ErrorKind::Other, &format!("flame graph to string failed: {}", e)))
+        }
+    }
+
+    fn prepare_flame_graph_frames<'a>(&self, node: &'a Box<TreeNode>, frames: &mut Vec<TimedFrame<'a>>, delta_max: &mut usize) {
+        frames.push(TimedFrame::new(
+            &node.label,
+            node.depth as usize,
+            node.start_time as usize,
+            (node.start_time + node.duration) as usize,
+            None
+        ));
+//        if node.children.is_empty() {
+//            *time += node.duration as usize;
+//        }
+        for child in &node.children {
+            self.prepare_flame_graph_frames(child, frames,delta_max);
         }
     }
 

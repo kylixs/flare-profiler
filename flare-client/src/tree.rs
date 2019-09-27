@@ -15,6 +15,8 @@ pub struct TreeNode {
     pub calls: i64,
     pub cpu: i64,
     pub duration: i64,
+    pub start_time: i64,
+    pub depth: i32
 }
 
 impl TreeNode {
@@ -26,7 +28,9 @@ impl TreeNode {
             label: label.to_string(),
             calls: 0,
             cpu: 0,
-            duration: 0
+            duration: 0,
+            start_time: 0,
+            depth: 0
         }
     }
 

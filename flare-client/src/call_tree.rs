@@ -231,7 +231,7 @@ impl CallStackTree {
         let calls = node.data.call_count as i64;
         let cpu = node.data.call_cpu / 1000; //micros
         let duration = node.data.call_duration; //mills
-        tree::TreeNode{ parent: None, id, label, calls, cpu, duration, children}
+        tree::TreeNode{ parent: None, id, label, calls, cpu, duration, start_time: 0, children, depth: 0 }
     }
 
     pub fn get_top_node(&self) -> &TreeNode {
