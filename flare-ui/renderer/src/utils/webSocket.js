@@ -30,6 +30,6 @@ export default {
     },
     webSocketSendMessage:function(msg){
         webSocket.send(msg);
-        console.log("websocket发送消息：" + msg);
+        //console.log("websocket发送消息：" + msg);
     },
 }

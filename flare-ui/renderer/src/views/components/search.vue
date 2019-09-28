@@ -1,5 +1,16 @@
 <template>
-    <div class="cpu_time_content" style="width: 100%"><!--highlight-current-row="true" show-header="false"-->
+    <div class="cpu_time_content" style="width: 100%"><!--{{threads}}-->
+        <el-form :inline="true" :model="formInline" class="demo-form-inline">
+            <el-form-item label="关键字">
+                <el-input v-model="formInline.keyword" placeholder="关键字"></el-input>
+            </el-form-item>
+            <el-form-item label="时间">
+                <el-input v-model="formInline.times" placeholder="时间"></el-input>
+            </el-form-item>
+            <el-form-item>
+                <el-button type="primary" @click="">查询</el-button>
+            </el-form-item>
+        </el-form>
         <el-table ref="cpuTable" :data="threads" highlight-current-row @row-click="selectCurRow" style="cursor: pointer">
             <el-table-column width="400">
                 <template slot-scope="scope">
@@ -12,12 +23,6 @@
                 </template>
             </el-table-column>
         </el-table>
-        <!--<div id="cpu_time_content">
-            <div v-for="thread,index in threads" @click="select_thread(thread.id)" class="echarts_bar" :class="{selected: selected_thread_id == thread.id}">
-                <div class="thread_name" :title="thread.name" >{{thread.name}}</div>
-                <div class="thread_bar" v-bind:id="'thread_cpu_chart_' + thread.id+''"></div>
-            </div>
-        </div>-->
     </div>
 </template>
 
@@ -28,6 +33,10 @@
             return {
                 threads: [],
                 selected_thread_id: null,
+                formInline: {
+                    keyword: '',
+                    times: ''
+                }
             }
         },
         computed: {
