@@ -415,6 +415,7 @@ impl TupleIndexedFile {
 
     pub fn get_range_value<F>(&mut self, start_index: &TupleValue, end_index: &TupleValue, mut handler: F) -> io::Result<()>
         where F: FnMut(Vec<u8>) {
+        //TODO 扩大范围，避免边界不完整
         let new_start_index = self.search_index(start_index).clone();
         let new_end_index = self.search_index(end_index).clone();
         let mut start_offset = 0u32;

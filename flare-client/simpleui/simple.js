@@ -29,3 +29,18 @@ String.prototype.format = function()
             return args[i];
         });
 }
+
+
+/**
+ * @param {number} num
+ * @param {number} min
+ * @param {number} max
+ * @return {number}
+ */
+Number.constrain = function(num, min, max) {
+    if (num < min)
+        num = min;
+    else if (num > max)
+        num = max;
+    return num;
+};

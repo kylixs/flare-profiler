@@ -156,7 +156,7 @@ impl Profiler {
         Ok(call_tree.to_tree())
     }
 
-    pub fn create_flame_graph_svg(&mut self, session_id: &str, thread_id: i64, start_time: i64, end_time: i64, stats_type_str: &str, image_width: usize) -> io::Result<String> {
+    pub fn create_flame_graph_svg(&mut self, session_id: &str, thread_id: i64, start_time: &mut i64, end_time: &mut i64, stats_type_str: &str, image_width: usize) -> io::Result<String> {
         let mut stats_type = StatsType::DURATION;
         if let Ok(x) = StatsType::from_str(stats_type_str) {
             stats_type = x;
@@ -206,13 +206,20 @@ impl Profiler {
     }
 
     fn prepare_flame_graph_frames<'a>(&self, node: &'a Box<TreeNode>, frames: &mut Vec<TimedFrame<'a>>, delta_max: &mut usize) {
-        frames.push(TimedFrame::new(
+        let frame = TimedFrame::new(
             &node.label,
             node.depth as usize,
             node.start_time as usize,
             (node.start_time + node.duration) as usize,
             None
-        ));
+        );
+        match frame.end_time.checked_sub(frame.start_time) {
+            Some(x) => {},
+            None => {
+                println!("overflow: {}, time: {} - {}", node.label, frame.end_time, frame.start_time)
+            }
+        }
+        frames.push(frame);
 //        if node.children.is_empty() {
 //            *time += node.duration as usize;
 //        }
@@ -221,7 +228,7 @@ impl Profiler {
         }
     }
 
-    pub fn create_d3_flame_graph_stacks(&mut self, session_id: &str, thread_id: i64, start_time: i64, end_time: i64, stats_type_str: &str) -> io::Result<Box<tree::TreeNode>> {
+    pub fn create_d3_flame_graph_stacks(&mut self, session_id: &str, thread_id: i64, start_time: &mut i64, end_time: &mut i64, stats_type_str: &str) -> io::Result<Box<tree::TreeNode>> {
         let client = self.get_sample_client(session_id)?;
         let result = client.lock().unwrap().get_d3_flame_graph_stacks(thread_id, start_time, end_time);
         result
@@ -500,13 +507,14 @@ impl Profiler {
         if thread_id <= 0 {
             return Err(new_invalid_input_error("missing or invalid option 'thread_id'"));
         }
-
-        let svg = self.create_flame_graph_svg(session_id, thread_id, start_time, end_time, stats_type, image_width as usize)?;
+        let mut new_start_time = start_time;
+        let mut new_end_time = end_time;
+        let svg = self.create_flame_graph_svg(session_id, thread_id, &mut new_start_time, &mut new_end_time, stats_type, image_width as usize)?;
         let result = json!({
                 "session_id": session_id,
                 "thread_id": thread_id,
-                "start_time": start_time,
-                "end_time": end_time,
+                "start_time": new_start_time,
+                "end_time": new_end_time,
                 "stats_type": stats_type,
                 "image_width": image_width,
                 "flame_graph_data": svg
@@ -529,13 +537,14 @@ impl Profiler {
         if thread_id <= 0 {
             return Err(new_invalid_input_error("missing or invalid option 'thread_id'"));
         }
-
-        let stacks = self.create_d3_flame_graph_stacks(session_id, thread_id, start_time, end_time, stats_type)?;
+        let mut new_start_time = start_time;
+        let mut new_end_time = end_time;
+        let stacks = self.create_d3_flame_graph_stacks(session_id, thread_id, &mut new_start_time, &mut new_end_time, stats_type)?;
         let result = json!({
                 "session_id": session_id,
                 "thread_id": thread_id,
-                "start_time": start_time,
-                "end_time": end_time,
+                "start_time": new_start_time,
+                "end_time": new_end_time,
                 "stats_type": stats_type,
                 "d3_flame_graph_stacks": stacks
             });
