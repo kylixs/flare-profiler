@@ -1,0 +1,38 @@
+{
+    "extensions": [
+        {
+            "type": "view",
+            "location": "panel",
+            "id": "flamechart",
+            "title": "FrameChart",
+            "order": 50,
+            "className": "Flamechart.TimelinePanel"
+        }
+    ],
+    "dependencies": [
+        "components",
+        "timeline_model",
+        "perf_ui",
+        "extensions",
+        "data_grid",
+        "product_registry"
+    ],
+    "scripts": [
+        "TimelineFlameChartDataProvider.js",
+        "TimelineUIUtils.js",
+        "TimelineFilters.js",
+        "TimelineTreeView.js",
+        "EventsTimelineTreeView.js",
+        "TimelineEventOverview.js",
+        "TimelineDetailsView.js",
+        "TimelineFlameChartView.js",
+        "TimelineLoader.js",
+        "PerformanceModel.js",
+        "TimelinePanel.js"
+    ],
+    "resources": [
+        "timelinePanel.css",
+        "timelineStatusDialog.css",
+        "timelineFlamechartPopover.css"
+    ]
+}
