@@ -41,6 +41,12 @@ const router = new Router({
                     component: () => import('@/views/components/dashboard.vue'),
                     // meat: {keepAlive:false}
                 },
+                {
+                    path: 'search',
+                    name: 'search',
+                    component: () => import('@/views/components/search.vue'),
+                    // meat: {keepAlive:false}
+                },
             ]
         },
     ],

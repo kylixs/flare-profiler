@@ -40,12 +40,12 @@
                         router: '/cpu',
                         closable: false
                     },
-                    /*{
-                        title: 'call',
-                        name: 'call',
-                        router: '/call',
-                        closable: true
-                    },*/
+                    {
+                        title: 'search',
+                        name: 'search',
+                        router: '/search',
+                        closable: false
+                    },
                 ]
             }
         },
@@ -81,16 +81,17 @@
                         return item
                     }
                 });
-                let tabsInfo = {sessionId: this.sessionInfo, tabsValue: curTab.name}
+                let tabsInfo = {sessionId: this.sessionInfo, tabsValue: curTab.name, routerValue: curTab.router}
                 tabsValueArray.push(tabsInfo);
                 this.$store.commit('session_tabs_value', tabsValueArray);
 
-                let router = this.sessionInfo;
-                if (curTab.router != '/dashboard' && curTab.router != '/cpu') {
+                debugger
+                let router = this.sessionInfo + curTab.router;
+                /*if (curTab.router != '/dashboard' && curTab.router != '/cpu' &&) {
                     router = this.sessionInfo + curTab.router;// + "/call"
                 } else{
                     router = this.sessionInfo + curTab.router;
-                }
+                }*/
                 this.$router.push({
                     path:`/${router}`
                 });
@@ -125,7 +126,7 @@
                         return item
                     }
                 });
-                let tabsInfo = {sessionId: this.sessionInfo, tabsValue: 'dashboard'}
+                let tabsInfo = {sessionId: this.sessionInfo, tabsValue: 'dashboard', routerValue: '/dashboard'}
                 tabsValueArray.push(tabsInfo);
                 this.$store.commit('session_tabs_value', tabsValueArray);
 
@@ -135,7 +136,10 @@
                 });
             },
             initSessionTabs(){
+                debugger
                 this.setCallTabs();
+                let routerValue = '/dashboard';
+                this.flareTabsValue = 'dashboard';
                 if (this.sessionTabsValue.length > 0) {
                     let tabsValueList = this.sessionTabsValue.filter(item => {
                         if (item.sessionId == this.sessionInfo) {
@@ -145,11 +149,9 @@
 
                     if (tabsValueList.length > 0) {
                         this.flareTabsValue = tabsValueList[0].tabsValue
+                        routerValue = tabsValueList[0].routerValue
                     }
-                } else {
-                    this.flareTabsValue = 'dashboard';
                 }
-
 
                 let callTabs = this.flareTabs.filter(item => {
                     if (item.name == this.flareTabsValue) {
@@ -158,14 +160,15 @@
                 })
                 if (callTabs == undefined || callTabs.length <= 0) {
                     this.flareTabsValue = 'dashboard';
+                    routerValue = '/dashboard';
                 }
 
-                let router = this.sessionInfo;
-                if (this.flareTabsValue != '/dashboard' && this.flareTabsValue != 'dashboard' && this.flareTabsValue != '/cpu' && this.flareTabsValue != 'cpu') {
+                let router = this.sessionInfo + routerValue;
+                /*if (this.flareTabsValue != '/dashboard' && this.flareTabsValue != 'dashboard' && this.flareTabsValue != '/cpu' && this.flareTabsValue != 'cpu') {
                     router = this.sessionInfo + "/call/" + this.flareTabsValue;
                 } else{
                     router = this.sessionInfo + "/" + this.flareTabsValue;
-                }
+                }*/
 
                 this.$router.push({
                     path:`/${router}`
@@ -184,6 +187,12 @@
                             title: 'cpu',
                             name: 'cpu',
                             router: '/cpu',
+                            closable: false
+                        },
+                        {
+                            title: 'search',
+                            name: 'search',
+                            router: '/search',
                             closable: false
                         },
                     ]

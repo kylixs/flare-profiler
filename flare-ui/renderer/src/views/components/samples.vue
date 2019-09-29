@@ -53,7 +53,7 @@
         data() {
             return {
                 agent_addr: "localhost:3333",
-                profiler_addr: "localhost:3344",
+                profiler_addr: "localhost:3344",//
                 show_history_samples: false,
                 show_sessions: false,
                 history_samples_list: [],
@@ -139,7 +139,7 @@
                 console.log("websocket连接失败");
             },
             onmessage(event){
-                console.log('websocket接收到消息：', event);
+                //console.log('websocket接收到消息：', event);
                 var json = JSON.parse(event.data);
                 var success = (json.result == "success");
                 Object.assign(this.data, json.data)

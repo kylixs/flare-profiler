@@ -44,6 +44,7 @@
                 selectCpuRowArray:[],
                 dataZoomStart: 0,
                 dataZoomEnd: 10,
+                curChartInfo:{},
             }
         },
         computed: {
@@ -87,6 +88,7 @@
         mounted(){
             this.$nextTick(()=>{
                 this.on_cpu_time_result();
+                this.mousewheelGraph();
             })
         },
         /*activated(){
@@ -131,6 +133,153 @@
                     })
                 })
             },
+            mousewheelGraph(){
+                console.log('绑定缩放init')//
+                // var flame_graph_svg = document.getElementById("flame_graph_svg").addEventListener('mousewheel', this.mouseWheelFu, false);
+                document.getElementById('flame_graph_svg').onmousewheel = this.mouseWheelFu;
+                /*var flame_graph_svg = document.getElementsByTagName('svg');
+                console.log('flame_graph_svg', flame_graph_svg);
+
+                for (let i = 0; i < flame_graph_svg.length; i++) {
+                    flame_graph_svg[i].onmousewheel = this.mouseWheelFu;
+                }*/
+
+                console.log('绑定缩放end')
+            },
+            mouseWheelFu(event) {
+                this.initPosition();
+                console.log('触发缩放了哟：', event)
+                /*const zoomFactor = 1.1;
+                const mouseWheelZoomSpeed = 1 / 120;
+                const reference = event.offsetX / event.currentTarget.clientWidth;
+                let pow = Math.pow(zoomFactor, -event.wheelDeltaY * mouseWheelZoomSpeed);
+                console.log('reference:', reference, 'pow:', pow)*/
+                if (typeof event.wheelDeltaY === 'number' && event.wheelDeltaY) {
+                    const zoomFactor = 1.1;
+                    const mouseWheelZoomSpeed = 1 / 120;
+                    const reference = event.offsetX / event.currentTarget.clientWidth;
+                    this._zoom(Math.pow(zoomFactor, -event.wheelDeltaY * mouseWheelZoomSpeed), reference);
+                }
+                event.preventDefault();
+            },
+            constrain(num, min, max) {
+                if (num < min)
+                    num = min;
+                else if (num > max)
+                    num = max;
+                return num;
+            },
+            _zoom(factor, reference) {
+
+                let sessionSampleInfoArray = this.sessionSampleInfo.filter(item => {
+                    if (item.sessionId == this.sessionId) {
+                        return item;
+                    }
+                });
+
+                let sessionSample = sessionSampleInfoArray[0].sessionSample
+
+                var sess_start_time = sessionSample.record_start_time;
+                var sess_end_time = sessionSample.last_record_time;
+                var unit_time_ms = sessionSample.unit_time_ms;
+
+                var total_time = sess_end_time - sess_start_time;
+
+                let left = (this.curChartInfo.start_time - sess_start_time)/total_time;
+                let right = (this.curChartInfo.end_time - sess_start_time)/total_time;
+
+                const windowSize = right - left;
+                let newWindowSize = factor * windowSize;
+                if (newWindowSize > 1) {
+                    newWindowSize = 1;
+                    factor = newWindowSize / windowSize;
+                }
+
+                var ratio = reference;
+                reference = left + windowSize * reference;
+                left = reference + (left - reference) * factor;
+                left = this.constrain(left, 0, 1 - newWindowSize);
+                right = reference + (right - reference) * factor;
+                right = this.constrain(right, newWindowSize, 1);
+
+                var startTime = sess_start_time + Math.ceil(total_time * left);
+                var endTime = sess_start_time + Math.ceil(total_time * right);
+
+                console.log('left:', left, 'right:', right)
+                let myChart = this.curChartInfo.myChart;
+
+                let options = {
+                    dataZoom: [{
+                        type: 'inside',
+                        start: left * 100,
+                        end: right * 100,
+                        moveOnMouseMove: false,
+                        moveOnMouseWheel: false,
+                        zoomOnMouseWheel: false
+                    }]
+                }
+                myChart.setOption(options);
+
+                let curDataZoomPosition = {
+                    threadName: this.callName,
+                    dataZoomStart: left * 100,
+                    dataZoomEnd: right * 100,
+                    threadId: this.curChartInfo.threadId,
+                    start_time:startTime,
+                    end_time: endTime,
+                    myChart: myChart
+                };
+
+                this.saveEchartsDataZoomPosition(curDataZoomPosition);
+
+                this.update_call_stack_tree(this.curChartInfo.threadId, startTime, endTime);
+            },
+            initPosition() {
+                let dataZoomPositionArray = this.echartsDataZoomPosition.filter(item => {
+                    if (item.sessionId == this.sessionId) {
+                        return item;
+                    }
+                });
+
+                if (dataZoomPositionArray.length > 0) {
+                    let dataZoomPosition = {};
+                    dataZoomPositionArray.filter(item => {
+                        item.dataZoomPosition.forEach(item1 => {
+                            if (item1.threadName == this.callName) {
+                                dataZoomPosition = {...item1};
+                            }
+                        })
+                    });
+
+                    this.curChartInfo = {...dataZoomPosition}
+                    this.dataZoomStart = dataZoomPosition.dataZoomStart | 0;
+                    this.dataZoomEnd = dataZoomPosition.dataZoomEnd | 10;
+                }
+            },
+            saveEchartsDataZoomPosition(curDataZoomPosition){
+                let postitionArray = [];
+                let dataZoomPositionArray = this.echartsDataZoomPosition.filter(item => {
+                    if (item.sessionId == this.sessionId) {
+                        return item;
+                    } else {
+                        postitionArray.push(item);
+                    }
+                });
+
+                let dataZoomPosition = [];
+                dataZoomPositionArray.filter(item => {
+                    item.dataZoomPosition.forEach(item1 => {
+                        if (item1.threadName != this.callName) {
+                            dataZoomPosition.push(item1);
+                            //return item;
+                        }
+                    })
+                });
+                dataZoomPosition.push(curDataZoomPosition);
+                postitionArray.push({sessionId: this.sessionId, dataZoomPosition:dataZoomPosition})
+                //console.log('postitionArray', postitionArray, 'thread', thread);
+                this.$store.commit('echarts_dataZoom_position', postitionArray);
+            },
             on_cpu_time_result(){
 
                 let cpuTimeArray = this.sessionCpuTimes.filter(item => {
@@ -172,35 +321,24 @@
                     myChart.on('datazoom', (evt) => {
                         console.log('evt start', evt.start, 'evt end', evt.end)
 
-                        let postitionArray = [];
-                        let dataZoomPositionArray = this.echartsDataZoomPosition.filter(item => {
-                            if (item.sessionId == this.sessionId) {
-                                return item;
-                            } else {
-                                postitionArray.push(item);
-                            }
-                        });
-
-                        let dataZoomPosition = [];
-                        dataZoomPositionArray.filter(item => {
-                            item.dataZoomPosition.forEach(item1 => {
-                                if (item1.threadName != this.callName) {
-                                    dataZoomPosition.push(item1);
-                                    //return item;
-                                }
-                            })
-                        });
-                        let curDataZoomPosition = {threadName: this.callName, dataZoomStart: evt.start, dataZoomEnd: evt.end};
-                        dataZoomPosition.push(curDataZoomPosition);
-                        postitionArray.push({sessionId: this.sessionId, dataZoomPosition:dataZoomPosition})
-                        console.log('postitionArray', postitionArray, 'thread', thread);
-                        this.$store.commit('echarts_dataZoom_position', postitionArray);
-
                         var axis = myChart.getModel().option.xAxis[0];
                         // var starttime = axis.data[axis.rangeStart];
                         // var endtime = axis.data[axis.rangeEnd];
                         let start_time = sess_start_time + axis.rangeStart*unit_time_ms;
                         let end_time = sess_start_time + axis.rangeEnd*unit_time_ms;
+
+                        let curDataZoomPosition = {
+                            threadName: this.callName,
+                            dataZoomStart: evt.start,
+                            dataZoomEnd: evt.end,
+                            threadId: thread.id,
+                            start_time:start_time,
+                            end_time: end_time,
+                            myChart: myChart
+                        };
+
+                        this.saveEchartsDataZoomPosition(curDataZoomPosition);
+
                         console.log("datazoom: thread:",thread.id, ", index:", axis.rangeStart,"-", axis.rangeEnd,", time:", start_time,"-", end_time );
                         this.update_call_stack_tree(thread.id, start_time, end_time);
                     })
@@ -231,25 +369,7 @@
                     return false;
                 }
 
-                let dataZoomPositionArray = this.echartsDataZoomPosition.filter(item => {
-                    if (item.sessionId == this.sessionId) {
-                        return item;
-                    }
-                });
-
-                if (dataZoomPositionArray.length > 0) {
-                    let dataZoomPosition = {};
-                    dataZoomPositionArray.filter(item => {
-                        item.dataZoomPosition.forEach(item1 => {
-                            if (item1.threadName == this.callName) {
-                                dataZoomPosition = {...item1};
-                            }
-                        })
-                    });
-
-                    this.dataZoomStart = dataZoomPosition.dataZoomStart | 0;
-                    this.dataZoomEnd = dataZoomPosition.dataZoomEnd | 10;
-                }
+                this.initPosition();
 
                 let options = {
                     dataZoom: [{
@@ -321,7 +441,7 @@
         watch: {
             sessionFlameGraph() {
                 if (this.sessionFlameGraph.length > 0) {
-                    let flareGrapList = this.sessionFlameGraph.filter(item => {
+                    this.sessionFlameGraph.filter(item => {
                         if (item.sessionId == this.sessionId) {
                             item.flameGraphList.filter(item1 => {
                                 if (item1.threadId == this.callName) {
