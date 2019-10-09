@@ -52,7 +52,7 @@ var Runtime = class {  // eslint-disable-line
   /**
    * @param {!Array.<!Runtime.ModuleDescriptor>} descriptors
    */
-  constructor(descriptors) {
+  constructor(descriptors, prefix) {
     /** @type {!Array<!Runtime.Module>} */
     this._modules = [];
     /** @type {!Object<string, !Runtime.Module>} */
@@ -63,6 +63,8 @@ var Runtime = class {  // eslint-disable-line
     this._cachedTypeClasses = {};
     /** @type {!Object<string, !Runtime.ModuleDescriptor>} */
     this._descriptorsMap = {};
+    this._prefix = prefix;
+    Runtime._prefix = prefix;
 
     for (let i = 0; i < descriptors.length; ++i)
       this._registerModule(descriptors[i]);
@@ -236,6 +238,9 @@ var Runtime = class {  // eslint-disable-line
         return;
       }
       const sourceURL = appendSourceURL ? Runtime.resolveSourceURL(path) : '';
+      if (Runtime._prefix.length > 0 && path.startsWith(Runtime._prefix)){
+        path = path.substring(Runtime._prefix.length, path.length);
+      }
       Runtime.cachedResources[path] = content + sourceURL;
     }
   }
@@ -251,7 +256,8 @@ var Runtime = class {  // eslint-disable-line
    * @param {string} appName
    * @return {!Promise.<undefined>}
    */
-  static async startApplication(appName) {
+  static async startApplication(appName, prefix) {
+    prefix = prefix || '';
     console.timeStamp('Runtime.startApplication');
 
     const allDescriptorsByName = {};
@@ -261,11 +267,11 @@ var Runtime = class {  // eslint-disable-line
     }
 
     if (!applicationDescriptor) {
-      let data = await Runtime.loadResourcePromise(appName + '.json');
+      let data = await Runtime.loadResourcePromise(prefix + appName + '.json');
       applicationDescriptor = JSON.parse(data);
       let descriptor = applicationDescriptor;
       while (descriptor.extends) {
-        data = await Runtime.loadResourcePromise(descriptor.extends + '.json');
+        data = await Runtime.loadResourcePromise(prefix + descriptor.extends + '.json');
         descriptor = JSON.parse(data);
         applicationDescriptor.modules = descriptor.modules.concat(applicationDescriptor.modules);
       }
@@ -281,7 +287,7 @@ var Runtime = class {  // eslint-disable-line
       if (moduleJSON)
         moduleJSONPromises.push(Promise.resolve(moduleJSON));
       else
-        moduleJSONPromises.push(Runtime.loadResourcePromise(name + '/module.json').then(JSON.parse.bind(JSON)));
+        moduleJSONPromises.push(Runtime.loadResourcePromise(prefix + name + '/module.json').then(JSON.parse.bind(JSON)));
       if (descriptor['type'] === 'autostart')
         coreModuleNames.push(name);
     }
@@ -289,11 +295,12 @@ var Runtime = class {  // eslint-disable-line
     const moduleDescriptors = await Promise.all(moduleJSONPromises);
 
     for (let i = 0; i < moduleDescriptors.length; ++i) {
-      moduleDescriptors[i].name = configuration[i]['name'];
-      moduleDescriptors[i].condition = configuration[i]['condition'];
-      moduleDescriptors[i].remote = configuration[i]['type'] === 'remote';
+      let moduleDesc = moduleDescriptors[i];
+      moduleDesc.name = configuration[i]['name'];
+      moduleDesc.condition = configuration[i]['condition'];
+      moduleDesc.remote = configuration[i]['type'] === 'remote';
     }
-    self.runtime = new Runtime(moduleDescriptors);
+    self.runtime = new Runtime(moduleDescriptors, prefix);
     if (coreModuleNames)
       await self.runtime._loadAutoStartModules(coreModuleNames);
     Runtime._appStartedPromiseCallback();
@@ -411,7 +418,7 @@ var Runtime = class {  // eslint-disable-line
    * @param {!Runtime.ModuleDescriptor} descriptor
    */
   _registerModule(descriptor) {
-    const module = new Runtime.Module(this, descriptor);
+    const module = new Runtime.Module(this, descriptor, this._prefix);
     this._modules.push(module);
     this._modulesMap[descriptor['name']] = module;
   }
@@ -599,6 +606,10 @@ Runtime.cachedResources = {
   __proto__: null
 };
 
+Runtime._prefix = '';
+Runtime.getCachedResources = function(path){
+  return Runtime.cachedResources[Runtime._prefix+path];
+}
 
 Runtime._console = console;
 Runtime._originalAssert = console.assert;
@@ -679,10 +690,11 @@ Runtime.Module = class {
    * @param {!Runtime} manager
    * @param {!Runtime.ModuleDescriptor} descriptor
    */
-  constructor(manager, descriptor) {
+  constructor(manager, descriptor, prefix) {
     this._manager = manager;
     this._descriptor = descriptor;
     this._name = descriptor.name;
+    this._prefix = prefix;
     /** @type {!Array<!Runtime.Extension>} */
     this._extensions = [];
 
@@ -797,7 +809,7 @@ Runtime.Module = class {
    * @param {string} resourceName
    */
   _modularizeURL(resourceName) {
-    return Runtime.normalizePath(this._name + '/' + resourceName);
+    return Runtime.normalizePath(this._prefix + this._name + '/' + resourceName);
   }
 
   /**

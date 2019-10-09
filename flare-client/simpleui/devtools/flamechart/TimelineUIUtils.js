@@ -333,6 +333,9 @@ Flamechart.TimelineUIUtils = class {
    * @return {string}
    */
   static eventTitle(event) {
+    if (event.title && !event.args){
+      return event.title;
+    }
     const recordType = TimelineModel.TimelineModel.RecordType;
     const eventData = event.args['data'];
     if (event.name === recordType.JSFrame)
@@ -1645,7 +1648,7 @@ Flamechart.TimelineUIUtils = class {
     const duration = Flamechart.TimelineUIUtils.frameDuration(frame);
     contentHelper.appendElementRow(ls`Duration`, duration, frame.hasWarnings());
     const durationInMillis = frame.endTime - frame.startTime;
-    contentHelper.appendTextRow(ls`FPS`, Math.floor(1000 / durationInMillis));
+    // contentHelper.appendTextRow(ls`FPS`, Math.floor(1000 / durationInMillis));
     contentHelper.appendTextRow(ls`CPU time`, Number.millisToString(frame.cpuTime, true));
     if (filmStripFrame) {
       const filmStripPreview = createElementWithClass('div', 'timeline-filmstrip-preview');

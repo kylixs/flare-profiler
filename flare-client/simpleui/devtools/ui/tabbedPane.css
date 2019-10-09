@@ -75,7 +75,8 @@
 
 .tabbed-pane-header {
     display: flex;
-    flex: 0 0 27px;
+    /*flex: 0 0 27px; 隐藏顶部tab */
+    flex: 0 0 0px;
     border-bottom: 1px solid #ccc;
     overflow: visible;
     width: 100%;

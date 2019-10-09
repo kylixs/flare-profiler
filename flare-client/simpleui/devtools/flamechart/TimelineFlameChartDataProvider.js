@@ -116,7 +116,7 @@ Flamechart.TimelineFlameChartDataProvider = class extends Common.Object {
         return event.name + ':' + event.args['step'];
       if (event._blackboxRoot)
         return Common.UIString('Blackboxed');
-      if (this._performanceModel.timelineModel().isMarkerEvent(event))
+      if (this._performanceModel && this._performanceModel.timelineModel().isMarkerEvent(event))
         return Flamechart.TimelineUIUtils.markerShortTitle(event);
       return Flamechart.TimelineUIUtils.eventTitle(event);
     }
@@ -527,6 +527,10 @@ Flamechart.TimelineFlameChartDataProvider = class extends Common.Object {
     this._entryTypeByLevel[this._currentLevel++] = Flamechart.TimelineFlameChartDataProvider.EntryType.InteractionRecord;
   }
 
+  setEntryTypeByLevel(level, entryType){
+    this._entryTypeByLevel[level] = entryType;
+  }
+
   _appendPageMetrics() {
     this._entryTypeByLevel[this._currentLevel] = Flamechart.TimelineFlameChartDataProvider.EntryType.Event;
 
@@ -575,7 +579,7 @@ Flamechart.TimelineFlameChartDataProvider = class extends Common.Object {
   }
 
   _appendFrames() {
-    const screenshots = this._performanceModel.filmStripModel().frames();
+    const screenshots = this._performanceModel.frames();
     const hasFilmStrip = !!screenshots.length;
     this._framesHeader.collapsible = hasFilmStrip;
     this._appendHeader(Common.UIString('Frames'), this._framesHeader, false /* selectable */);
@@ -687,9 +691,9 @@ Flamechart.TimelineFlameChartDataProvider = class extends Common.Object {
     const type = this._entryType(entryIndex);
     if (type === entryTypes.Event) {
       const event = /** @type {!SDK.TracingModel.Event} */ (this._entryData[entryIndex]);
-      if (this._model.isGenericTrace())
+      if (!this._model || this._model.isGenericTrace())
         return this._genericTraceEventColor(event);
-      if (this._performanceModel.timelineModel().isMarkerEvent(event))
+      if (this._performanceModel && this._performanceModel.timelineModel().isMarkerEvent(event))
         return Flamechart.TimelineUIUtils.markerStyleForEvent(event).color;
       if (!SDK.TracingModel.isAsyncPhase(event.phase))
         return this._colorForEvent(event);
@@ -933,6 +937,9 @@ Flamechart.TimelineFlameChartDataProvider = class extends Common.Object {
   _appendEvent(event, level) {
     const index = this._entryData.length;
     this._entryData.push(event);
+    if (event.title){
+      this._entryIndexToTitle[index] = /** @type {string} */ (event.title);
+    }
     this._timelineData.entryLevels[index] = level;
     this._timelineData.entryTotalTimes[index] =
         event.duration || Flamechart.TimelineFlameChartDataProvider.InstantEventVisibleDurationMs;

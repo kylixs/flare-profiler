@@ -65,13 +65,15 @@ Flamechart.TimelineFlameChartView = class extends UI.VBox {
     this._updateCountersGraphToggle();
 
     // Create top level properties splitter.
-    this._detailsSplitWidget = new UI.SplitWidget(false, true, 'timelinePanelDetailsSplitViewState');
-    this._detailsSplitWidget.element.classList.add('timeline-details-split');
+    // this._detailsSplitWidget = new UI.SplitWidget(false, true, 'timelinePanelDetailsSplitViewState');
+    // this._detailsSplitWidget.element.classList.add('timeline-details-split');
     this._detailsView = new Flamechart.TimelineDetailsView(delegate);
-    this._detailsSplitWidget.installResizer(this._detailsView.headerElement());
-    this._detailsSplitWidget.setMainWidget(this._chartSplitWidget);
-    this._detailsSplitWidget.setSidebarWidget(this._detailsView);
-    this._detailsSplitWidget.show(this.element);
+    // this._detailsSplitWidget.installResizer(this._detailsView.headerElement());
+    // this._detailsSplitWidget.setMainWidget(this._chartSplitWidget);
+    // this._detailsSplitWidget.setSidebarWidget(this._detailsView);
+    // this._detailsSplitWidget.show(this.element);
+
+    this._chartSplitWidget.show(this.element);
 
     this._onMainEntrySelected = this._onEntrySelected.bind(this, this._mainDataProvider);
     // this._onNetworkEntrySelected = this._onEntrySelected.bind(this, this._networkDataProvider);
@@ -190,7 +192,7 @@ Flamechart.TimelineFlameChartView = class extends UI.VBox {
     this._detailsView.setModel(this._model, this._selectedTrack);
   }
 
-  _refresh() {
+   _refresh() {
     // if (this._networkDataProvider.isEmpty()) {
     //   this._mainFlameChart.enableRuler(true);
     //   this._networkSplitWidget.hideSidebar();

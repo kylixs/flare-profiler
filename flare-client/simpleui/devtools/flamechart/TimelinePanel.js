@@ -422,11 +422,11 @@ Flamechart.TimelinePanel = class extends UI.Panel {
         this._overviewControls.push(new Flamechart.TimelineEventOverviewResponsiveness());
         if (Runtime.experiments.isEnabled('inputEventsOnTimelineOverview'))
             this._overviewControls.push(new Flamechart.TimelineEventOverviewInput());
-        this._overviewControls.push(new Flamechart.TimelineEventOverviewFrames());
+        // this._overviewControls.push(new Flamechart.TimelineEventOverviewFrames());
         this._overviewControls.push(new Flamechart.TimelineEventOverviewCPUActivity());
-        this._overviewControls.push(new Flamechart.TimelineEventOverviewNetwork());
+        // this._overviewControls.push(new Flamechart.TimelineEventOverviewNetwork());
         if (this._showScreenshotsSetting.get() && this._performanceModel &&
-            this._performanceModel.filmStripModel().frames().length)
+            this._performanceModel.frames().length)
             this._overviewControls.push(new Flamechart.TimelineFilmStripOverview());
         if (this._showMemorySetting.get())
             this._overviewControls.push(new Flamechart.TimelineEventOverviewMemory());
@@ -814,6 +814,7 @@ Flamechart.TimelinePanel = class extends UI.Panel {
             entry.file(this._loadFromFile.bind(this));
         }
     }
+
 };
 
 /**
@@ -1142,4 +1143,61 @@ Flamechart.TimelinePanel._traceProviderSettingSymbol = Symbol('traceProviderSett
 function load_profile() {
     const panel = UI.context.flavor(Flamechart.TimelinePanel);
     panel._selectFileToLoad();
+}
+
+//create test event for flamechart
+function test_flame_chart() {
+    const panel = UI.context.flavor(Flamechart.TimelinePanel);
+    //hide loading mask
+    panel._hideLandingPage();
+
+    const chartView = panel._flameChart;
+    //chartView._refresh();
+
+    const dataProvider = chartView._mainDataProvider;
+
+    var _performanceModel = new Flamechart.SimplePerformanceModel();
+    panel._setModel(_performanceModel);
+
+    appendTestEvents(dataProvider, 1570524298.912, 100, 1, 'fun');
+    appendTestEvents(dataProvider, 1570524598.912, 250, 1, 'a');
+    appendTestEvents(dataProvider, 1570525398.912, 50, 1, 'b');
+
+
+    const minTime = dataProvider.minimumBoundary();
+    const maxTime = dataProvider.minimumBoundary() + dataProvider.totalTime();
+    const flameChart = chartView._mainFlameChart;
+    flameChart._chartViewport.setWindowTimes(minTime, maxTime);
+    flameChart.scheduleUpdate();
+
+
+    panel._overviewPane.setBounds(minTime, maxTime);
+    panel._overviewPane.setWindowTimes(minTime, maxTime);
+    panel._updateTimelineControls();
+}
+
+
+function appendTestEvents(dataProvider, startTime, duration, level, namePrefix){
+    dataProvider._appendEvent({
+        startTime: startTime,
+        duration: duration,
+        title: namePrefix+level,
+        hasCategory(categoryName) {
+            return categoryName == TimelineModel.TimelineModel.Category.Console;
+        }
+    }, level);
+    dataProvider.setEntryTypeByLevel(level, Flamechart.TimelineFlameChartDataProvider.EntryType.Event);
+    if (dataProvider._currentLevel < level+1){
+        dataProvider._currentLevel = level+1;
+    }
+    if (dataProvider._minimumBoundary==0 || dataProvider._minimumBoundary > startTime){
+        dataProvider._minimumBoundary = startTime;
+    }
+    if (dataProvider._minimumBoundary + dataProvider._timeSpan < startTime+duration){
+        dataProvider._timeSpan = startTime+duration - dataProvider._minimumBoundary;
+    }
+
+    if(duration > 1){
+        appendTestEvents(dataProvider, startTime+5, duration-5, level+1, namePrefix);
+    }
 }

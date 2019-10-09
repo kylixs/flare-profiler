@@ -227,6 +227,12 @@
 										</d3-flamegraph>
 									</div>
 								</div>
+								<div id="chrome_flame_chart" class="flame-container"  v-show="profiler.show_chrome_flame_chart">
+									<script type="module" src="devtools/root.js"></script>
+									<script defer src="devtools/Runtime.js"></script>
+									<script defer src="devtools/flamechart2.js"></script>
+									<div class="undocked" id="-blink-dev-tools"></div>
+								</div>
 							</div>
 						</td>
 					</tr>
@@ -413,9 +419,12 @@
 				show_history_samples: false,
 				show_message: false,
 				show_sessions: false,
+
 				show_call_tree: false,
-				show_flame_graph: true,
+				show_flame_graph: false,
 				show_d3_flame_graph: false,
+				show_chrome_flame_chart: true,
+
 				selected_thread_id: null,
 				stats_type: "duration",
 				flame_graph_state: {

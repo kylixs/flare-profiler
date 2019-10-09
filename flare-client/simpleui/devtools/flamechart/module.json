@@ -28,6 +28,7 @@
         "TimelineFlameChartView.js",
         "TimelineLoader.js",
         "PerformanceModel.js",
+        "SimplePerformanceModel.js",
         "TimelinePanel.js"
     ],
     "resources": [

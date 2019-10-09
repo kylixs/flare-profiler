@@ -361,7 +361,7 @@ Flamechart.TimelineFilmStripOverview = class extends Flamechart.TimelineEventOve
    */
   update() {
     super.update();
-    const frames = this._model ? this._model.filmStripModel().frames() : [];
+    const frames = this._model ? this._model.frames() : [];
     if (!frames.length)
       return;
 
@@ -400,9 +400,9 @@ Flamechart.TimelineFilmStripOverview = class extends Flamechart.TimelineEventOve
   _drawFrames(imageWidth, imageHeight) {
     if (!imageWidth || !this._model)
       return;
-    const filmStripModel = this._model.filmStripModel();
-    if (!filmStripModel.frames().length)
+    if (!this._model.frames().length)
       return;
+    const filmStripModel = this._model.filmStripModel();
     const padding = Flamechart.TimelineFilmStripOverview.Padding;
     const width = this.width();
     const zeroTime = filmStripModel.zeroTime();
