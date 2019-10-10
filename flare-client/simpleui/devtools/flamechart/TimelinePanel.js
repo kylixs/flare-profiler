@@ -1145,24 +1145,30 @@ function load_profile() {
     panel._selectFileToLoad();
 }
 
-//create test event for flamechart
-function test_flame_chart() {
+function init_flame_chart() {
     const panel = UI.context.flavor(Flamechart.TimelinePanel);
     //hide loading mask
     panel._hideLandingPage();
+
+    var _performanceModel = new Flamechart.SimplePerformanceModel();
+    panel._setModel(_performanceModel);
+    return panel;
+}
+
+function get_flame_chart_data_provider() {
+    const panel = UI.context.flavor(Flamechart.TimelinePanel);
 
     const chartView = panel._flameChart;
     //chartView._refresh();
 
     const dataProvider = chartView._mainDataProvider;
+    return dataProvider;
+}
 
-    var _performanceModel = new Flamechart.SimplePerformanceModel();
-    panel._setModel(_performanceModel);
-
-    appendTestEvents(dataProvider, 1570524298.912, 100, 1, 'fun');
-    appendTestEvents(dataProvider, 1570524598.912, 250, 1, 'a');
-    appendTestEvents(dataProvider, 1570525398.912, 50, 1, 'b');
-
+function update_flame_chart() {
+    const panel = UI.context.flavor(Flamechart.TimelinePanel);
+    const chartView = panel._flameChart;
+    const dataProvider = chartView._mainDataProvider;
 
     const minTime = dataProvider.minimumBoundary();
     const maxTime = dataProvider.minimumBoundary() + dataProvider.totalTime();
@@ -1170,18 +1176,37 @@ function test_flame_chart() {
     flameChart._chartViewport.setWindowTimes(minTime, maxTime);
     flameChart.scheduleUpdate();
 
-
     panel._overviewPane.setBounds(minTime, maxTime);
     panel._overviewPane.setWindowTimes(minTime, maxTime);
     panel._updateTimelineControls();
 }
 
+function set_flame_chart_data(root) {
+    init_flame_chart();
+    const dataProvider = get_flame_chart_data_provider();
 
-function appendTestEvents(dataProvider, startTime, duration, level, namePrefix){
+    append_stack_node(dataProvider, root, 0);
+
+    update_flame_chart();
+}
+
+function append_stack_node(dataProvider, node, level) {
+    if(level > 0){
+        append_event(dataProvider, node.start_time, node.duration, level, node.label);
+    }
+    if(node.children){
+        for (let i = 0; i < node.children.length; i++) {
+            child = node.children[i];
+            append_stack_node(dataProvider, child, level+1);
+        }
+    }
+}
+
+function append_event(dataProvider, startTime, duration, level, title) {
     dataProvider._appendEvent({
         startTime: startTime,
         duration: duration,
-        title: namePrefix+level,
+        title: title,
         hasCategory(categoryName) {
             return categoryName == TimelineModel.TimelineModel.Category.Console;
         }
@@ -1196,8 +1221,28 @@ function appendTestEvents(dataProvider, startTime, duration, level, namePrefix){
     if (dataProvider._minimumBoundary + dataProvider._timeSpan < startTime+duration){
         dataProvider._timeSpan = startTime+duration - dataProvider._minimumBoundary;
     }
+}
 
+//create test event for flamechart
+function test_flame_chart() {
+    init_flame_chart();
+
+    const dataProvider = get_flame_chart_data_provider();
+    let startTime = 1570524298.912;
+    for(var i=0;i<1000;i++){
+        let duration = Math.floor(Math.random() * 50)*10;
+        appendTestEvents(dataProvider, startTime , duration, 1, 'fun'+i+"_");
+        startTime = startTime+duration+5;
+    }
+
+    update_flame_chart();
+}
+
+function appendTestEvents(dataProvider, startTime, duration, level, namePrefix){
+    append_event(dataProvider, startTime, duration, level, namePrefix+level);
     if(duration > 1){
-        appendTestEvents(dataProvider, startTime+5, duration-5, level+1, namePrefix);
+        let duration2 = Math.floor(Math.random() * 10);
+        appendTestEvents(dataProvider, startTime+duration2, duration-duration2, level+1, namePrefix);
     }
 }
+

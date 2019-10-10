@@ -238,7 +238,7 @@ Flamechart.TimelineFlameChartDataProvider = class extends Common.Object {
   }
 
   _processInspectorTrace() {
-    this._appendFrames();
+    //this._appendFrames();
     this._appendInteractionRecords();
 
     const eventEntryType = Flamechart.TimelineFlameChartDataProvider.EntryType.Event;
