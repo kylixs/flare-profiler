@@ -272,7 +272,7 @@ impl JVMTI for JVMTIEnvironment {
     }
 
     fn get_all_stacktraces(&self, jvmenv: &Environment) -> Result<Vec<JavaStackTrace>, NativeError> {
-        let max_frame_count:jint = 100;
+        let max_frame_count:jint = 2000;
         let mut thread_count:jint = 0;
         let mut stack_info_ptr: *mut jvmtiStackInfo = ptr::null_mut();
         let mut stack_traces_list: Vec<JavaStackTrace> = vec![];

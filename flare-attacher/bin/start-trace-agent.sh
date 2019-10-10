@@ -14,7 +14,7 @@ AGENT_PATH=$PROJECT_PATH/../flare-agent/target/release/libflareagent$LIB_SUFFIX
 if [[ "$1" == "debug" ]];then
     AGENT_PATH=$PROJECT_PATH/../flare-agent/target/debug/libflareagent$LIB_SUFFIX
 fi
-AGENT_OPTS=trace=on
+AGENT_OPTS="trace=on,interval=2"
 
 if [[ "$JAVA_HOME" == ""  ]];then
   echo "Required system env: JAVA_HOME"
