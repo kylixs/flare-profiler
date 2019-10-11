@@ -217,20 +217,18 @@ var profiler = {
 
         for (let i = 0; i < data.thread_cpu_times.length; i++) {
             let thread = data.thread_cpu_times[i];
-            if (thread.total_cpu_time > 0) {
-                let ts_data = fill_ts_data(thread.ts_data, thread.start_time, thread.end_time, sess_start_time, sess_end_time, unit_time_ms);
+            let ts_data = fill_ts_data(thread.ts_data, thread.start_time, thread.end_time, sess_start_time, sess_end_time, unit_time_ms);
 
-                let myChart = create_echarts_bar("thread_cpu_chart_"+thread.id, ts_data);
-                myChart.on('datazoom', function (evt) {
-                    var axis = myChart.getModel().option.xAxis[0];
-                    // var starttime = axis.data[axis.rangeStart];
-                    // var endtime = axis.data[axis.rangeEnd];
-                    let start_time = sess_start_time + axis.rangeStart*unit_time_ms;
-                    let end_time = sess_start_time + axis.rangeEnd*unit_time_ms;
-                    console.log("datazoom: thread:",thread.id, ", index:", axis.rangeStart,"-", axis.rangeEnd,", time:", start_time,"-", end_time );
-                    profiler.update_stack_stats(thread.id, start_time, end_time, myChart);
-                })
-            }
+            let myChart = create_echarts_bar("thread_cpu_chart_"+thread.id, ts_data);
+            myChart.on('datazoom', function (evt) {
+                var axis = myChart.getModel().option.xAxis[0];
+                // var starttime = axis.data[axis.rangeStart];
+                // var endtime = axis.data[axis.rangeEnd];
+                let start_time = sess_start_time + axis.rangeStart*unit_time_ms;
+                let end_time = sess_start_time + axis.rangeEnd*unit_time_ms;
+                console.log("datazoom: thread:",thread.id, ", index:", axis.rangeStart,"-", axis.rangeEnd,", time:", start_time,"-", end_time );
+                profiler.update_stack_stats(thread.id, start_time, end_time, myChart);
+            });
             profiler.data.thread_cpu_time_map[thread.id] = thread;
         }
     },

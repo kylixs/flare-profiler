@@ -12,10 +12,14 @@ use super::super::native::{MutString, MutByteArray, JavaClass, JavaObject, JavaI
 use super::super::native::jvmti_native::{Struct__jvmtiThreadInfo, jvmtiCapabilities, jint, jvmtiStackInfo, jthread, jvmtiFrameInfo, jlong, jvmtiTimerInfo};
 use std::ptr;
 use native::jvmti_native::*;
-use std::os::raw::{c_char, c_uchar};
+use std::os::raw::{c_char, c_uchar, c_void};
 use native::{JavaMethod, JNIEnvPtr};
 use environment::jni::JNI;
 use environment::Environment;
+use std::collections::HashMap;
+use chrono::Local;
+use std::cell::{Cell, RefCell};
+use std::ops::Deref;
 
 
 ///
@@ -56,15 +60,23 @@ pub trait JVMTI {
     fn get_thread_cpu_timer_info(&self) -> Result<jvmtiTimerInfo, NativeError>;
     fn get_stack_trace(&self, thread_id: &JavaThread) -> Result<Vec<JavaStackFrame>, NativeError>;
 
+    fn get_thread_local_storage(&self, native_thread_id: &JavaThread) -> Result<Option<&mut ThreadInfo>, NativeError>;
+    fn set_thread_local_storage(&self, native_thread_id: &JavaThread, data: &mut ThreadInfo) -> Result<(), NativeError>;
 }
 
 pub struct JVMTIEnvironment {
-    jvmti: JVMTIEnvPtr
+    jvmti: JVMTIEnvPtr,
+    thread_info_map: RefCell<HashMap<JavaLong, ThreadInfo>>,
+    last_get_cpu_time: RefCell<i64>
 }
 
 impl JVMTIEnvironment {
     pub fn new(env_ptr: JVMTIEnvPtr) -> JVMTIEnvironment {
-        JVMTIEnvironment { jvmti: env_ptr }
+        JVMTIEnvironment {
+            jvmti: env_ptr,
+            thread_info_map: Default::default(),
+            last_get_cpu_time: Default::default()
+        }
     }
 }
 
@@ -272,6 +284,12 @@ impl JVMTI for JVMTIEnvironment {
     }
 
     fn get_all_stacktraces(&self, jvmenv: &Environment) -> Result<Vec<JavaStackTrace>, NativeError> {
+        let t0 = Local::now().timestamp_millis();
+        let update_cpu_time = (t0 - self.last_get_cpu_time.borrow().deref()) > 50;
+        if update_cpu_time {
+            *self.last_get_cpu_time.borrow_mut() = t0;
+        }
+
         let max_frame_count:jint = 2000;
         let mut thread_count:jint = 0;
         let mut stack_info_ptr: *mut jvmtiStackInfo = ptr::null_mut();
@@ -281,32 +299,58 @@ impl JVMTI for JVMTIEnvironment {
                 NativeError::NoError => {
                     let count: usize = thread_count as usize;
                     let stack_info_array = unsafe { std::slice::from_raw_parts(stack_info_ptr, count ) };
+                    let mut thread_info_map =  self.thread_info_map.borrow_mut();
                     //enumerate thread stacks
                     for i in 0..count {
                         let stack_info = stack_info_array[i];
 
-                        let mut cpu_time: i64 = 0_i64;
-                        //if std::time::Instant::now()
-                        if let Ok(t) = jvmenv.get_thread_cpu_time(&stack_info.thread) {
-                            cpu_time = t;
-                            //ignore inactive thread call
-                            if cpu_time == 0_i64 {
-                                jvmenv.delete_local_ref(stack_info.thread);
-                                continue;
+                        //get thread info
+                        let java_thread_id = jvmenv.get_thread_id(&stack_info.thread);
+                        let mut thread_info = thread_info_map.get_mut(&java_thread_id);
+                        let mut is_new_thread = false;
+                        if thread_info.is_none() {
+                            is_new_thread = true;
+                            let mut new_thread_info;
+                            match jvmenv.get_thread_info_ex(&stack_info.thread) {
+                                Ok(v) => {
+                                    new_thread_info = v;
+                                    println!("get_thread_info_ex: java_thread_id: {}, name: {}", java_thread_id, new_thread_info.name);
+                                },
+                                Err(e) => {
+                                    println!("get_thread_info_ex failed: {:?}, java_thread_id: {}", e, java_thread_id);
+                                    jvmenv.delete_local_ref(stack_info.thread);
+                                    continue;
+                                }
                             }
-                        } else {
-                            println!("get_thread_cpu_time error");
+                            thread_info_map.insert(java_thread_id, new_thread_info);
+                            thread_info = thread_info_map.get_mut(&java_thread_id);
+                        }
+                        let thread_info = thread_info.unwrap();
+
+                        //get thread cpu time
+                        let mut cpu_time: i64 = thread_info.cpu_time;
+                        if update_cpu_time || is_new_thread {
+                            if let Ok(t) = jvmenv.get_thread_cpu_time(&stack_info.thread) {
+                                cpu_time = t;
+                                //ignore inactive thread call
+//                                if cpu_time == 0_i64 {
+//                                    jvmenv.delete_local_ref(stack_info.thread);
+//                                    continue;
+//                                }
+                            } else {
+                                println!("get_thread_cpu_time error");
+                            }
                         }
 
                         //get thread info and release thread local ref
-                        let thread_info = jvmenv.get_thread_info_ex(&stack_info.thread).unwrap();
+                        //let thread_info = jvmenv.get_thread_info_ex(&stack_info.thread).unwrap();
                         jvmenv.delete_local_ref(stack_info.thread);
 
                         let mut stack_trace = JavaStackTrace{
-                            thread: thread_info,
+                            thread: thread_info.clone(),
                             state: stack_info.state,
-                            frame_buffer: vec![],
-                            cpu_time: cpu_time
+                            frame_buffer: Vec::with_capacity(stack_info.frame_count as usize),
+                            cpu_time
                         };
 
                         let stack_frames = unsafe { std::slice::from_raw_parts(stack_info.frame_buffer,stack_info.frame_count as usize) };
@@ -402,6 +446,33 @@ impl JVMTI for JVMTIEnvironment {
         }
     }
 
+    fn get_thread_local_storage(&self, native_thread_id: &JavaThread) -> Result<Option<&mut ThreadInfo>, NativeError> {
+        let mut thread_info_ptr: *mut ThreadInfo = ptr::null_mut();
+        unsafe {
+            match wrap_error((**self.jvmti).GetThreadLocalStorage.unwrap()(self.jvmti, *native_thread_id, &mut (thread_info_ptr as *mut c_void))){
+                NativeError::NoError => {
+                    if thread_info_ptr.is_null() {
+                        Ok(None)
+                    }else {
+                        let thread_info = unsafe { &mut *thread_info_ptr };
+                        Ok(Some(thread_info))
+                    }
+                },
+                err @ _ => Err(err)
+            }
+        }
+    }
+
+    fn set_thread_local_storage(&self, native_thread_id: &JavaThread, data: &mut ThreadInfo) -> Result<(), NativeError> {
+        unsafe {
+            match wrap_error((**self.jvmti).SetThreadLocalStorage.unwrap()(self.jvmti, *native_thread_id, data as *mut ThreadInfo as *mut c_void)){
+                NativeError::NoError => {
+                    Ok(())
+                },
+                err @ _ => Err(err)
+            }
+        }
+    }
 }
 
 #[derive(Eq, PartialEq, Hash, Clone, Debug)]
@@ -424,3 +495,4 @@ pub struct JavaStackFrame {
     pub method: JavaMethod,
     pub location: JavaLong,
 }
+

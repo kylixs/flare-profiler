@@ -45,6 +45,7 @@ impl Environment {
                 self.call_long_method(thread_id.clone(), method_id)
             },
             None => {
+                println!("find class: java/lang/Thread");
                 let thread_class = self.jni.find_class("java/lang/Thread");
                 let get_id_method = self.jni.get_method_id(thread_class.native_id, "getId", "()J");
                 self.thread_get_id_method.set(Some(get_id_method.clone()));
