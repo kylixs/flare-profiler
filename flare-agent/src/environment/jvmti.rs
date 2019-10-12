@@ -20,6 +20,7 @@ use std::collections::HashMap;
 use chrono::Local;
 use std::cell::{Cell, RefCell};
 use std::ops::Deref;
+use std::borrow::BorrowMut;
 
 
 ///
@@ -61,12 +62,13 @@ pub trait JVMTI {
     fn get_stack_trace(&self, thread_id: &JavaThread) -> Result<Vec<JavaStackFrame>, NativeError>;
 
     fn get_thread_local_storage(&self, native_thread_id: &JavaThread) -> Result<Option<&mut ThreadInfo>, NativeError>;
-    fn set_thread_local_storage(&self, native_thread_id: &JavaThread, data: &mut ThreadInfo) -> Result<(), NativeError>;
+    fn set_thread_local_storage(&self, native_thread_id: &JavaThread, data: *mut ThreadInfo) -> Result<(), NativeError>;
 }
 
 pub struct JVMTIEnvironment {
     jvmti: JVMTIEnvPtr,
-    thread_info_map: RefCell<HashMap<JavaLong, ThreadInfo>>,
+    thread_info_map: RefCell<HashMap<JavaLong, Box<ThreadInfo>>>,
+//    thread_info_vec: RefCell<Vec<ThreadInfo>>,
     last_get_cpu_time: RefCell<i64>
 }
 
@@ -75,6 +77,7 @@ impl JVMTIEnvironment {
         JVMTIEnvironment {
             jvmti: env_ptr,
             thread_info_map: Default::default(),
+//            thread_info_vec: Default::default(),
             last_get_cpu_time: Default::default()
         }
     }
@@ -285,7 +288,7 @@ impl JVMTI for JVMTIEnvironment {
 
     fn get_all_stacktraces(&self, jvmenv: &Environment) -> Result<Vec<JavaStackTrace>, NativeError> {
         let t0 = Local::now().timestamp_millis();
-        let update_cpu_time = (t0 - self.last_get_cpu_time.borrow().deref()) > 50;
+        let update_cpu_time = (t0 - self.last_get_cpu_time.borrow().deref()) > 200;
         if update_cpu_time {
             *self.last_get_cpu_time.borrow_mut() = t0;
         }
@@ -300,38 +303,78 @@ impl JVMTI for JVMTIEnvironment {
                     let count: usize = thread_count as usize;
                     let stack_info_array = unsafe { std::slice::from_raw_parts(stack_info_ptr, count ) };
                     let mut thread_info_map =  self.thread_info_map.borrow_mut();
+                    //let mut thread_info_vec =  self.thread_info_vec.borrow_mut();
                     //enumerate thread stacks
                     for i in 0..count {
                         let stack_info = stack_info_array[i];
 
                         //get thread info
-                        let java_thread_id = jvmenv.get_thread_id(&stack_info.thread);
-                        let mut thread_info = thread_info_map.get_mut(&java_thread_id);
                         let mut is_new_thread = false;
-                        if thread_info.is_none() {
-                            is_new_thread = true;
-                            let mut new_thread_info;
-                            match jvmenv.get_thread_info_ex(&stack_info.thread) {
-                                Ok(v) => {
-                                    new_thread_info = v;
-                                    println!("get_thread_info_ex: java_thread_id: {}, name: {}", java_thread_id, new_thread_info.name);
-                                },
-                                Err(e) => {
-                                    println!("get_thread_info_ex failed: {:?}, java_thread_id: {}", e, java_thread_id);
-                                    jvmenv.delete_local_ref(stack_info.thread);
-                                    continue;
+                        let thread_info;
+                        match self.get_thread_local_storage(&stack_info.thread) {
+                            Ok(v) => {
+                                match v {
+                                    Some(x) => {
+                                        thread_info = x;
+                                        //println!("get_thread_local_storage ok, native_thread_id: {:?}, data:{:?}", stack_info.thread, thread_info);
+                                    },
+                                    None => {
+                                        is_new_thread = true;
+                                        let mut new_thread_info;
+                                        //let java_thread_id = jvmenv.get_thread_id(&stack_info.thread);
+                                        match jvmenv.get_thread_info_ex(&stack_info.thread) {
+                                            Ok(v) => {
+                                                new_thread_info = v;
+                                                println!("get_thread_info_ex: thread_id: {}, name: {}", new_thread_info.thread_id, new_thread_info.name);
+                                            },
+                                            Err(e) => {
+                                                println!("get_thread_info_ex failed: {:?}, native_thread_id: {:?}", e, stack_info.thread);
+                                                jvmenv.delete_local_ref(stack_info.thread);
+                                                continue;
+                                            }
+                                        }
+
+                                        let java_thread_id = new_thread_info.thread_id;
+                                        //save new_thread_info to heap with box
+                                        let mut info = Box::new(new_thread_info);
+                                        //get raw pointer
+                                        let thread_info_ptr = info.borrow_mut() as * mut ThreadInfo;
+                                        //println!("new_thread_info: {:?}, data:{:?}", thread_info_ptr, *thread_info_ptr);
+
+                                        thread_info_map.insert(java_thread_id, info );
+                                        //thread_info = thread_info_map.get_mut(&java_thread_id).unwrap().borrow_mut();
+                                        thread_info = unsafe{ &mut *thread_info_ptr };
+
+                                        //thread_info_vec.push(new_thread_info);
+                                        //thread_info = thread_info_vec.last_mut().unwrap();
+
+//                                        let thread_info_ptr = thread_info as * mut ThreadInfo;
+//                                        println!("set_thread_local_storage, thread_info_ptr:{:?}", thread_info_ptr);
+
+//                                        let a = unsafe{ &mut *thread_info_ptr};
+//                                        println!("convert thread_info_ptr: {:?}", a);
+                                        match self.set_thread_local_storage(&stack_info.thread, thread_info_ptr) {
+                                            Ok(_) => {
+                                            },
+                                            Err(e) => {
+                                                println!("set_thread_local_storage failed: {:?}, thread_info_ptr:{:?}", e, thread_info_ptr);
+                                            },
+                                        }
+                                    },
                                 }
-                            }
-                            thread_info_map.insert(java_thread_id, new_thread_info);
-                            thread_info = thread_info_map.get_mut(&java_thread_id);
+                            },
+                            Err(e) => {
+                                println!("get_thread_local_storage failed: {:?}, native_thread_id: {:?}", e, stack_info.thread);
+                                continue;
+                            },
                         }
-                        let thread_info = thread_info.unwrap();
 
                         //get thread cpu time
                         let mut cpu_time: i64 = thread_info.cpu_time;
                         if update_cpu_time || is_new_thread {
                             if let Ok(t) = jvmenv.get_thread_cpu_time(&stack_info.thread) {
                                 cpu_time = t;
+                                thread_info.cpu_time = t;
                                 //ignore inactive thread call
 //                                if cpu_time == 0_i64 {
 //                                    jvmenv.delete_local_ref(stack_info.thread);
@@ -448,13 +491,16 @@ impl JVMTI for JVMTIEnvironment {
 
     fn get_thread_local_storage(&self, native_thread_id: &JavaThread) -> Result<Option<&mut ThreadInfo>, NativeError> {
         let mut thread_info_ptr: *mut ThreadInfo = ptr::null_mut();
+        let mut thread_info_ptr_ptr: *mut *mut ThreadInfo = &mut thread_info_ptr;
         unsafe {
-            match wrap_error((**self.jvmti).GetThreadLocalStorage.unwrap()(self.jvmti, *native_thread_id, &mut (thread_info_ptr as *mut c_void))){
+            match wrap_error((**self.jvmti).GetThreadLocalStorage.unwrap()(self.jvmti, *native_thread_id, thread_info_ptr_ptr as *mut *mut c_void)){
                 NativeError::NoError => {
+                    //println!("get_thread_local_storage: {:?}", thread_info_ptr);
                     if thread_info_ptr.is_null() {
                         Ok(None)
                     }else {
-                        let thread_info = unsafe { &mut *thread_info_ptr };
+                        let thread_info  = unsafe { &mut **thread_info_ptr_ptr};
+                        //println!("get_thread_local_storage: {:?}, data: {:?}", thread_info_ptr, thread_info);
                         Ok(Some(thread_info))
                     }
                 },
@@ -463,9 +509,9 @@ impl JVMTI for JVMTIEnvironment {
         }
     }
 
-    fn set_thread_local_storage(&self, native_thread_id: &JavaThread, data: &mut ThreadInfo) -> Result<(), NativeError> {
+    fn set_thread_local_storage(&self, native_thread_id: &JavaThread, data: *mut ThreadInfo) -> Result<(), NativeError> {
         unsafe {
-            match wrap_error((**self.jvmti).SetThreadLocalStorage.unwrap()(self.jvmti, *native_thread_id, data as *mut ThreadInfo as *mut c_void)){
+            match wrap_error((**self.jvmti).SetThreadLocalStorage.unwrap()(self.jvmti, *native_thread_id, data as *mut c_void)){
                 NativeError::NoError => {
                     Ok(())
                 },
