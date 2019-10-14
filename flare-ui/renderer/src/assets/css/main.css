@@ -32,3 +32,7 @@ ul,ol,li{list-style: none;}
 
 .el-dialog__body{padding: 0px 0px;color: #606266;font-size: 14px;word-break: break-all;}
 .routerBox{margin: 10px 35px;}
+.height100{height: 100%}
+.widthPortion30{width: 30%}
+.widthPortion60{width: 60%}
+.widthPortion100{width: 100%}

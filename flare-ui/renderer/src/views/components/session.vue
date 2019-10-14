@@ -1,5 +1,27 @@
 <template>
-    <div class="session">
+    <div class="session height100"><!--{{curSessionInfo}}&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;<br/>{{sessionSampleInfo}}-->
+        <div>
+            <div>
+                <div style="margin-left: 25px;" class="pull-left widthPortion30">
+                    Sample Start Time: {{curSessionInfo.sample_start_time}}
+                </div>
+                <div style="padding-left: 100px;" class="pull-left widthPortion60">
+                    Record Start Time: {{curSessionInfo.record_start_time}}
+                </div>
+                <div style="clear: both"></div>
+            </div>
+            <div class="mg10">
+                <div style="margin-left: 15px;" class="pull-left widthPortion30">
+                    Record Duration:
+                    <span v-if="curSessionInfo.last_record_time != '' && curSessionInfo.record_start_time">{{(curSessionInfo.last_record_time - curSessionInfo.record_start_time)/1000}}s</span>
+                </div>
+                <div style="padding-left: 107px;" class="pull-left widthPortion60">
+                    Last Record Time: {{curSessionInfo.last_record_time}}
+                </div>
+                <div style="clear: both"></div>
+            </div>
+        </div>
+
         <div class="el-header">
             <el-tabs v-model="flareTabsValue" type="card" @tab-click="handleClick" @tab-remove="closeCall">
                 <el-tab-pane
@@ -12,11 +34,11 @@
                 </el-tab-pane>
             </el-tabs>
         </div>
-        <div class="routerBox">
+        <div class="routerBox height100">
             <!--<keep-alive>-->
                 <!--<router-view v-if="this.$router.meat.keepAlive" :key="$route.fullPath"></router-view>-->
             <!--</keep-alive>-->
-            <router-view ></router-view>
+            <router-view></router-view>
         </div>
     </div>
 </template>
@@ -46,7 +68,8 @@
                         router: '/search',
                         closable: false
                     },
-                ]
+                ],
+                curSessionInfo:{}, // 当前会话信息
             }
         },
         computed: {
@@ -64,6 +87,9 @@
             },
             sessionCallTabs() {
                 return this.$store.state.sessionCallTabs;
+            },
+            sessionSampleInfo() {
+                return this.$store.state.sessionSampleInfo;
             },
         },
         /*activated(){
@@ -85,7 +111,6 @@
                 tabsValueArray.push(tabsInfo);
                 this.$store.commit('session_tabs_value', tabsValueArray);
 
-                debugger
                 let router = this.sessionInfo + curTab.router;
                 /*if (curTab.router != '/dashboard' && curTab.router != '/cpu' &&) {
                     router = this.sessionInfo + curTab.router;// + "/call"
@@ -95,7 +120,6 @@
                 this.$router.push({
                     path:`/${router}`
                 });
-                console.log(router)
             },
             closeCall(name) {
                 this.flareTabs = this.flareTabs.filter((item => {
@@ -136,8 +160,11 @@
                 });
             },
             initSessionTabs(){
-                debugger
                 this.setCallTabs();
+
+                // 初始化当前会话信息
+                this.initCurSessionInfo();
+
                 let routerValue = '/dashboard';
                 this.flareTabsValue = 'dashboard';
                 if (this.sessionTabsValue.length > 0) {
@@ -205,6 +232,14 @@
                     })
                 }
             },
+            initCurSessionInfo() {
+                this.curSessionInfo = {};
+                this.sessionSampleInfo.filter(item => {
+                    if (item.sessionId == this.sessionInfo) {
+                        this.curSessionInfo = item.sessionSample;
+                    }
+                })
+            }
         },
         watch:{
             '$route': function (to, from) {

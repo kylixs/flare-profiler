@@ -73,15 +73,17 @@
         methods: {
             selectCurRow(row, column, event){
 
+                // 同一sessionId下所有标签页数据
                 let tabsValueArray = this.sessionTabsValue.filter(item => {
                     if (item.sessionId != this.sessionId) {
                         return item
                     }
                 });
+                // 当前选中的数据，需要打开标签页的数据
                 let tabsInfo = {sessionId: this.sessionId, tabsValue: row.id + '', routerValue: '/call/' + row.id}
                 tabsValueArray.push(tabsInfo);
-                this.$store.commit('session_tabs_value', tabsValueArray);
 
+                // 同一sessionId下不能线程id的记录
                 let cpuRowList = [];
                 let sessionCpuRowArray = this.selectCpuRow.filter(item => {
                     if (item.sessionId != this.sessionId) {
@@ -95,15 +97,13 @@
                         })
                     }
                 });
-
+                // 当前选中的线程信息
                 cpuRowList.push({threadName: row.id, threadInfo: row});
 
                 let selectRowInfo = {sessionId: this.sessionId, selectRow: cpuRowList};
                 sessionCpuRowArray.push(selectRowInfo);
-                this.$store.commit('select_cpu_row', sessionCpuRowArray);
 
                 let callTabs = [];
-
                 let callTab = {
                     title: row.name,
                     name: row.id + '',
@@ -122,9 +122,18 @@
                     }
                 });
 
+                // 限制同一会话下最多只能打开5个标签页
+                if (callTabs.length >= 5) {
+                    this.$notify({type:'warning', title:'提示', message: '同一会话下最多只能打开5个标签页'})
+                    return false;
+                }
+
                 callTabs.push(callTab)
                 let sessionCalls = {sessionId: this.sessionId, callTabs: callTabs};
                 callTabsArray.push(sessionCalls)
+
+                this.$store.commit('session_tabs_value', tabsValueArray);
+                this.$store.commit('select_cpu_row', sessionCpuRowArray);
                 this.$store.commit('session_call_tabs', callTabsArray);
             },
             select_thread(thread_id) {
@@ -137,6 +146,8 @@
                             return item;
                         }
                     });
+                    debugger
+                    this.threads = [];
                     if (threadsInfo.length > 0) {
                         this.threads = threadsInfo[0].threads;
                     }
@@ -156,7 +167,7 @@
                 if (cpuTimeArray.length <= 0) {
                     return false;
                 }
-                console.log('当前cpu time：', cpuTimeArray);
+
                 let data = cpuTimeArray[0].cpuTimeData;
 
                 if (!data) {
@@ -280,9 +291,18 @@
         },
         watch: {
             '$route': (to, from) => {
-                if (!this.sessionThreads || this.sessionThreads.length <= 0) {
+                /*debugger
+                if (this.sessionThreads) {
+                    this.getThreads();
+                } else {
                     this.$router.push('/samples')
-                }
+                }*/
+            },
+            sessionId () {
+                this.getThreads();
+                this.$nextTick(()=>{
+                    this.on_cpu_time_result();
+                })
             }
         }
     }

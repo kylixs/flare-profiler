@@ -1,6 +1,6 @@
 <template>
-    <div class="session">
-        <div id="flame_graph" v-show="show_flame_graph">
+    <div class="session height100">
+        <div id="flame_graph height100" v-show="show_flame_graph" class="height100">
             <!--<el-select v-model="selectValue" style="width: 100%">
                 <el-option
                         v-for="item in threads"
@@ -29,7 +29,14 @@
                 </el-table-column>
             </el-table>
             <!--<h4 class="title">Flame Graph</h4>-->
-            <div id="flame_graph_svg" style="margin-top: 20px;" v-html="flame_graph_data"></div>
+            <!--<div id="flame_graph_svg" style="margin-top: 20px;" v-html="flame_graph_data"></div>-->
+            <div id="chrome_flame_chart_container" class="flame-container height100"  v-show="show_chrome_flame_chart">
+                <!--<iframe id="chrome_flame_chart" src="/static/devtools/flamechart.html"></iframe>-->
+                <iframe v-bind:id="'chrome_flame_chart_'+callName+''"
+                        frameborder="no"
+                        scrolling="no"
+                        src="plugins/devtools/flamechart.html" height="100%" width="100%"></iframe>
+            </div>
         </div>
     </div>
 </template>
@@ -39,6 +46,7 @@
         name: 'call',
         data() {
             return {
+                show_chrome_flame_chart:true,
                 show_flame_graph: true,
                 flame_graph_data: "",
                 selectCpuRowArray:[],
@@ -88,7 +96,11 @@
         mounted(){
             this.$nextTick(()=>{
                 this.on_cpu_time_result();
-                this.mousewheelGraph();
+                setTimeout(()=>{
+                    this.initPosition();
+                }, 1000)
+                // this.mousewheelGraph();
+                // this.getFlameGraphData();
             })
         },
         /*activated(){
@@ -101,12 +113,24 @@
             this.getFlameGraphData();
         },
         methods: {
+            get_chrome_flame_chart() {
+                let contentWindow = document.getElementById("chrome_flame_chart_" + this.callName).contentWindow;
+                console.log('contentWindow', contentWindow);
+                return contentWindow;
+            },
             getFlameGraphData(){
                 let flareGrapList = this.sessionFlameGraph.filter(item => {
                     if (item.sessionId == this.sessionId) {
                         item.flameGraphList.filter(item1 => {
-                            if (item1.threadId == this.callName) {
-                                this.flame_graph_data = item1.flameGraphData.flame_graph_data;
+                            if (item1.threadId == this.callName && item1.flameGraphData) {
+                                this.$nextTick(()=>{
+                                    let contentWindow = this.get_chrome_flame_chart();
+                                    try {
+                                        contentWindow.set_flame_chart_data(item1.flameGraphData);
+                                    } catch (e) {
+                                        console.log('set_flame_chart_data 函数不存在', e);
+                                    }
+                                })
                             }
                         })
                     }
@@ -233,6 +257,7 @@
                 this.saveEchartsDataZoomPosition(curDataZoomPosition);
 
                 this.update_call_stack_tree(this.curChartInfo.threadId, startTime, endTime);
+                //this.update_d3_flame_graph(this.curChartInfo.threadId, startTime, endTime);
             },
             initPosition() {
                 let dataZoomPositionArray = this.echartsDataZoomPosition.filter(item => {
@@ -254,6 +279,10 @@
                     this.curChartInfo = {...dataZoomPosition}
                     this.dataZoomStart = dataZoomPosition.dataZoomStart | 0;
                     this.dataZoomEnd = dataZoomPosition.dataZoomEnd | 10;
+                    /*threadId: thread.id,
+                        start_time:start_time,
+                        end_time: end_time,*/
+                    this.update_d3_flame_graph(this.curChartInfo.threadId, this.curChartInfo.start_time, this.curChartInfo.end_time);
                 }
             },
             saveEchartsDataZoomPosition(curDataZoomPosition){
@@ -340,7 +369,8 @@
                         this.saveEchartsDataZoomPosition(curDataZoomPosition);
 
                         console.log("datazoom: thread:",thread.id, ", index:", axis.rangeStart,"-", axis.rangeEnd,", time:", start_time,"-", end_time );
-                        this.update_call_stack_tree(thread.id, start_time, end_time);
+                        // this.update_call_stack_tree(thread.id, start_time, end_time);
+                        this.update_d3_flame_graph(thread.id, start_time, end_time);
                     })
                 }
             },
@@ -352,6 +382,19 @@
                         "thread_id": thread_id,
                         "start_time": start_time,
                         "end_time": end_time
+                    }
+                };
+                this.$webSocket.webSocketSendMessage(JSON.stringify(request));
+            },
+            update_d3_flame_graph(thread_id, start_time, end_time) {
+                var request = {
+                    "cmd": "d3_flame_graph",
+                    "options": {
+                        "session_id": this.sessionId,
+                        "thread_id": thread_id,
+                        "start_time": start_time,
+                        "end_time": end_time,
+                        "stats_type": 'duration'
                     }
                 };
                 this.$webSocket.webSocketSendMessage(JSON.stringify(request));
@@ -444,8 +487,18 @@
                     this.sessionFlameGraph.filter(item => {
                         if (item.sessionId == this.sessionId) {
                             item.flameGraphList.filter(item1 => {
-                                if (item1.threadId == this.callName) {
-                                    this.flame_graph_data = item1.flameGraphData.flame_graph_data;
+                                if (item1.threadId == this.callName && item1.flameGraphData) {
+                                    console.log('flame_graph_data',item1.flameGraphData)
+                                    setTimeout(()=>{
+                                        this.$nextTick(()=>{
+                                            let contentWindow = this.get_chrome_flame_chart();
+                                            try {
+                                                contentWindow.set_flame_chart_data(item1.flameGraphData)
+                                            } catch (e) {
+                                                console.log('set_flame_chart_data 函数不存在', e)
+                                            }
+                                        })
+                                    }, 1000)
                                 }
                             })
                         }
@@ -454,10 +507,15 @@
             },
             callName() {
                 this.getFlameGraphData();
-                this.$nextTick(()=>{
-                    this.on_cpu_time_result();
-                })
             },
+            sessionId(){
+                this.nextTick(()=>{
+                    this.on_cpu_time_result();
+                    setTimeout(()=>{
+                        this.initPosition();
+                    },1000)
+                })
+            }
         }
     }
 </script>

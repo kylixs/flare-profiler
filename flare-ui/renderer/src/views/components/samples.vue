@@ -227,7 +227,7 @@
                     case "call_tree":
                         break;
                     case "flame_graph":
-                        if (json.data.flame_graph_data) {
+                        /*if (json.data.flame_graph_data) {
                             let graphInfoList = [];
                             let flameGraphList = this.sessionFlameGraph.filter(item => {
                                 if (item.sessionId != sessionId) {
@@ -248,8 +248,33 @@
                             };
                             flameGraphList.push(graphInfo);
                             this.$store.commit('session_flame_graph', flameGraphList)
-                        }
+                        }*/
                         //profiler.data.flame_graph_svg="data:image/svg+xml;utf8,"+json.data.flame_graph_data.replace(/<\?xml.*?\>.*\<!DOCTYPE.*\<svg/, "<svg");
+                        break;
+                    case "d3_flame_graph":
+                        let stack = json.data.d3_flame_graph_stacks;
+                        if (stack) {
+                            let graphInfoList = [];
+                            let flameGraphList = this.sessionFlameGraph.filter(item => {
+                                if (item.sessionId != sessionId) {
+                                    return item;
+                                } else {
+                                    item.flameGraphList.filter(item1 => {
+                                        if (item1.threadId != json.data.thread_id) {
+                                            graphInfoList.push(item1);
+                                        }
+                                    })
+                                }
+                            });
+
+                            graphInfoList.push({threadId: json.data.thread_id, flameGraphData: stack});
+                            let graphInfo = {
+                                sessionId: sessionId,
+                                flameGraphList: graphInfoList
+                            };
+                            flameGraphList.push(graphInfo);
+                            this.$store.commit('session_flame_graph', flameGraphList)
+                        }
                         break;
                     default:
                         console.log("unknown message: ", json);

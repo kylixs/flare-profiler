@@ -1,7 +1,7 @@
 <template>
     <div class="session">
         <div id="dashboard">
-            <el-table :data="threads" stripe style="width: 100%">
+            <el-table :data="threads" stripe class="widthPortion100">
                 <el-table-column prop="id" label="ID"></el-table-column>
                 <el-table-column prop="name" label="Name"></el-table-column>
                 <el-table-column prop="group" label="Group"></el-table-column>
@@ -56,6 +56,7 @@
                             return item;
                         }
                     });
+                    this.threads = [];
                     if (threadsInfo.length > 0) {
                         this.threads = threadsInfo[0].threads;
                     }
@@ -75,6 +76,9 @@
         watch: {
             '$route': (to, from) => {
 
+            },
+            sessionId(){
+                this.getThreads();
             }
         }
     }

@@ -89,7 +89,6 @@
                 });
                 let tabsInfo = {sessionId: this.sessionId, tabsValue: row.id + '', routerValue: '/call/' + row.id}
                 tabsValueArray.push(tabsInfo);
-                this.$store.commit('session_tabs_value', tabsValueArray);
 
                 let cpuRowList = [];
                 let sessionCpuRowArray = this.selectCpuRow.filter(item => {
@@ -109,7 +108,6 @@
 
                 let selectRowInfo = {sessionId: this.sessionId, selectRow: cpuRowList};
                 sessionCpuRowArray.push(selectRowInfo);
-                this.$store.commit('select_cpu_row', sessionCpuRowArray);
 
                 let callTabs = [];
 
@@ -131,9 +129,18 @@
                     }
                 });
 
+                // 限制同一会话下最多只能打开5个标签页
+                if (callTabs.length >= 5) {
+                    this.$notify({type:'warning', title:'提示', message: '同一会话下最多只能打开5个标签页'})
+                    return false;
+                }
+
                 callTabs.push(callTab)
                 let sessionCalls = {sessionId: this.sessionId, callTabs: callTabs};
                 callTabsArray.push(sessionCalls)
+
+                this.$store.commit('session_tabs_value', tabsValueArray);
+                this.$store.commit('select_cpu_row', sessionCpuRowArray);
                 this.$store.commit('session_call_tabs', callTabsArray);
             },
             select_thread(thread_id) {
@@ -146,6 +153,7 @@
                             return item;
                         }
                     });
+                    this.threads = [];
                     if (threadsInfo.length > 0) {
                         this.threads = threadsInfo[0].threads;
                     }
@@ -289,9 +297,16 @@
         },
         watch: {
             '$route': (to, from) => {
-                if (!this.sessionThreads || this.sessionThreads.length <= 0) {
+                /*console.log('sessionThreads===', this.sessionThreads)
+                if (this.sessionThreads.length <= 0) {
                     this.$router.push('/samples')
-                }
+                }*/
+            },
+            sessionId() {
+                this.getThreads();
+                this.$nextTick(()=>{
+                    this.on_cpu_time_result();
+                })
             }
         }
     }

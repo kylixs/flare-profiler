@@ -1,5 +1,5 @@
 <template>
-    <div class="home">
+    <div class="home height100">
         <div class="el-header">
             <el-tabs v-model="flareTabsValue" type="card" @tab-click="handleClick" @tab-remove="close_session">
                 <el-tab-pane
@@ -13,7 +13,7 @@
                 </el-tab-pane>
             </el-tabs>
         </div>
-        <div class="routerBox">
+        <div class="routerBox height100">
             <!--<keep-alive>-->
                 <router-view :key="$router.fullPath"></router-view>
             <!--</keep-alive>-->

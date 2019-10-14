@@ -29,7 +29,7 @@ export default {
         return msg;
     },
     webSocketSendMessage:function(msg){
+        console.log("websocket发送消息：" + msg);
         webSocket.send(msg);
-        //console.log("websocket发送消息：" + msg);
     },
 }
