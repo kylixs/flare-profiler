@@ -640,7 +640,7 @@ impl SamplerClient {
                 }
             });
         });
-        println!("thread: {}, load stacktrace cost:{}, count:{}", thread_id, sw.lap(), thread_data_vec.len());
+        println!("thread: {}, load stacktrace cost:{}, count:{}, step: {} - {}", thread_id, sw.lap(), thread_data_vec.len(), start_step, end_step);
 
         let mut next_sample_time = 0;
         for thread_data in thread_data_vec.iter_mut().rev() {

@@ -50,6 +50,8 @@ var profiler = {
     connected: false,
     agent_addr: "localhost:3333",
     profiler_addr: "localhost:3344",
+    // profiler_addr: "192.168.2.220:3344",
+    socket: null,
     sample_dir: null,
     dashboard_timer: null,
     show_history_samples: false,
@@ -89,6 +91,46 @@ var profiler = {
         flame_graph_svg: "",
         flame_graph_data: ""
     },
+    parse_host(url){
+        var s = url.indexOf('://');
+        var p = url.indexOf('/', s+3);
+        var addr = url.substring(s+3, p);
+
+        var p2 = addr.indexOf(':');
+        if (p2 != -1){
+            return addr.substring(0, p2);
+        }
+        return addr;
+    },
+    init(){
+        profiler.profiler_addr = this.parse_host(window.location.href)+":3344";
+        console.info("Connecting flare websocket server: "+profiler.profiler_addr);
+        var socket = new WebSocket("ws://"+profiler.profiler_addr, "flare-profiler");
+        socket.onopen = function(evt) {
+            console.log("Connected to flare profiler successfully.");
+            profiler.connected = true;
+
+            //profiler.start_auto_refresh();
+        }
+
+        socket.onclose = function(evt) {
+            console.log("Disconnected from flare profiler.");
+            profiler.connected = false;
+        }
+
+        socket.onerror = function(evt) {
+            console.log("Connection error.");
+            profiler.connected = false;
+        }
+
+        socket.onmessage = function (event) {
+            //parse result
+            var json = JSON.parse(event.data);
+            profiler.onmessage(json);
+        };
+        this.socket = socket;
+
+    },
     start_auto_refresh() {
         if (this.dashboard_timer == null) {
             profiler.do_refresh();
@@ -116,7 +158,7 @@ var profiler = {
     },
     update_dashboard(){
         console.log("send request: get_dashboard");
-        socket.send(JSON.stringify({
+        this.socket.send(JSON.stringify({
             "cmd": "dashboard",
             "options": {
                 "session_id": profiler.data.session_id
@@ -149,20 +191,20 @@ var profiler = {
                 "unit_time_ms": unit_time_ms
             }
         };
-        socket.send(JSON.stringify(request));
+        this.socket.send(JSON.stringify(request));
         // console.log("update_cpu_time: ", request);
     },
     list_sessions() {
         this.show_sessions = true;
         this.show_history_samples = false;
-        socket.send(JSON.stringify({
+        this.socket.send(JSON.stringify({
             "cmd": "list_sessions"
         }))
     },
     list_history: function () {
         this.show_sessions = false;
         this.show_history_samples = true;
-        socket.send(JSON.stringify({
+        this.socket.send(JSON.stringify({
             "cmd": "history_samples"
         }))
     },
@@ -174,7 +216,7 @@ var profiler = {
                 "agent_addr": this.agent_addr
             }
         };
-        socket.send(JSON.stringify(request));
+        this.socket.send(JSON.stringify(request));
         this.connected = true;
     },
     close_session() {
@@ -185,7 +227,7 @@ var profiler = {
                 "session_id": profiler.data.session_id
             }
         };
-        socket.send(JSON.stringify(request));
+        this.socket.send(JSON.stringify(request));
     },
     open_sample: function (sample_data_dir) {
         this.clear_session();
@@ -195,7 +237,7 @@ var profiler = {
                 "sample_data_dir": sample_data_dir
             }
         };
-        socket.send(JSON.stringify(request));
+        this.socket.send(JSON.stringify(request));
     },
     active_session:function (session_id, type) {
         this.clear_session();
@@ -268,7 +310,7 @@ var profiler = {
                 "end_time": end_time
             }
         };
-        socket.send(JSON.stringify(request));
+        this.socket.send(JSON.stringify(request));
     },
     update_flame_graph(thread_id, start_time, end_time) {
         var request_time = new Date().getTime();
@@ -286,7 +328,7 @@ var profiler = {
         };
         profiler.data.requests['flame_graph'] = request;
 
-        socket.send(JSON.stringify(request));
+        this.socket.send(JSON.stringify(request));
     },
     update_d3_flame_graph(thread_id, start_time, end_time) {
         var request = {
@@ -299,7 +341,7 @@ var profiler = {
                 "stats_type": profiler.stats_type
             }
         };
-        socket.send(JSON.stringify(request));
+        this.socket.send(JSON.stringify(request));
     },
     select_thread(thread_id) {
         this.selected_thread_id = thread_id;
@@ -412,6 +454,7 @@ var profiler = {
             profiler.update_stack_stats();
         }
     },
+
     onmessage(json){
         var success = (json.result == "success");
         profiler.show_message = !success;
@@ -468,36 +511,6 @@ function process_d3_flamegraph_stack(stack) {
             process_d3_flamegraph_stack(stack.children[i]);
         }
     }
-}
-
-var socket = new WebSocket("ws://"+profiler.profiler_addr, "flare-profiler");
-socket.onopen = function(evt) {
-    console.log("Connected to flare profiler successfully.");
-    profiler.connected = true;
-
-    //profiler.start_auto_refresh();
-}
-
-socket.onclose = function(evt) {
-    console.log("Disconnected from flare profiler.");
-    profiler.connected = false;
-}
-
-socket.onerror = function(evt) {
-    console.log("Connection error.");
-    profiler.connected = false;
-}
-
-socket.onmessage = function (event) {
-    //parse result
-    var json = JSON.parse(event.data);
-    profiler.onmessage(json);
-};
-
-function send(element) {
-    var input = document.getElementById(element);
-    socket.send(input.value);
-    input.value = "";
 }
 
 function create_echarts_bar(elemId, echartsData) {
@@ -599,3 +612,5 @@ var app = new Vue({
 function get_chrome_flame_chart(){
     return document.getElementById("chrome_flame_chart").contentWindow;
 }
+
+profiler.init();

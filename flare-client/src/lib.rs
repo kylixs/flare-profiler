@@ -20,6 +20,11 @@ extern crate strum;
 #[macro_use]
 extern crate strum_macros;
 
+extern crate futures;
+extern crate http;
+extern crate hyper;
+extern crate hyper_staticfile;
+
 
 //re-export
 pub use client::*;
@@ -28,6 +33,7 @@ pub mod sampler_client;
 mod client;
 mod tree;
 mod call_tree;
+mod http_server;
 pub mod client_utils;
 pub mod client_encoder;
 

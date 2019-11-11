@@ -39,3 +39,7 @@ inferno = { path = "../thirty-libs/inferno"}
 #string enum
 strum = "0.16.0"
 strum_macros = "0.16.0"
+hyper-staticfile = "0.4.2"
+futures="0.1.28"
+http="0.1.19"
+hyper="0.12.35"

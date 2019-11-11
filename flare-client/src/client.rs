@@ -23,6 +23,7 @@ use std::str::FromStr;
 use inferno::flamegraph::color::BackgroundColor;
 use tree;
 use inferno::flamegraph::merge::{TimedFrame, Frame};
+use super::http_server::*;
 
 type JsonValue = serde_json::Value;
 
@@ -240,6 +241,12 @@ impl Profiler {
         }else {
             Err(io::Error::new(ErrorKind::NotFound, "sample session not found"))
         }
+    }
+
+    fn start_http_server(&mut self) {
+        thread::spawn(|| {
+            SimpleHttpServer::start_server();
+        });
     }
 
     fn start_ws_server(&mut self) {
@@ -557,6 +564,7 @@ impl Profiler {
 
     pub fn startup(&mut self) {
         self.start_ws_server();
+        self.start_http_server();
     }
 
     pub fn shutdown(&mut self) {
