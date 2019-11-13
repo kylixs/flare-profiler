@@ -1,17 +1,17 @@
-extern crate flare_client;
+extern crate flare_server;
 
-use flare_client::sampler_client::*;
-use flare_client::*;
+use flare_server::sample::*;
+use flare_server::*;
 use std::sync::{Mutex, Arc};
 
 fn main() {
 
-//    match SamplerClient::new("localhost:3333") {
-//        Ok(mut client) => {
-//            client.subscribe_events();
+//    match SampleCollector::new("localhost:3333") {
+//        Ok(mut collector) => {
+//            collector.subscribe_events();
 //        }
 //        Err(e) => {
-//            println!("start sampler client failed: {:?}", e);
+//            println!("start sample collector failed: {:?}", e);
 //        }
 //    }
 

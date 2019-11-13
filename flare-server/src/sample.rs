@@ -15,8 +15,7 @@ use flare_utils::tuple_indexed::{TupleIndexedFile, TupleValue};
 use flare_utils::timeseries::{TimeSeries, TSValue, TimeSeriesFileWriter, TimeSeriesFileReader};
 use flare_utils::{ValueType, file_utils};
 use std::path::PathBuf;
-use client_utils;
-use client_utils::*;
+use utils::*;
 use std::hash::Hash;
 use std::sync::{Mutex, Arc};
 use std::cmp::min;
@@ -100,9 +99,9 @@ pub enum StatsType {
     SAMPLES,
 }
 
-pub struct SamplerClient {
+pub struct SampleCollector {
     //self ref
-    this_ref: Option<Arc<Mutex<SamplerClient>>>,
+    this_ref: Option<Arc<Mutex<SampleCollector>>>,
     connected: bool,
     agent_addr: String,
     agent_stream: Option<TcpStream>,
@@ -113,7 +112,7 @@ pub struct SamplerClient {
     sample_start_time: i64,
     sample_type: String,
 
-    //client
+    //collector
     record_start_time: i64,
     last_record_time: i64,
     //last save summary time
@@ -129,25 +128,25 @@ pub struct SamplerClient {
 //    tree_arena: TreeArena
 }
 
-impl SamplerClient {
+impl SampleCollector {
 
 
-    pub fn new(addr: &str) -> io::Result<Arc<Mutex<SamplerClient>>> {
-        let mut client = SamplerClient::new_instance();
-        client.lock().unwrap().agent_addr = addr.to_string();
-        Ok(client)
+    pub fn new(addr: &str) -> io::Result<Arc<Mutex<SampleCollector>>> {
+        let mut collector = SampleCollector::new_instance();
+        collector.lock().unwrap().agent_addr = addr.to_string();
+        Ok(collector)
     }
 
-    pub fn open(sample_dir: &str) -> io::Result<Arc<Mutex<SamplerClient>>> {
+    pub fn open(sample_dir: &str) -> io::Result<Arc<Mutex<SampleCollector>>> {
         println!("load sample data from dir: {}", sample_dir);
-        let mut client = SamplerClient::new_instance();
-        client.lock().unwrap().load_sample(sample_dir)?;
+        let mut collector = SampleCollector::new_instance();
+        collector.lock().unwrap().load_sample(sample_dir)?;
 
-        Ok(client)
+        Ok(collector)
     }
 
-    fn new_instance() -> Arc<Mutex<SamplerClient>> {
-        let mut client = Arc::new(Mutex::new(SamplerClient {
+    fn new_instance() -> Arc<Mutex<SampleCollector>> {
+        let mut collector = Arc::new(Mutex::new(SampleCollector {
             this_ref: None,
             readonly: false,
             sample_type: "".to_string(),
@@ -168,8 +167,8 @@ impl SamplerClient {
 //            tree_arena: TreeArena::new()
         }));
         //self ref for threads
-        client.lock().unwrap().this_ref = Some(client.clone());
-        client
+        collector.lock().unwrap().this_ref = Some(collector.clone());
+        collector
     }
 
     //加载取样数据
@@ -886,9 +885,9 @@ impl SamplerClient {
 }
 
 
-impl Drop for SamplerClient {
+impl Drop for SampleCollector {
     fn drop(&mut self) {
-        println!("save summary info before destroy sampler client ..");
+        println!("save summary info before destroy sample collector ..");
         self.save_summary_info();
     }
 }

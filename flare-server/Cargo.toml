@@ -1,5 +1,5 @@
 [package]
-name = "flare_client"
+name = "flare_server"
 version = "0.1.0"
 authors = [ "Kylixs <gongdewei@gmail.com>" ]
 description = "JVM Monitoring and profiling agent"
@@ -9,7 +9,7 @@ keywords = [ "java", "jvm", "jvmti", "debugger" ]
 [lib]
 #crate_type = [ "cdylib", "dylib", "rlib" ]
 crate-type = ["lib", "dylib", "staticlib"]
-#name="flare_client"
+#name="flare_server"
 path="src/lib.rs"
 
 #[[bin]]

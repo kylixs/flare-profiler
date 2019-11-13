@@ -27,15 +27,15 @@ extern crate hyper_staticfile;
 
 
 //re-export
-pub use client::*;
+pub use profiler::*;
 
-pub mod sampler_client;
-mod client;
+pub mod sample;
+mod profiler;
 mod tree;
 mod call_tree;
 mod http_server;
-pub mod client_utils;
-pub mod client_encoder;
+pub mod utils;
+pub mod sample_encoder;
 
 
 

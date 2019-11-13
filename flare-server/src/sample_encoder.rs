@@ -1,7 +1,7 @@
 use std::mem;
 use resp::{Value, Decoder};
-use super::sampler_client::ThreadData;
-use super::client_utils::*;
+use super::sample::ThreadData;
+use super::utils::*;
 
 
 pub fn resp_encode_thread_data(thread_data: &ThreadData) -> Value {

@@ -1,5 +1,5 @@
 
-use super::sampler_client::*;
+use super::sample::*;
 use std::{io, thread};
 use std::sync::{Arc, Mutex};
 use websocket::sync::Server;
@@ -9,7 +9,7 @@ use websocket::sender::Writer;
 use websocket::server::upgrade::WsUpgrade;
 use websocket::server::upgrade::sync::Buffer;
 use serde::Serialize;
-use client_utils::*;
+use utils::*;
 use std::collections::HashMap;
 use std::io::ErrorKind;
 use serde_json::{json, Value};
@@ -38,7 +38,7 @@ pub struct Profiler {
     self_ref: Option<Arc<Mutex<Profiler>>>,
     bind_addr: String,
     running: bool,
-    sample_session_map: HashMap<String, Arc<Mutex<SamplerClient>>>
+    sample_session_map: HashMap<String, Arc<Mutex<SampleCollector>>>
 }
 
 impl Profiler {
@@ -55,49 +55,49 @@ impl Profiler {
 
     pub fn connect_agent(&mut self, agent_addr: &str) -> io::Result<String> {
         println!("connecting to agent: {}", agent_addr);
-        let mut client = SamplerClient::new(agent_addr)?;
+        let mut collector = SampleCollector::new(agent_addr)?;
         let instance_id = agent_addr.to_string();
 
-        client.lock().unwrap().subscribe_events()?;
+        collector.lock().unwrap().subscribe_events()?;
         println!("connect agent successful");
 
-        self.sample_session_map.insert(instance_id.clone(), client);
+        self.sample_session_map.insert(instance_id.clone(), collector);
         Ok(instance_id)
     }
 
     pub fn open_sample(&mut self, sample_data_dir: &str) -> io::Result<String> {
         println!("open sample {} ..", sample_data_dir);
-        let mut client = SamplerClient::open(sample_data_dir)?;
+        let mut collector = SampleCollector::open(sample_data_dir)?;
         let instance_id = sample_data_dir.to_string();
-        self.sample_session_map.insert(instance_id.clone(), client);
+        self.sample_session_map.insert(instance_id.clone(), collector);
         Ok(instance_id)
     }
 
     pub fn close_session(&mut self, session_id: &str) -> io::Result<()> {
-        if let Some(client) = self.sample_session_map.remove(session_id) {
+        if let Some(collector) = self.sample_session_map.remove(session_id) {
             println!("close session: {}", session_id);
         }
 
         Ok(())
     }
 
-    fn get_sample_client(&mut self, session_id: &str) -> io::Result<Arc<Mutex<SamplerClient>>> {
-        if let Some(client) = self.sample_session_map.get(session_id) {
-            Ok(client.clone())
+    fn get_sample_collector(&mut self, session_id: &str) -> io::Result<Arc<Mutex<SampleCollector>>> {
+        if let Some(collector) = self.sample_session_map.get(session_id) {
+            Ok(collector.clone())
         }else {
             Err(io::Error::new(ErrorKind::NotFound, "sample session not found"))
         }
     }
 
     pub fn get_dashboard(&mut self, session_id: &str) -> io::Result<DashboardInfo> {
-        let client = self.get_sample_client(session_id)?;
-        let data = client.lock().unwrap().get_dashboard();
+        let collector = self.get_sample_collector(session_id)?;
+        let data = collector.lock().unwrap().get_dashboard();
         Ok(data)
     }
 
     pub fn get_thread_cpu_times(&mut self, session_id: &str, thread_ids: &[i64], mut start_time: i64, mut end_time: i64, mut unit_time_ms: i64, graph_width: i64) -> io::Result<Vec<Value>> {
-        if let Some(client) = self.sample_session_map.get(session_id) {
-            let sample_info = client.lock().unwrap().get_sample_info();
+        if let Some(collector) = self.sample_session_map.get(session_id) {
+            let sample_info = collector.lock().unwrap().get_sample_info();
             //限制时间范围
             if start_time < 0 {
                 start_time = sample_info.record_start_time;
@@ -128,7 +128,7 @@ impl Profiler {
 
             let mut thread_cpu_times = vec![];
             for thread_id in thread_ids {
-                let ts_result = client.lock().unwrap().get_thread_cpu_time(thread_id, start_time, end_time, unit_time_ms);
+                let ts_result = collector.lock().unwrap().get_thread_cpu_time(thread_id, start_time, end_time, unit_time_ms);
                 if let Some(ts_result) = &ts_result {
                     let ts_data = ts_result.data.as_int64();
                     thread_cpu_times.push(json!({
@@ -150,8 +150,8 @@ impl Profiler {
 
     pub fn get_call_tree(&mut self, session_id: &str, thread_ids: &[i64], start_time: i64, end_time: i64) -> io::Result<TreeNode> {
         //xxx
-        let client = self.get_sample_client(session_id)?;
-        let call_tree = client.lock().unwrap().get_call_tree(thread_ids, start_time, end_time)?;
+        let collector = self.get_sample_collector(session_id)?;
+        let call_tree = collector.lock().unwrap().get_call_tree(thread_ids, start_time, end_time)?;
 
         //convert to json
         Ok(call_tree.to_tree())
@@ -169,7 +169,7 @@ impl Profiler {
             StatsType::CPU_TIME => "micros",
             StatsType::SAMPLES => "samples",
         };
-        let client = self.get_sample_client(session_id)?;
+        let collector = self.get_sample_collector(session_id)?;
         //create frame graph
         let mut options = flamegraph::Options {
             //colors: Palette::from_str("java").unwrap(),
@@ -184,13 +184,13 @@ impl Profiler {
         };
         let mut writer = vec![];
 
-//        let call_stacks = client.lock().unwrap().get_collapsed_call_stacks(thread_id, start_time, end_time, stats_type)?;
+//        let call_stacks = collector.lock().unwrap().get_collapsed_call_stacks(thread_id, start_time, end_time, stats_type)?;
 //        let input = call_stacks.join("\n");
 //        if let Err(e) = flamegraph::from_lines(&mut options, input.lines(), &mut writer) {
 //            return Err(new_error(ErrorKind::Other, &format!("create flame graph failed: {}", e)));
 //        }
 
-        let stack_tree = client.lock().unwrap().get_d3_flame_graph_stacks(thread_id, start_time, end_time)?;
+        let stack_tree = collector.lock().unwrap().get_d3_flame_graph_stacks(thread_id, start_time, end_time)?;
         let mut frames = vec![];
         let mut time = stack_tree.duration as usize;
         let mut delta_max = 0;
@@ -230,14 +230,14 @@ impl Profiler {
     }
 
     pub fn create_d3_flame_graph_stacks(&mut self, session_id: &str, thread_id: i64, start_time: &mut i64, end_time: &mut i64, stats_type_str: &str) -> io::Result<Box<tree::TreeNode>> {
-        let client = self.get_sample_client(session_id)?;
-        let result = client.lock().unwrap().get_d3_flame_graph_stacks(thread_id, start_time, end_time);
+        let collector = self.get_sample_collector(session_id)?;
+        let result = collector.lock().unwrap().get_d3_flame_graph_stacks(thread_id, start_time, end_time);
         result
     }
 
     pub fn get_sample_info(&mut self, session_id: &str) -> io::Result<SampleInfo> {
-        if let Some(client) = self.sample_session_map.get(session_id) {
-            Ok(client.lock().unwrap().get_sample_info())
+        if let Some(collector) = self.sample_session_map.get(session_id) {
+            Ok(collector.lock().unwrap().get_sample_info())
         }else {
             Err(io::Error::new(ErrorKind::NotFound, "sample session not found"))
         }
@@ -381,9 +381,9 @@ impl Profiler {
     //list open sessions
     fn handle_list_sessions(&mut self, sender: &mut Writer<std::net::TcpStream>, cmd: &str, options: &serde_json::Map<String, serde_json::Value>) -> io::Result<()> {
         let mut sample_sessions = vec![];
-        for (instance_id, client) in self.sample_session_map.iter() {
-            let client_type = client.lock().unwrap().get_sample_type();
-            sample_sessions.push(json!({"session_id": instance_id, "type": client_type.to_string()}))
+        for (instance_id, collector) in self.sample_session_map.iter() {
+            let sample_type = collector.lock().unwrap().get_sample_type();
+            sample_sessions.push(json!({"session_id": instance_id, "type": sample_type.to_string()}))
         }
         let data = json!({"sample_sessions": sample_sessions});
         sender.send_message(&wrap_response(cmd, &data));

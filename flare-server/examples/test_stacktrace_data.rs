@@ -6,12 +6,12 @@ extern crate serde;
 extern crate resp;
 extern crate chrono;
 extern crate flare_utils;
-extern crate flare_client;
+extern crate flare_server;
 
-use flare_client::sampler_client::ThreadData;
-use flare_client::client_utils::*;
+use flare_server::sample::ThreadData;
+use flare_server::utils::*;
 use flare_utils::stopwatch::Stopwatch;
-use flare_client::client_encoder::*;
+use flare_server::sample_encoder::*;
 use std::{io, mem};
 use std::io::BufReader;
 

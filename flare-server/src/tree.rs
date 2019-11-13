@@ -3,7 +3,7 @@ use std::sync::{Mutex, Arc};
 use std::cmp::min;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use sampler_client::ThreadData;
+use sample::ThreadData;
 
 
 #[derive(Serialize, Deserialize)]
