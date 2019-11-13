@@ -3,8 +3,11 @@ extern crate flare_server;
 use flare_server::sample::*;
 use flare_server::*;
 use std::sync::{Mutex, Arc};
+use std::path::Path;
 
 fn main() {
+
+    init();
 
 //    match SampleCollector::new("localhost:3333") {
 //        Ok(mut collector) => {
@@ -40,4 +43,20 @@ fn main() {
     }
 
 //    drop(guard);
+}
+
+fn init() {
+    if let Ok(exe_path) = std::env::current_exe() {
+        let dir = exe_path.parent().unwrap();
+        let path = dir.to_str().unwrap_or("");
+        if path.ends_with("bin") {
+            let new_path = &path[0..path.len()-4];
+            std::env::set_current_dir(Path::new(new_path));
+            println!("set_current_dir: {}", new_path);
+        }
+    }
+
+    //TEST
+    //std::env::set_current_dir(Path::new("D:\\projects\\arch\\flare-profiler\\target\\flare-profiler"));
+
 }

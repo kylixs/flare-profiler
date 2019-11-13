@@ -3,6 +3,8 @@
 target
 classes
 *.class
+#web
+dist
 
 #flare timeseries file
 *.fts

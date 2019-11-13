@@ -3,6 +3,12 @@
 PROJECT_PATH="$(cd "$(dirname $0)/.."; pwd -P )"
 echo "PROJECT_PATH:$PROJECT_PATH"
 
+TARGET_PID="$1"
+if [[ "$TARGET_PID" -eq "" ]];then
+    echo "usage: stop-trace-agent.sh <pid>"
+    exit 1
+fi
+
 LIB_SUFFIX=".so"
 IS_MAC_OSX=$(uname -a | grep -i darwin)
 if [[ "$IS_MAC_OSX" != ""  ]];then
