@@ -16,11 +16,12 @@ if [[ "$REBUILD" == "true" ]];then
     echo "cleaning flare-ui dist dir: $DIST_DIR .."
     rm -rf $DIST_DIR/res/static
     rm -rf $DIST_DIR/app
-    mkdir -p $DIST_DIR/res/static
-    mkdir -p $DIST_DIR/app
     echo "cleaning flare-ui build dir: $BUILD_DIR .."
     rm -rf $BUILD_DIR
 fi
+mkdir -p $DIST_DIR/res/static
+mkdir -p $DIST_DIR/app
+ 
 
 #copy assets files
 #echo "copy flare-server assets files .."
@@ -28,9 +29,11 @@ fi
 
 
 #build flare-server
-echo "build flare-ui .."
-cd $PROJECT_PATH/flare-ui/renderer
-cnpm install && npm run build
+if [[ "$REBUILD" == "true" || ! -f $BUILD_DIR/index.html ]];then
+   echo "build flare-ui .."
+   cd $PROJECT_PATH/flare-ui/renderer
+   cnpm install && npm run build
+fi
 
 #copy dist files
 if [[ ! -f $BUILD_DIR/index.html ]];then

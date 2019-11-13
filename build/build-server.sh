@@ -15,10 +15,10 @@ BUILD_DIR="$PROJECT_PATH/flare-server/target/release"
 if [[ "$REBUILD" == "true" ]];then
     echo "cleaning flare-server dist dir: $DIST_DIR .."
     rm -rf $DIST_DIR
-    mkdir -p $DIST_DIR
     echo "cleaning flare-server build dir: $BUILD_DIR .."
     rm -rf $BUILD_DIR
 fi
+mkdir -p $DIST_DIR
 
 #copy server assets files
 echo "copy flare-server assets files .."

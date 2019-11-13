@@ -15,10 +15,10 @@ BUILD_DIR="$PROJECT_PATH/flare-agent/target/release"
 if [[ "$REBUILD" == "true" ]];then
     echo "cleaning flare-agent dist dir: $DIST_DIR .."
     rm -rf $DIST_DIR
-    mkdir -p $DIST_DIR
     echo "cleaning flare-agent build dir: $BUILD_DIR .."
     rm -rf $BUILD_DIR
 fi
+mkdir -p $DIST_DIR
 
 #copy flare-agent assets files
 echo "copy flare-agent assets files .."
@@ -48,6 +48,7 @@ cp $AGENT_LIB_FILE $DIST_DIR/lib/
 
 #build flare-attacher
 ATTACHER_DIR="$PROJECT_PATH/flare-attacher"
-
+cd $ATTACHER_DIR
+mvn package
 echo "copy flare-attacher lib .."
 cp $ATTACHER_DIR/target/flare-attacher-jar-with-dependencies.jar $DIST_DIR/lib/
