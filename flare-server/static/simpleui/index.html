@@ -13,8 +13,8 @@
 		<div id="app">
 			<div class="version">{{profiler.data.version}}</div>
 			<template>
-				<el-tabs id="main-content" v-model="profiler.data.activeTab" type="card" @tab-click="handleTabClick">
-					<el-tab-pane label="Profiles" name="profile">
+				<el-tabs class="main-content" v-model="profiler.data.activeTab" type="card" @tab-click="handleTabClick">
+					<el-tab-pane label="Profiles" name="profile" class="work-content" >
 						<div>
 							<p>Profile Agent:
 								<input class="input-field" type="text" v-model="profiler.agent_addr">
@@ -34,13 +34,13 @@
 							<input type="button" value="Close" onclick="profiler.close_session()" >
 
 							<div v-show="profiler.show_history_samples">
-								<p>History samples:</p>
+								<p class="list-title">History samples:</p>
 								<ul class="list-content">
 									<li class="list-item" v-for="sample in profiler.data.history_samples" @click='profiler.open_sample(sample.path)' :class="{selected: profiler.data.session_id == sample.path}" >[{{sample.type}}]{{sample.path}}</li>
 								</ul>
 							</div>
 							<div class="list-div" v-show="profiler.show_sessions">
-								<p>Open sessions:</p>
+								<p class="list-title">Open sessions:</p>
 								<ul class="list-content">
 									<li class="list-item" v-for="session in profiler.data.sample_sessions" @click="profiler.active_session(session.session_id, session.type)" :class="{selected: profiler.data.session_id == session.session_id}" > [{{session.type}}]{{session.session_id}}</li>
 								</ul>
@@ -52,7 +52,7 @@
 						</div>
 					</el-tab-pane>
 
-					<el-tab-pane label="Dashboard" name="dashboard">
+					<el-tab-pane label="Dashboard" name="dashboard"  class="work-content">
 						<div id="dashboard">
 							<div>
 								<table>
@@ -99,7 +99,7 @@
 						</div>
 					</el-tab-pane>
 
-					<el-tab-pane label="Threads" name="threads">
+					<el-tab-pane label="Threads" name="threads" class="work-content">
 						<div id="cpu_time_region">
 							<h4 class="title">CPU Time</h4>
 							<div id="cpu_time_content">
@@ -115,7 +115,7 @@
 						</div>
 					</el-tab-pane>
 
-					<el-tab-pane label="Call Graph" name="call_graph">
+					<el-tab-pane label="Call Graph" name="call_graph" class="graph-content ">
 						<div class="echarts_bar" >
 							<div class="thread_name" :title="profiler.selected_thread_name" >{{profiler.selected_thread_name}}</div>
 							<div class="thread_bar" v-bind:id="'thread_cpu_chart_call_graph'"></div>
@@ -141,7 +141,7 @@
 						</div>
 					</el-tab-pane>
 
-					<el-tab-pane label="Call Tree" name="call_tree">
+					<el-tab-pane label="Call Tree" name="call_tree" class="work-content">
 						<div id="call_tree" v-show="profiler.show_call_tree">
 							<h4 class="title">Call Stack</h4>
 							<el-input

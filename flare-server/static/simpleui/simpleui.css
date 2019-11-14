@@ -2,8 +2,18 @@ p {
     margin: 0 0 6px !important;
 }
 
-#main-content {
-    min-height: 95vh;
+.main-content {
+    height: 95vh;
+    overflow: hidden;
+}
+
+.work-content {
+    height: 90vh;
+    overflow: auto;
+}
+
+.graph-content {
+    height: 90vh;
     overflow: hidden;
 }
 
@@ -47,8 +57,11 @@ input.input-field {
 #layout td {
     vertical-align: top;
 }
+.list-title{
+    margin: 0 6px 0 5px; !important;
+}
 .list-content {
-    height: 200px;
+    /*height: 400px;*/
     overflow: auto;
     list-style:none;
     margin:1px;
@@ -109,6 +122,8 @@ input.input-field {
 }
 
 .flame-container {
+    height: 100%;
+    overflow: hidden;
 }
 
 #flame_graph .title {
@@ -132,7 +147,8 @@ input.input-field {
 
 #chrome_flame_chart {
     width: 100%;
-    height: 80vh;
+    height: 100%;
+    /*height: 80vh;*/
     min-height: 500px;
     border: 0px;
 }
