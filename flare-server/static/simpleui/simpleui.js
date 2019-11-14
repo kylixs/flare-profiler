@@ -80,6 +80,7 @@ var profiler = {
         call_tree: 'call_tree',
     },
     data: {
+        version: 'Flare Profiler v0.0.1-alpha',
         activeTab: 'profile',
         requests: {},
         sample_info: {},

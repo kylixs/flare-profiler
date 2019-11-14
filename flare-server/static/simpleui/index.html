@@ -11,6 +11,7 @@
 	</head>
 	<body>
 		<div id="app">
+			<div class="version">{{profiler.data.version}}</div>
 			<template>
 				<el-tabs id="main-content" v-model="profiler.data.activeTab" type="card" @tab-click="handleTabClick">
 					<el-tab-pane label="Profiles" name="profile">
