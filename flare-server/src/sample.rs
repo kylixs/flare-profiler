@@ -122,6 +122,7 @@ pub struct SampleCollector {
     threads : HashMap<JavaLong, ThreadData>,
     sample_data_dir: String,
     sample_cpu_ts_map: HashMap<JavaLong, Option<Box<TimeSeries+Send>>>,
+    sample_cpu_ts_cache: HashMap<String, Option<Arc<TSResult>>>,
     sample_stacktrace_map: HashMap<JavaLong, Option<TupleIndexedFile>>,
     sample_method_idx_file: Option<TupleIndexedFile>,
     method_cache: HashMap<JavaMethod, Option<MethodInfo>>,
@@ -158,6 +159,7 @@ impl SampleCollector {
             threads: HashMap::new(),
             sample_data_dir: "".to_string(),
             sample_cpu_ts_map: HashMap::new(),
+            sample_cpu_ts_cache: Default::default(),
             sample_stacktrace_map: HashMap::new(),
             sample_method_idx_file: None,
             connected: false,
@@ -537,7 +539,7 @@ impl SampleCollector {
         self.sample_type.clone()
     }
 
-    pub fn get_thread_cpu_time(&self, thread_id: &i64, start_time: i64, end_time: i64, unit_time_ms: i64) -> Option<TSResult> {
+    pub fn get_thread_cpu_time(&mut self, thread_id: &i64, start_time: i64, end_time: i64, unit_time_ms: i64) -> Option<Arc<TSResult>> {
 //        match self.sample_cpu_ts_map.get(thread_id) {
 //            Some(ts) => {
 //                match ts {
@@ -550,11 +552,16 @@ impl SampleCollector {
 //            None => None
 //        }
 
-        self.sample_cpu_ts_map.get(thread_id).map_or(None,|ts|{
-            ts.as_ref().map( |ts| {
-                ts.get_range_value(start_time, end_time, unit_time_ms as i32)
-            })
-        })
+        let cache_key = format!("thread_cpu_ts_{}_{}_{}_{}", thread_id, unit_time_ms, start_time, end_time);
+        let ts = self.sample_cpu_ts_map.get(thread_id).unwrap_or(&None);
+        self.sample_cpu_ts_cache.entry(cache_key).or_insert_with(||{
+            match ts {
+                Some(ts) => {
+                    Some(Arc::new(ts.get_range_value(start_time, end_time, unit_time_ms as i32)))
+                },
+                None => None,
+            }
+        }).clone()
     }
 
     pub fn get_collapsed_call_stacks(&mut self, thread_id: i64, start_time: i64, end_time: i64, stats_type: StatsType) -> io::Result<Vec<String>> {

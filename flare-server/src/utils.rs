@@ -5,6 +5,13 @@ use FlareResponse;
 use serde_json::{Number,json};
 use std::io::ErrorKind;
 use std::io;
+use chrono::Local;
+
+pub fn nowTime() -> String {
+    let date = Local::now();
+    return date.format("%Y-%m-%d %H:%M:%S.%6f").to_string();
+    //println!("{:?} {}", date, date.format("[%Y-%m-%d %H:%M:%S.%3f]"));
+}
 
 pub fn get_resp_property<'a>(data_vec: &'a Vec<resp::Value>, key: &str, start: i32) -> Option<&'a resp::Value> {
     for x in (start as usize..data_vec.len()).step_by(2) {

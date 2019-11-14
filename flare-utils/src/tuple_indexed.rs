@@ -454,6 +454,20 @@ impl TupleIndexedFile {
             },
         }
     }
+
+    pub fn get_data(&self, start: usize, end: usize) -> Vec<(i64, i64)> {
+        let mut result = vec![];
+        for (i, idx) in self.index_vec.iter().enumerate() {
+            if i < start {
+                continue;
+            }
+            if i >= end {
+                break;
+            }
+            result.push((idx.as_int(), self.index_map.get(idx).as_ref().unwrap().as_int()));
+        }
+        result
+    }
 }
 
 impl Drop for TupleIndexedFile {

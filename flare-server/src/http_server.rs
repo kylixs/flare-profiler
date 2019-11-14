@@ -83,7 +83,7 @@ impl SimpleHttpServer {
             .serve(move || future::ok::<_, Error>(MainService::new(static_dir)))
             .map_err(|e| eprintln!("server error: {}", e));
         println!("Http server running on http://127.0.0.1:{}/", addr.port());
-        println!("Simpleui: http://127.0.0.1:{}/simpleui/index.html", addr.port());
+        println!("Simpleui: http://127.0.0.1:{}/simpleui/", addr.port());
         hyper::rt::run(server);
     }
 

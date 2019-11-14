@@ -35,7 +35,7 @@ impl TSRangeValue {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TSResult {
     pub begin_time: i64,
     pub end_time: i64,

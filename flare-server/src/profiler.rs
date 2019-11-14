@@ -21,7 +21,7 @@ use inferno::flamegraph::*;
 use inferno::flamegraph;
 use std::str::FromStr;
 use inferno::flamegraph::color::BackgroundColor;
-use tree;
+use ::{tree, utils};
 use inferno::flamegraph::merge::{TimedFrame, Frame};
 use super::http_server::*;
 
@@ -67,8 +67,12 @@ impl Profiler {
 
     pub fn open_sample(&mut self, sample_data_dir: &str) -> io::Result<String> {
         println!("open sample {} ..", sample_data_dir);
-        let mut collector = SampleCollector::open(sample_data_dir)?;
         let instance_id = sample_data_dir.to_string();
+        if let Ok(value) = self.get_sample_collector(&instance_id) {
+            return Ok(instance_id);
+        }
+
+        let mut collector = SampleCollector::open(sample_data_dir)?;
         self.sample_session_map.insert(instance_id.clone(), collector);
         Ok(instance_id)
     }
@@ -129,7 +133,7 @@ impl Profiler {
             let mut thread_cpu_times = vec![];
             for thread_id in thread_ids {
                 let ts_result = collector.lock().unwrap().get_thread_cpu_time(thread_id, start_time, end_time, unit_time_ms);
-                if let Some(ts_result) = &ts_result {
+                if let Some(ts_result) = ts_result {
                     let ts_data = ts_result.data.as_int64();
                     thread_cpu_times.push(json!({
                         "id":  thread_id,
@@ -460,20 +464,25 @@ impl Profiler {
 
         //TODO fetch only top n threads data
         //fetch and send in batches, avoid long waiting
+        let t0 = Local::now().timestamp_millis();
+        println!("[{}] handle_cpu_time_request, fetching thread count: {}", utils::nowTime(), thread_ids.len());
         let mut start = 0;
         while start < thread_ids.len() {
             let t1 = Local::now().timestamp_millis();
-            let end = min(start+5, thread_ids.len());
+            let end = min(start+50, thread_ids.len());
             let thread_cpu_times = self.get_thread_cpu_times(session_id, &thread_ids[start..end], start_time, end_time, unit_time_ms, graph_width)?;;
             let result = json!({
                 "session_id": session_id,
                 "thread_cpu_times": thread_cpu_times
             });
             let t2 = Local::now().timestamp_millis();
-            println!("fetch thread cpu time data cost: {}ms, threads: {:?}", t2-t1, &thread_ids[start..end]);
             sender.send_message(&wrap_response(&cmd, &result));
+            println!("[{}] fetch thread cpu time data cost: {}ms, threads: {}-{}", utils::nowTime(), t2-t1, start, end);
             start = end;
         }
+        let t100 = Local::now().timestamp_millis();
+        println!("[{}] handle_cpu_time_request total cost: {}ms, thread count: {}", utils::nowTime(), t100-t0, thread_ids.len());
+
         Ok(())
     }
 
