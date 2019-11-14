@@ -64,6 +64,7 @@ var profiler = {
     show_chrome_flame_chart: true,
 
     selected_thread_id: null,
+    selected_thread_name: null,
     stats_type: "duration",
     flame_graph_state: {
         start_time: 0,
@@ -71,7 +72,15 @@ var profiler = {
         thread_id: null,
         chart: null,
     },
+    tabs: {
+        profile: 'profile',
+        dashboard: 'dashboard',
+        threads: 'threads',
+        call_graph: 'call_graph',
+        call_tree: 'call_tree',
+    },
     data: {
+        activeTab: 'profile',
         requests: {},
         sample_info: {},
         threads: [],
@@ -111,6 +120,7 @@ var profiler = {
             profiler.connected = true;
 
             //profiler.start_auto_refresh();
+            profiler.list_sessions();
         }
 
         socket.onclose = function(evt) {
@@ -155,6 +165,9 @@ var profiler = {
         setTimeout(function () {
             profiler.update_cpu_time();
         }, 500);
+    },
+    activeTab(tab) {
+        this.data.activeTab = tab;
     },
     update_dashboard(){
         console.log("send request: get_dashboard");
@@ -244,6 +257,7 @@ var profiler = {
         profiler.data.session_id = session_id;
         profiler.data.type = type;
         profiler.start_auto_refresh();
+        this.activeTab(this.tabs.dashboard);
     },
     clear_session: function () {
         this.stop_auto_refresh();
@@ -269,10 +283,29 @@ var profiler = {
                 let start_time = sess_start_time + axis.rangeStart*unit_time_ms;
                 let end_time = sess_start_time + axis.rangeEnd*unit_time_ms;
                 console.log("datazoom: thread:",thread.id, ", index:", axis.rangeStart,"-", axis.rangeEnd,", time:", start_time,"-", end_time );
-                profiler.update_stack_stats(thread.id, start_time, end_time, myChart);
+                //profiler.update_stack_stats(thread.id, start_time, end_time, myChart);
+                profiler.update_call_graph_thread_cpu_data(thread.id, start_time, end_time, ts_data, evt.start, evt.end);
             });
             profiler.data.thread_cpu_time_map[thread.id] = thread;
         }
+    },
+    update_call_graph_thread_cpu_data(thread_id, start_time, end_time, ts_data, start, end) {
+        //active 'Call Graph' tab
+        this.activeTab(this.tabs.call_graph);
+
+        //update current thread cpu graph
+        var sess_start_time = profiler.data.sample_info.record_start_time;
+        var unit_time_ms = profiler.data.sample_info.unit_time_ms;
+        let myChart = create_echarts_bar("thread_cpu_chart_call_graph", ts_data, start, end);
+        //myChart.set
+        myChart.on('datazoom', function (evt) {
+            var axis = myChart.getModel().option.xAxis[0];
+            let start_time = sess_start_time + axis.rangeStart*unit_time_ms;
+            let end_time = sess_start_time + axis.rangeEnd*unit_time_ms;
+            console.log("datazoom: thread:",thread_id, ", index:", axis.rangeStart,"-", axis.rangeEnd,", time:", start_time,"-", end_time );
+            profiler.update_stack_stats(thread_id, start_time, end_time, myChart);
+        });
+        profiler.update_stack_stats(thread_id, start_time, end_time, myChart);
     },
     update_stack_stats(thread_id, start_time, end_time, myChart){
         if (!thread_id) {
@@ -343,8 +376,9 @@ var profiler = {
         };
         this.socket.send(JSON.stringify(request));
     },
-    select_thread(thread_id) {
+    select_thread(thread_id, thread_name) {
         this.selected_thread_id = thread_id;
+        this.selected_thread_name = thread_name;
     },
     onFlameMouseWheel(event) {
         // if (event.target.tagName != "DIV" ){
@@ -468,6 +502,7 @@ var profiler = {
                 //profiler.on_dashboard_result(json.data);
                 break;
             case "open_sample":
+                profiler.activeTab(profiler.tabs.dashboard);
                 profiler.start_auto_refresh();
                 break;
             case "connect_agent":
@@ -513,19 +548,21 @@ function process_d3_flamegraph_stack(stack) {
     }
 }
 
-function create_echarts_bar(elemId, echartsData) {
+function create_echarts_bar(elemId, echartsData, start, end) {
     if (!echartsData){
         echartsData = [];
         for (let i = 0; i < 3000; i++) {
             echartsData.push(Math.random().toFixed(2) * 1000);
         }
     }
+    start = start || 0;
+    end = end || 10;
 
     let options = {
         dataZoom: [{
             type: 'inside',
-            start:0,
-            end:10,
+            start: start,
+            end: end,
             moveOnMouseMove: false,
             moveOnMouseWheel: false,
             zoomOnMouseWheel: false
@@ -557,6 +594,9 @@ function create_echarts_bar(elemId, echartsData) {
             data: echartsData,
             large: true,
             largeThreshold:50,
+            showSymbol: true,
+            hoverAnimation: false,
+            animation: false,
             itemStyle:{
                 color: '#e74911', // bar颜色
                 opacity: 0 // 透明度，0：不绘制
@@ -591,6 +631,9 @@ var app = new Vue({
         filterNode(value, data) {
             if (!value) return true;
             return data.label.indexOf(value) !== -1;
+        },
+        handleTabClick(tab, event) {
+            console.log(tab, event);
         }
     },
     filters: {

@@ -5,8 +5,6 @@ export RUSTFLAGS=-Awarnings
 
 PROJECT_PATH="$(cd "$(dirname $0)"; pwd -P )"
 
-mkdir -p $PROJECT_PATH/target/flare-profiler
-
 #build flare-server
 $PROJECT_PATH/build/build-server.sh $@
 
