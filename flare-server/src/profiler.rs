@@ -99,6 +99,16 @@ impl Profiler {
         Ok(data)
     }
 
+    pub fn get_all_thread_ids(&mut self, session_id: &str) -> io::Result<Vec<i64>> {
+        let collector = self.get_sample_collector(session_id)?;
+        let dashboard = collector.lock().unwrap().get_dashboard();
+        let mut thread_ids = vec![];
+        for thread in &dashboard.threads {
+            thread_ids.push(thread.id);
+        }
+        Ok(thread_ids)
+    }
+
     pub fn get_thread_cpu_times(&mut self, session_id: &str, thread_ids: &[i64], mut start_time: i64, mut end_time: i64, mut unit_time_ms: i64, graph_width: i64) -> io::Result<Vec<Value>> {
         if let Some(collector) = self.sample_session_map.get(session_id) {
             let sample_info = collector.lock().unwrap().get_sample_info();
@@ -398,8 +408,12 @@ impl Profiler {
     fn handle_history_samples(&mut self, sender: &mut Writer<std::net::TcpStream>, cmd: &str, options: &serde_json::Map<String, serde_json::Value>) -> io::Result<()> {
         let mut samples = vec![];
         let paths = std::fs::read_dir("flare-samples")?;
-        for path in paths {
-            samples.push(json!({"path": path.unwrap().path().to_str(), "type": "file"}));
+        for dir in paths {
+            let path_buf = dir.unwrap().path();
+            if !std::fs::metadata(&path_buf).unwrap().is_dir() {
+                continue;
+            }
+            samples.push(json!({"path": path_buf.to_str(), "type": "file"}));
         }
         let data = json!({"history_samples": samples});
         sender.send_message(&wrap_response(cmd, &data));
@@ -456,12 +470,15 @@ impl Profiler {
 
     fn handle_cpu_time_request(&mut self, sender: &mut Writer<std::net::TcpStream>, cmd: &str, options: &serde_json::Map<String, serde_json::Value>) -> io::Result<()> {
         let session_id = get_option_as_str_required(options, "session_id")?;
-        let thread_ids = get_option_as_int_array(options, "thread_ids")?;
+        let mut thread_ids = get_option_as_int_array(options, "thread_ids")?;
         let start_time = get_option_as_int(options, "start_time", -1);
         let end_time = get_option_as_int(options, "end_time", -1);
         let graph_width = get_option_as_int(options, "graph_width", 900);
         let unit_time_ms = get_option_as_int(options, "unit_time_ms", -1);
 
+        if thread_ids.is_empty() {
+            thread_ids = self.get_all_thread_ids(session_id)?;
+        }
         //TODO fetch only top n threads data
         //fetch and send in batches, avoid long waiting
         let t0 = Local::now().timestamp_millis();

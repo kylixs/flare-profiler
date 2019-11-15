@@ -65,8 +65,8 @@ pub struct MethodInfo {
 
 #[derive(Serialize, Deserialize)]
 pub struct DashboardInfo {
-    sample_info: SampleInfo,
-    threads: Vec<ThreadData>
+    pub sample_info: SampleInfo,
+    pub threads: Vec<ThreadData>
     //jvm_info: JvmInfo,
 }
 
@@ -251,9 +251,10 @@ impl SampleCollector {
         Ok(())
     }
 
-    //按小时滚动更换数据保存目录
+    //按周期滚动更换数据保存目录
     fn check_and_roll_data_dir(&mut self, sample_time: i64) -> io::Result<bool> {
-        if self.record_start_time==0 || sample_time - self.record_start_time > 3600_000 {
+        //采样文件最大时间周期
+        if self.record_start_time==0 || sample_time - self.record_start_time > 900_000 {
             //create sample data dir
             let now = Local::now();
             let now_time = now.format("%Y%m%dT%H%M%S").to_string();
@@ -552,16 +553,27 @@ impl SampleCollector {
 //            None => None
 //        }
 
-        let cache_key = format!("thread_cpu_ts_{}_{}_{}_{}", thread_id, unit_time_ms, start_time, end_time);
         let ts = self.sample_cpu_ts_map.get(thread_id).unwrap_or(&None);
-        self.sample_cpu_ts_cache.entry(cache_key).or_insert_with(||{
-            match ts {
-                Some(ts) => {
-                    Some(Arc::new(ts.get_range_value(start_time, end_time, unit_time_ms as i32)))
-                },
-                None => None,
+        if ts.is_none() {
+            return None;
+        }
+        //只有打开取样文件才缓存CPU统计数据
+        if self.sample_type == "file" {
+            let cache_key = format!("thread_cpu_ts_{}_{}_{}_{}", thread_id, unit_time_ms, start_time, end_time);
+            self.sample_cpu_ts_cache.entry(cache_key).or_insert_with(||{
+                if let Some(tsf) = ts {
+                    Some(Arc::new(tsf.get_range_value(start_time, end_time, unit_time_ms as i32)))
+                }else {
+                    None
+                }
+            }).clone()
+        } else {
+            if let Some(tsf) = ts {
+                Some(Arc::new(tsf.get_range_value(start_time, end_time, unit_time_ms as i32)))
+            }else {
+                None
             }
-        }).clone()
+        }
     }
 
     pub fn get_collapsed_call_stacks(&mut self, thread_id: i64, start_time: i64, end_time: i64, stats_type: StatsType) -> io::Result<Vec<String>> {
