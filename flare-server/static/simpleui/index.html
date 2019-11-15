@@ -108,7 +108,7 @@
 								<!--										<div class="thread_bar" id="echartsId"></div>-->
 								<!--									</div>-->
 								<div v-for="thread,index in profiler.data.threads" @click="profiler.select_thread(thread.id, thread.name)" class="echarts_bar" :class="{selected: profiler.selected_thread_id == thread.id}" >
-									<div class="thread_name" :title="thread.name" >{{thread.name}}</div>
+									<div class="thread_name" :title="thread.name" >{{thread.id}} {{thread.name}}</div>
 									<div class="thread_bar" v-bind:id="'thread_cpu_chart_'+thread.id"></div>
 								</div>
 							</div>

@@ -174,8 +174,10 @@ var profiler = {
             switch (profiler.data.activeTab) {
                 case profiler.tabs.threads:
                     //case profiler.tabs.call_graph: //暂时不刷新火焰图页面的线程CPU图，因为数据变化导致选择的范围改变
-                    profiler.update_cpu_time();
                     profiler.update_dashboard();
+                    setTimeout(function () {
+                        profiler.update_cpu_time();
+                    }, 500);
                     break;
                 case profiler.tabs.dashboard:
                     profiler.update_dashboard();
@@ -342,6 +344,7 @@ var profiler = {
             });
             profiler.data.thread_cpu_time_map[thread.id] = thread;
         }
+        profiler.uistate.last_loading_thread_cpu_time = new Date().getTime();
     },
     update_call_graph_thread_cpu_data(thread_id, start_time, end_time, ts_data, unit_time_ms, sess_start_time, start, end) {
         //active 'Call Graph' tab
@@ -568,7 +571,9 @@ var profiler = {
                 profiler.show_history_samples = true;
                 break;
             case "cpu_time":
-                profiler.on_cpu_time_result(json.data);
+                setTimeout(function () {
+                    profiler.on_cpu_time_result(json.data);
+                }, 50);
                 break;
             case "flame_graph":
                 profiler.set_zoom_time_range(json.data.start_time, json.data.end_time);

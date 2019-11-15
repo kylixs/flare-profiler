@@ -43,6 +43,8 @@ pub struct ThreadData {
     pub cpu_time: i64,
     pub cpu_time_delta: i64,
     pub sample_time: i64,
+    #[serde(default = "default_sample_count")]
+    pub sample_count: i64,
     pub stacktrace: Vec<i64>,
 
     //dynamic calc attrs
@@ -52,6 +54,10 @@ pub struct ThreadData {
     pub self_duration: i64,
     #[serde(default)]
     pub self_cpu_time: i64
+}
+
+fn default_sample_count() -> i64 {
+    1
 }
 
 #[derive(Clone)]
@@ -426,6 +432,7 @@ impl SampleCollector {
                 cpu_time: cpu_time,
                 cpu_time_delta: cpu_time_delta,
                 sample_time: sample_time,
+                sample_count: 0,
                 stacktrace: vec![],
                 duration: 0,
                 self_duration: 0,
@@ -433,6 +440,7 @@ impl SampleCollector {
             }
         });
         thread_data.sample_time = sample_time;
+        thread_data.sample_count += 1;
         thread_data.cpu_time = cpu_time;
         thread_data.cpu_time_delta = cpu_time_delta;
         thread_data.state = state.to_string();
@@ -518,10 +526,13 @@ impl SampleCollector {
             let cpu_util = 1;
 //            let cpu_time = thread.cpu_time / 1000_000;
             //println!("{:<8} {:<48} {:<8} {:<8} {:<8} {:<8} {:<8} {:<8}", thread.id,  &thread.name[0..min(48, thread.name.len())], "main", thread.priority, thread.state, cpu_util, cpu_time, thread.daemon );
-
+            if thread.sample_count <= 0 {
+                continue;
+            }
             info.threads.push(thread.clone())
         }
 
+        info.threads.sort_by(|a, b| b.id.cmp(&a.id).reverse());
         info
     }
 
