@@ -49,6 +49,7 @@ Number.constrain = function(num, min, max) {
 var default_uistate = function () {
     return {
         load_thread_cpu_time: false,
+        last_loading_thread_cpu_time: 0,
         load_dashboard: false,
         unit_time_ms: 0,
         cpu_charts: {}
@@ -172,9 +173,9 @@ var profiler = {
         if(force || profiler.data.type == "attach") {
             switch (profiler.data.activeTab) {
                 case profiler.tabs.threads:
-                //case profiler.tabs.call_graph: //暂时不刷新火焰图页面的线程CPU图，因为数据变化导致选择的范围改变
-                    profiler.update_dashboard();
+                    //case profiler.tabs.call_graph: //暂时不刷新火焰图页面的线程CPU图，因为数据变化导致选择的范围改变
                     profiler.update_cpu_time();
+                    profiler.update_dashboard();
                     break;
                 case profiler.tabs.dashboard:
                     profiler.update_dashboard();
@@ -208,6 +209,7 @@ var profiler = {
         if (!profiler.uistate.load_dashboard){
             return;
         }
+
         var thread_ids = [];
         // for ( var i=0;i<profiler.data.threads.length;i++) {
         //     thread_ids.push(profiler.data.threads[i].id);
@@ -229,6 +231,12 @@ var profiler = {
             console.log("update_cpu_time error, unit_time_ms is NaN");
             return;
         }
+        var now = new Date().getTime();
+        //暂时避免CPU图表更新混乱而导致的闪烁问题
+        if (now - profiler.uistate.last_loading_thread_cpu_time < 1500){
+            return;
+        }
+        profiler.uistate.last_loading_thread_cpu_time = now;
         profiler.uistate.unit_time_ms = unit_time_ms;
 
         var request = {
@@ -640,8 +648,8 @@ function create_echarts_bar(elemId, echartsData, start, end) {
         series: [{
             type: 'bar',//bar
             data: echartsData,
-            //large: true,
-            //largeThreshold:50,
+            large: true,
+            largeThreshold:50,
             showSymbol: true,
             hoverAnimation: false,
             animation: false,
