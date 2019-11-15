@@ -28,8 +28,15 @@ pub fn write_header_info(file: &mut File, header_map: &HashMap<&str, String>, he
         header_vec.write_all(value.as_bytes());
         header_vec.write_u8(0);
     }
+    let max_len = 192;
+    if header_vec.len() > max_len {
+        return Err(io::Error::new(ErrorKind::InvalidInput, "header len is too large!"));
+    }
     //添加一个空闲空间，避免后面重写头部覆盖数据
-    header_vec.write_all(&[0;32]);
+    let pad_len = max_len - header_vec.len();
+    let mut pad_data = Vec::new();
+    pad_data.resize(pad_len, 0);
+    header_vec.write_all(&pad_data);
 
     //write file header
     //TS file header segment: TSHS (4 bytes)

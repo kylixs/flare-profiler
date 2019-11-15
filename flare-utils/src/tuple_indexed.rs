@@ -206,6 +206,7 @@ impl TupleIndexedFile {
     pub fn save_indexed_header_info(&mut self) -> Result<(), Error> {
 
         let mut header_map = HashMap::new();
+        header_map.insert("ver", "indexed_file_v0.1".to_string());
         header_map.insert("first_el_type", (self.index_type as i8).to_string());
         header_map.insert("second_el_type", (self.bulk_offset_type as i8).to_string());
         header_map.insert("unit_len", self.unit_len.to_string());
@@ -226,6 +227,7 @@ impl TupleIndexedFile {
     fn save_extra_header_info(&mut self) -> Result<(), Error> {
 
         let mut header_map = HashMap::new();
+        header_map.insert("ver", "bulk_file_v0.1".to_string());
         header_map.insert("first_el_type", (self.index_type as i8).to_string());
         header_map.insert("second_el_type", (self.bulk_offset_type as i8).to_string());
         header_map.insert("unit_len", self.unit_len.to_string());
