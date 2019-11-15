@@ -9,7 +9,7 @@ p {
 
 .work-content {
     height: 90vh;
-    overflow: auto;
+    overflow: hidden;
 }
 
 .graph-content {
@@ -18,7 +18,8 @@ p {
 }
 
 #dashboard {
-    width: 900px;
+    /*width: 900px;*/
+    height: 86vh;
     overflow: auto;
 }
 
@@ -36,8 +37,10 @@ p {
 
 #cpu_time_region {
     /*background: #a0cfff;*/
-    width: 1000px;
-    margin-left: 10px;
+    height: 86vh;
+    margin-left: 5px;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 #cpu_time_content {
@@ -62,6 +65,7 @@ input.input-field {
 }
 .list-content {
     /*height: 400px;*/
+    height: 80vh;
     overflow: auto;
     list-style:none;
     margin:1px;
