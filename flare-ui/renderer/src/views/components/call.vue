@@ -347,6 +347,7 @@
                     let ts_data = this.fill_ts_data(thread.ts_data, thread.start_time, thread.end_time, sess_start_time, sess_end_time, unit_time_ms);
 
                     let myChart = this.create_echarts_bar("thread_select_cpu_chart_"+thread.id, ts_data, thread);
+                    myChart.off('datazoom');
                     myChart.on('datazoom', (evt) => {
                         console.log('evt start', evt.start, 'evt end', evt.end)
 
