@@ -90,10 +90,10 @@ pub struct TupleIndexedFile {
     index_vec: Vec<TupleValue>,
 
     //indexed file
-    indexed_file: File,
-    indexed_path: String,
+    pub indexed_file: File,
+    pub indexed_path: String,
     //data segment start offset
-    indexed_data_offset: u64,
+    pub indexed_data_offset: u64,
 
     //extra data file
     extra_file: File,
@@ -203,7 +203,7 @@ impl TupleIndexedFile {
         Ok(())
     }
 
-    fn save_indexed_header_info(&mut self) -> Result<(), Error> {
+    pub fn save_indexed_header_info(&mut self) -> Result<(), Error> {
 
         let mut header_map = HashMap::new();
         header_map.insert("first_el_type", (self.index_type as i8).to_string());
@@ -211,17 +211,15 @@ impl TupleIndexedFile {
         header_map.insert("unit_len", self.unit_len.to_string());
         header_map.insert("begin_time", self.begin_time.to_string());
         header_map.insert("end_time", self.end_time.to_string());
-        header_map.insert("amount", self.amount.to_string());
+        header_map.insert("amount", self.amount.to_string()); //变长
 
         //write file header
         let file = &mut self.indexed_file;
         file.seek(SeekFrom::Start(0));
 
-        write_header_info(file, &header_map, TUPLE_INDEXED_HEADER_SEGMENT_FLAG, TUPLE_INDEXED_DATA_SEGMENT_FLAG)?;
-
         //save data segment start offset
-        self.indexed_data_offset = file.seek(SeekFrom::Current(0)).unwrap();
-        //info.data_offset = file.stream_position().unwrap();
+        self.indexed_data_offset = write_header_info(file, &header_map, TUPLE_INDEXED_HEADER_SEGMENT_FLAG, TUPLE_INDEXED_DATA_SEGMENT_FLAG)?;
+
         Ok(())
     }
 
@@ -233,7 +231,7 @@ impl TupleIndexedFile {
         header_map.insert("unit_len", self.unit_len.to_string());
         header_map.insert("begin_time", self.begin_time.to_string());
         header_map.insert("end_time", self.end_time.to_string());
-        header_map.insert("amount", self.amount.to_string());
+        header_map.insert("amount", self.amount.to_string()); //变长
 
         //write file header
         let file = &mut self.extra_file;
@@ -254,7 +252,6 @@ impl TupleIndexedFile {
 
         let mut header_map: HashMap<String, String> = HashMap::new();
         self.indexed_data_offset = read_header_info(file, &mut header_map, TUPLE_INDEXED_HEADER_SEGMENT_FLAG, TUPLE_INDEXED_DATA_SEGMENT_FLAG)?;
-
         self.index_type = ValueType::from_i8(get_as_i8(&mut header_map, "first_el_type")).unwrap();
         self.bulk_offset_type = ValueType::from_i8(get_as_i8(&mut header_map, "second_el_type")).unwrap();
         self.begin_time = get_as_i64(&mut header_map, "begin_time");
@@ -288,7 +285,7 @@ impl TupleIndexedFile {
         }
 
         let bulk_offset = self.extra_file.seek(SeekFrom::End(0)).unwrap();
-        //bulk len
+        //bulk len  FIXME 数据块长度没有判断，大于64KB会溢出
         self.extra_file.write_u16::<FileEndian>(bulk_value.len() as u16)?;
         //bulk data
         self.extra_file.write_all(bulk_value)?;
