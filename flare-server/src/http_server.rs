@@ -78,7 +78,7 @@ impl SimpleHttpServer {
         }
         println!("http static dir: {}", static_dir);
 
-        let addr = ([0, 0, 0, 0], 3980).into();
+        let addr = ([0, 0, 0, 0], 3990).into();
         let server = hyper::Server::bind(&addr)
             .serve(move || future::ok::<_, Error>(MainService::new(static_dir)))
             .map_err(|e| eprintln!("server error: {}", e));

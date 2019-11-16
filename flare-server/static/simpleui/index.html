@@ -30,8 +30,8 @@
 						<div>
 							<input type="button" value="Sessions" onclick="profiler.list_sessions()" >
 							<input type="button" value="History" onclick="profiler.list_history()" >
-							<input type="button" value="Refresh" onclick="profiler.do_refresh(true)" >
-							<input type="button" value="Close" onclick="profiler.close_session()" >
+							<input type="button" value="Close current session" onclick="profiler.close_session()" >
+							<input type="button" value="Close all sessions" onclick="profiler.close_all_session()" >
 
 							<div v-show="profiler.show_history_samples">
 								<p class="list-title">History samples:</p>

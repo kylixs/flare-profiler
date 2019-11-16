@@ -103,6 +103,14 @@ impl Profiler {
         Ok(())
     }
 
+    pub fn close_all_session(&mut self) -> io::Result<()> {
+        let session_ids = self.sample_session_map.keys().map(|x|{ x.to_string() }).collect::<Vec<String>>();
+        for session_id in &session_ids {
+            self.close_session(session_id);
+        }
+        Ok(())
+    }
+
     fn get_sample_collector(&mut self, session_id: &str) -> io::Result<Arc<Mutex<SampleCollector>>> {
         if let Some(collector) = self.sample_session_map.get(session_id) {
             Ok(collector.clone())
@@ -388,6 +396,9 @@ impl Profiler {
             "close_session" => {
                 self.handle_close_session_request(sender, cmd, options)?;
             }
+            "close_all_session" => {
+                self.handle_close_all_session_request(sender, cmd, options)?;
+            }
             "dashboard" => {
                 self.handle_dashboard_request(sender, cmd, options)?;
             }
@@ -476,6 +487,12 @@ impl Profiler {
         let session_id = get_option_as_str_required(options, "session_id")?;
         self.close_session(session_id)?;
         sender.send_message(&wrap_response(&cmd, &json!({ "session_id": session_id})));
+        Ok(())
+    }
+
+    fn handle_close_all_session_request(&mut self, sender: &mut Writer<std::net::TcpStream>, cmd: &str, options: &serde_json::Map<String, serde_json::Value>) -> io::Result<()> {
+        self.close_all_session()?;
+        sender.send_message(&wrap_response(&cmd, &json!({})));
         Ok(())
     }
 

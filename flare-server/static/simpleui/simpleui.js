@@ -216,8 +216,10 @@ var profiler = {
         // for ( var i=0;i<profiler.data.threads.length;i++) {
         //     thread_ids.push(profiler.data.threads[i].id);
         // }
-        //如果激活火焰图标签页，则只刷新选择的线程CPU图
-        if ( profiler.data.activeTab == profiler.tabs.call_graph) {
+        if(profiler.data.type == "file") {
+            thread_ids = [];
+        }else if ( profiler.data.activeTab == profiler.tabs.call_graph) {
+            //如果激活火焰图标签页，则只刷新选择的线程CPU图
             thread_ids.push(profiler.flame_graph_state.thread_id);
         } else if (profiler.data.activeTab == profiler.tabs.threads) {
             //计算当前在可见区域的线程
@@ -310,6 +312,15 @@ var profiler = {
             "cmd": "close_session",
             "options": {
                 "session_id": profiler.data.session_id
+            }
+        };
+        this.socket.send(JSON.stringify(request));
+    },
+    close_all_session() {
+        this.connected = false;
+        var request = {
+            "cmd": "close_all_session",
+            "options": {
             }
         };
         this.socket.send(JSON.stringify(request));
@@ -588,6 +599,7 @@ var profiler = {
                 profiler.activeTab(profiler.tabs.dashboard);
                 break;
             case "close_session":
+            case "close_all_session":
                 profiler.clear_session();
                 profiler.list_sessions();
                 break;
