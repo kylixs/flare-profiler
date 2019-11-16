@@ -113,6 +113,7 @@ pub struct SampleCollector {
     agent_addr: String,
     agent_stream: Option<TcpStream>,
     readonly: bool,
+    running: bool,
 
     //sample option
     sample_interval: i64,
@@ -157,6 +158,7 @@ impl SampleCollector {
         let mut collector = Arc::new(Mutex::new(SampleCollector {
             this_ref: None,
             readonly: false,
+            running: true,
             sample_type: "".to_string(),
             sample_interval: 20,
             sample_start_time: 0,
@@ -178,6 +180,12 @@ impl SampleCollector {
         //self ref for threads
         collector.lock().unwrap().this_ref = Some(collector.clone());
         collector
+    }
+
+    pub fn close(&mut self) {
+        if self.running {
+            self.running = false;
+        }
     }
 
     //加载取样数据
@@ -358,8 +366,7 @@ impl SampleCollector {
                 let mut decoder = resp::Decoder::with_buf_bulk(BufReader::new(stream));
                 while match decoder.decode() {
                     Ok(data) => {
-                        this.lock().unwrap().on_sample_data(data);
-                        true
+                        this.lock().unwrap().on_sample_data(data)
                     },
                     Err(e) => {
                         println!("Failed to receive data: {}", e);
@@ -372,7 +379,10 @@ impl SampleCollector {
         Ok(true)
     }
 
-    fn on_sample_data(&mut self, sample_data: resp::Value) {
+    fn on_sample_data(&mut self, sample_data: resp::Value) -> bool {
+        if !self.running {
+            return false;
+        }
         //println!("events: \n{}", sample_data.to_string_pretty());
         if let resp::Value::Array(data_vec) = sample_data {
             if let Value::String(cmd) = &data_vec[0] {
@@ -387,6 +397,7 @@ impl SampleCollector {
         }
 
         self.save_summary_info();
+        true
     }
 
     fn on_sample_info_data(&mut self, data_vec: &Vec<Value>) {
@@ -925,5 +936,6 @@ impl Drop for SampleCollector {
     fn drop(&mut self) {
         println!("save summary info before destroy sample collector ..");
         self.save_summary_info();
+        self.close();
     }
 }

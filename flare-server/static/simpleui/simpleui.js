@@ -588,6 +588,7 @@ var profiler = {
                 profiler.activeTab(profiler.tabs.dashboard);
                 break;
             case "close_session":
+                profiler.clear_session();
                 profiler.list_sessions();
                 break;
             case "history_samples":

@@ -97,6 +97,7 @@ impl Profiler {
     pub fn close_session(&mut self, session_id: &str) -> io::Result<()> {
         if let Some(collector) = self.sample_session_map.remove(session_id) {
             println!("close session: {}", session_id);
+            collector.lock().unwrap().close();
         }
 
         Ok(())
