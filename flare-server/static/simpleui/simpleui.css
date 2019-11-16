@@ -85,7 +85,7 @@ input.input-field {
 }
 .echarts_bar {
     height: 30px;
-    width: 1200px;
+    width: 1500px;
     vertical-align: baseline;
     overflow-x: auto;
 }
@@ -103,7 +103,7 @@ input.input-field {
 }
 .echarts_bar .thread_bar {
     height: 30px;
-    width: 780px;
+    width: 980px;
     float: left;
     color: #e74911;
     overflow: hidden;

@@ -219,7 +219,30 @@ var profiler = {
         //如果激活火焰图标签页，则只刷新选择的线程CPU图
         if ( profiler.data.activeTab == profiler.tabs.call_graph) {
             thread_ids.push(profiler.flame_graph_state.thread_id);
+        } else if (profiler.data.activeTab == profiler.tabs.threads) {
+            //计算当前在可见区域的线程
+            var view = document.getElementById("cpu_time_region");
+            let top = view.scrollTop;
+            let bottom = top + view.offsetHeight;
+
+            let chartIdPrefix = "thread_cpu_chart_";
+            let items = document.getElementById("cpu_time_content").children;
+            for(var i=0;i<items.length;i++){
+                let item = items[i];
+                //显示区域相交：item.top < view.bottom && item.bottom > view.top
+                if(item.offsetTop < bottom && item.offsetTop+item.offsetHeight > top){
+                    let chartId = item.children[1].id;
+                    if (chartId.startsWith(chartIdPrefix)){
+                        thread_ids.push(parseInt(chartId.substring(chartIdPrefix.length)));
+                    }
+                }
+                if (item.offsetTop > bottom) {
+                    break;
+                }
+            }
         }
+
+
         var graph_width = 900;
         var sample_interval = profiler.data.sample_info.sample_interval;
         var start_time = profiler.data.sample_info.record_start_time;
@@ -235,7 +258,7 @@ var profiler = {
         }
         var now = new Date().getTime();
         //暂时避免CPU图表更新混乱而导致的闪烁问题
-        if (now - profiler.uistate.last_loading_thread_cpu_time < 1500){
+        if (now - profiler.uistate.last_loading_thread_cpu_time < 1000){
             return;
         }
         profiler.uistate.last_loading_thread_cpu_time = now;
