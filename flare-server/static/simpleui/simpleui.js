@@ -729,6 +729,11 @@ var app = new Vue({
         },
         handleTabClick(tab, event) {
             console.log("active tab: ", tab.name);
+            if ( tab.name == profiler.tabs.threads){
+                profiler.update_cpu_time();
+            } else if(tab.name == profiler.tabs.dashboard){
+                profiler.update_dashboard();
+            }
         }
     },
     filters: {
