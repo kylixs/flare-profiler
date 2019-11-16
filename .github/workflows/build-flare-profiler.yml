@@ -1,0 +1,21 @@
+name: Rust
+
+on:
+  push:
+      paths: 
+        - "**.rs"
+        - "**.js"
+        - "**.html"    
+
+jobs:
+  build-profiler:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Build flare-profiler
+      run: build.sh && cd target && tar cvf flare-profiler-linux.tar.gz flare-profiler 
+      
+    - name: upload   
+      run: curl -H "Authorization:token b085cb5e93407337e4fb3bd574f3bffffbc1901f" -H "Content-Type:application/zip" --data-binary @flare-profiler-linux.tar.gz "https://uploads.github.com/repos/kylixs/flare-profiler/releases/nightly?name=flare-profiler-linux.tar.gz"
