@@ -1,11 +1,10 @@
 name: Rust
 
 on:
+  check_run:
+  release:
   push:
-      paths: 
-        - "**.rs"
-        - "**.js"
-        - "**.html"    
+  
 
 jobs:
   build-profiler:
