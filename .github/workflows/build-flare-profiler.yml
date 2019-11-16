@@ -3,7 +3,6 @@ name: Rust
 on:
   check_run:
   release:
-  push:
   
 
 jobs:
