@@ -1,8 +1,6 @@
 name: Rust
 
-on:
-  check_run:
-    
+on: [push]    
 
 jobs:
   build-agent:
@@ -11,6 +9,6 @@ jobs:
 
     steps:
     - uses: actions/checkout@v1
-    - name: Build
+    - name: Build flare-agent
       run: cd flare-agent && cargo build --release --verbose
 
