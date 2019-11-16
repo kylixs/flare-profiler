@@ -149,8 +149,14 @@ impl SampleCollector {
     pub fn open(sample_dir: &str) -> io::Result<Arc<Mutex<SampleCollector>>> {
         println!("load sample data from dir: {}", sample_dir);
         let mut collector = SampleCollector::new_instance();
-        collector.lock().unwrap().load_sample(sample_dir)?;
-
+        match collector.lock().unwrap().load_sample(sample_dir) {
+            Ok(_) => {},
+            Err(e) => {
+                println!("load sample failed: {:?}", e);
+                collector.lock().unwrap().close();
+                return Err(e);
+            }
+        }
         Ok(collector)
     }
 
@@ -185,6 +191,8 @@ impl SampleCollector {
     pub fn close(&mut self) {
         if self.running {
             self.running = false;
+            //release self ref 必须释放自引用，否则不会释放此对象，打开的文件句柄也不会自动关闭
+            self.this_ref = None;
         }
     }
 
@@ -308,6 +316,10 @@ impl SampleCollector {
     }
 
     fn save_summary_info(&mut self) -> io::Result<()> {
+        if self.readonly {
+            return Ok(());
+        }
+
         let now = Local::now().timestamp_millis();
         if now - self.last_save_time < 1000 {
             //ignore write file frequently
@@ -934,7 +946,7 @@ impl SampleCollector {
 
 impl Drop for SampleCollector {
     fn drop(&mut self) {
-        println!("save summary info before destroy sample collector ..");
+        println!("dropping sample collector: {} ..", self.sample_data_dir);
         self.save_summary_info();
         self.close();
     }
