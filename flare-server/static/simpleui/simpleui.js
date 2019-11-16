@@ -184,12 +184,6 @@ var profiler = {
                     break;
             }
         }
-        if (!this.uistate.load_dashboard){
-            profiler.update_dashboard();
-        }
-        if (!this.uistate.load_thread_cpu_time){
-            profiler.update_cpu_time();
-        }
     },
     activeTab(tab) {
         this.data.activeTab = tab;
@@ -218,9 +212,9 @@ var profiler = {
         // }
         if(profiler.data.type == "file") {
             thread_ids = [];
-        }else if ( profiler.data.activeTab == profiler.tabs.call_graph) {
-            //如果激活火焰图标签页，则只刷新选择的线程CPU图
-            thread_ids.push(profiler.flame_graph_state.thread_id);
+        // }else if ( profiler.data.activeTab == profiler.tabs.call_graph) {
+        //     //如果激活火焰图标签页，则只刷新选择的线程CPU图
+        //     thread_ids.push(profiler.flame_graph_state.thread_id);
         } else if (profiler.data.activeTab == profiler.tabs.threads) {
             //计算当前在可见区域的线程
             var view = document.getElementById("cpu_time_region");
@@ -242,6 +236,11 @@ var profiler = {
                     break;
                 }
             }
+            if (thread_ids.length == 0){
+                return;
+            }
+        }else {
+            return;
         }
 
 
@@ -342,6 +341,11 @@ var profiler = {
         this.activeTab(this.tabs.dashboard);
     },
     clear_session: function () {
+        for (let [key, value] of Object.entries(this.uistate.cpu_charts)) {
+            //console.log(`${key}: ${value}`);
+            value.off('datazoom');
+            value.dispose();
+        }
         this.data.session_id = "";
         this.data.threads = [];
         this.data.sample_info = {};
@@ -360,12 +364,14 @@ var profiler = {
             let chartElemId = "thread_cpu_chart_"+thread.id;
             let myChart = profiler.uistate.cpu_charts[chartElemId];
             if (myChart){
+                myChart.off('datazoom');
+                //myChart.dispose();
                 update_echarts_bar(myChart, ts_data)
             }else {
                 myChart = create_echarts_bar(chartElemId, ts_data);
                 profiler.uistate.cpu_charts[chartElemId] = myChart;
             }
-            myChart.off('datazoom');
+
             myChart.on('datazoom', function (evt) {
                 var axis = myChart.getModel().option.xAxis[0];
                 // var starttime = axis.data[axis.rangeStart];
@@ -586,9 +592,9 @@ var profiler = {
         switch (json.cmd) {
             case "dashboard":
                 //profiler.on_dashboard_result(json.data);
-                if (!profiler.uistate.load_thread_cpu_time) {
-                    profiler.update_cpu_time();
-                }
+                // if (!profiler.uistate.load_thread_cpu_time) {
+                //     profiler.update_cpu_time();
+                // }
                 break;
             case "open_sample":
                 profiler.list_sessions();
@@ -689,8 +695,8 @@ function create_echarts_bar(elemId, echartsData, start, end) {
         series: [{
             type: 'bar',//bar
             data: echartsData,
-            large: true,
-            largeThreshold:50,
+            // large: true,
+            // largeThreshold:50,
             showSymbol: true,
             hoverAnimation: false,
             animation: false,
@@ -702,6 +708,7 @@ function create_echarts_bar(elemId, echartsData, start, end) {
     }
     var myChart = echarts.init(document.getElementById(elemId));
     myChart.setOption(options);
+
     return myChart;
 }
 
@@ -743,7 +750,11 @@ var app = new Vue({
         handleTabClick(tab, event) {
             console.log("active tab: ", tab.name);
             if ( tab.name == profiler.tabs.threads){
-                profiler.update_cpu_time();
+                if(profiler.data.type == "attach") {
+                    setTimeout(function () {
+                        profiler.update_cpu_time();
+                    }, 200);
+                }
             } else if(tab.name == profiler.tabs.dashboard){
                 profiler.update_dashboard();
             }
