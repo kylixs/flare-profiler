@@ -33,6 +33,7 @@ use tree;
 type JavaLong = i64;
 type JavaMethod = i64;
 
+pub const FLARE_SAMPLES_DIR : &str = "flare-samples";
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct ThreadData {
@@ -256,7 +257,7 @@ impl SamplerClient {
             //create sample data dir
             let now = Local::now();
             let now_time = now.format("%Y%m%dT%H%M%S").to_string();
-            let sample_data_dir = format!("flare-samples/{}-{}", self.agent_addr.replace(":","_"), now_time);
+            let sample_data_dir = format!("{}/{}-{}", FLARE_SAMPLES_DIR, self.agent_addr.replace(":","_"), now_time);
             std::fs::create_dir_all(sample_data_dir.clone())?;
             println!("save sample data to dir: {}", sample_data_dir);
 

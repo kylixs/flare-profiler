@@ -26,6 +26,8 @@ use inferno::flamegraph::merge::{TimedFrame, Frame};
 
 type JsonValue = serde_json::Value;
 
+pub const FLARE_SAMPLES_DIR : &str = "flare-samples";
+
 #[derive(Clone, Serialize)]
 pub struct FlareResponse<T: ?Sized> {
     pub result: String,
@@ -49,7 +51,22 @@ impl Profiler {
             sample_session_map: HashMap::new(),
         }));
         inst.lock().unwrap().self_ref = Some(inst.clone());
+        inst.lock().unwrap().init();
         inst
+    }
+
+    pub fn init(&mut self) {
+        match std::fs::read_dir(FLARE_SAMPLES_DIR) {
+            Err(e) => {
+                match std::fs::create_dir(FLARE_SAMPLES_DIR) {
+                    Err(e) => {
+                        println!("create dir failed: {}, error: {:?}", FLARE_SAMPLES_DIR, e);
+                    }
+                    _ => {}
+                }
+            }
+            _ => {}
+        }
     }
 
     pub fn connect_agent(&mut self, agent_addr: &str) -> io::Result<String> {
@@ -386,7 +403,7 @@ impl Profiler {
     //list history samples
     fn handle_history_samples(&mut self, sender: &mut Writer<std::net::TcpStream>, cmd: &str, options: &serde_json::Map<String, serde_json::Value>) -> io::Result<()> {
         let mut samples = vec![];
-        let paths = std::fs::read_dir("flare-samples")?;
+        let paths = std::fs::read_dir(FLARE_SAMPLES_DIR)?;
         for path in paths {
             samples.push(json!({"path": path.unwrap().path().to_str(), "type": "file"}));
         }
