@@ -1,0 +1,16 @@
+name: Rust
+
+on:
+  check_run:
+    
+
+jobs:
+  build-agent:
+
+    runs-on: [ubuntu-latest, windows-latest, macOS-latest]
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Build
+      run: cd flare-agent && cargo build --release --verbose
+
