@@ -5,7 +5,7 @@ on: [push]
 jobs:
   build-agent:
 
-    runs-on: [ubuntu-latest, windows-latest, macOS-latest]
+    runs-on: linux
 
     steps:
     - uses: actions/checkout@v1
