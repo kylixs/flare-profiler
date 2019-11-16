@@ -1,0 +1,17 @@
+name: Rust
+
+on:
+  check_run:
+  release:
+  
+
+jobs:
+  build-profiler:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Build flare-profiler
+      run: ./build.sh
+    
