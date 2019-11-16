@@ -28,19 +28,29 @@ pub fn write_header_info(file: &mut File, header_map: &HashMap<&str, String>, he
         header_vec.write_all(value.as_bytes());
         header_vec.write_u8(0);
     }
+    let max_len = 192;
+    if header_vec.len() > max_len {
+        return Err(io::Error::new(ErrorKind::InvalidInput, "header len is too large!"));
+    }
+    //添加一个空闲空间，避免后面重写头部覆盖数据
+    let pad_len = max_len - header_vec.len();
+    let mut pad_data = Vec::new();
+    pad_data.resize(pad_len, 0);
+    header_vec.write_all(&pad_data);
 
     //write file header
     //TS file header segment: TSHS (4 bytes)
-    file.write_all(header_segment_flag.as_bytes());
+    file.write_all(header_segment_flag.as_bytes())?;
 
     //header len (2 bytes)
-    file.write_u16::<FileEndian>(header_vec.len() as u16);
+    file.write_u16::<FileEndian>(header_vec.len() as u16)?;
 
     //header data (n bytes)
-    file.write_all(header_vec.as_slice());
+    file.write_all(header_vec.as_slice())?;
 
     //data segment flag: TSDS
-    file.write_all(data_segment_flag.as_bytes());
+    file.write_all(data_segment_flag.as_bytes())?;
+    file.flush();
 
     Ok(file.seek(SeekFrom::Current(0)).unwrap())
 }

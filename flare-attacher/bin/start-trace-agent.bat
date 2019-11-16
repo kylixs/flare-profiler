@@ -6,7 +6,7 @@ set AGENT_PATH=%PROJECT_PATH%\flare-agent\target\release\flareagent.dll
 if "%1" == "debug" (
     set AGENT_PATH=%PROJECT_PATH%\flare-agent\target\debug\flareagent.dll
 )
-set AGENT_OPTIONS=trace=on,interval=2
+set AGENT_OPTIONS=trace=on,interval=5
 
 %JAVA_HOME%\bin\java -Xbootclasspath/a:%JAVA_HOME%/lib/tools.jar -jar %ATTACHER_PATH%  %AGENT_PATH%  %AGENT_OPTIONS%
 

@@ -134,6 +134,7 @@
                 var option = index.echartsOptions(data);
                 this.myChart.setOption(option);
 
+                this.myChart.off('datazoom');
                 this.myChart.on('datazoom', (param) => {
                     this.getEchartsData();
                 })

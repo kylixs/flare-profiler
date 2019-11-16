@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html xmlns:v-bind="http://www.w3.org/1999/xhtml" xmlns:v-on="http://www.w3.org/1999/xhtml">
+	<head>
+		<meta charset="utf-8">
+		<title>Flare Profiler</title>
+        <link rel="stylesheet" href="element-ui/theme-chalk/index.css">
+        <link rel="stylesheet" href="simpleui.css">
+		<script src="vue.js" ></script>
+		<script src="element-ui/index.js"></script>
+
+	</head>
+	<body>
+		<div id="app">
+			<div class="version">{{profiler.data.version}}</div>
+			<template>
+				<el-tabs class="main-content" v-model="profiler.data.activeTab" type="card" @tab-click="handleTabClick">
+					<el-tab-pane label="Profiles" name="profile" class="work-content" >
+						<div>
+							<p>Profile Agent:
+								<input class="input-field" type="text" v-model="profiler.agent_addr">
+								<input type="button" value="Connect" onclick="profiler.connect_agent()" >
+							</p>
+						</div>
+						<!--			<div>-->
+						<!--				<p>Open Sample:-->
+						<!--				<input class="input-field" type="file" v-model="profiler.sample_dir">-->
+						<!--				<input type="button" value="Open" onclick="profiler.open_sample()" >-->
+						<!--				</p>-->
+						<!--			</div>-->
+						<div>
+							<input type="button" value="Sessions" onclick="profiler.list_sessions()" >
+							<input type="button" value="History" onclick="profiler.list_history()" >
+							<input type="button" value="Refresh" onclick="profiler.do_refresh(true)" >
+							<input type="button" value="Close" onclick="profiler.close_session()" >
+
+							<div v-show="profiler.show_history_samples">
+								<p class="list-title">History samples:</p>
+								<ul class="list-content">
+									<li class="list-item" v-for="sample in profiler.data.history_samples" @click='profiler.open_sample(sample.path)' :class="{selected: profiler.data.session_id == sample.path}" >[{{sample.type}}]{{sample.path}}</li>
+								</ul>
+							</div>
+							<div class="list-div" v-show="profiler.show_sessions">
+								<p class="list-title">Open sessions:</p>
+								<ul class="list-content">
+									<li class="list-item" v-for="session in profiler.data.sample_sessions" @click="profiler.active_session(session.session_id, session.type)" :class="{selected: profiler.data.session_id == session.session_id}" > [{{session.type}}]{{session.session_id}}</li>
+								</ul>
+							</div>
+						</div>
+						<div class="message" v-show="profiler.show_message">
+							<!--				<p>操作指令：{{profiler.data.cmd}}</p>-->
+							<p>错误信息：{{profiler.data.message}}</p>
+						</div>
+					</el-tab-pane>
+
+					<el-tab-pane label="Dashboard" name="dashboard"  class="work-content">
+						<div id="dashboard">
+							<div>
+								<table>
+									<tbody>
+									<tr>
+										<td><p>Profile Session: {{profiler.data.session_id}} ({{profiler.data.type}})</p></td>
+									</tr>
+									<tr>
+										<td><p>Sample Start Time: {{profiler.data.sample_info.sample_start_time}}</p></td>
+										<td><p>Record Start Time: {{profiler.data.sample_info.record_start_time}}</p></td>
+									</tr>
+									<tr>
+										<td><p>Record Duration: {{(profiler.data.sample_info.last_record_time - profiler.data.sample_info.record_start_time)/1000}}s</p></td>
+										<td><p>Last Record Time: {{profiler.data.sample_info.last_record_time}}</p></td>
+									</tr>
+									</tbody>
+								</table>
+							</div>
+							<!-- "ID", "NAME", "GROUP", "PRIORITY", "STATE", "%CPU", "TIME", "DAEMON" -->
+							<table>
+								<thead>
+								<th width="10%">ID</th>
+								<th width="20%">Name</th>
+								<th width="10%">Group</th>
+								<th width="10%">Priority</th>
+								<th width="10%">State</th>
+								<th width="10%">%CPU</th>
+								<th width="10%">Time</th>
+								<th width="10%">Daemon</th>
+								</thead>
+								<tbody>
+								<tr v-for="thread in profiler.data.threads">
+									<td>{{thread.id}}</td>
+									<td>{{thread.name}}</td>
+									<td>{{thread.group}}</td>
+									<td>{{thread.priority}}</td>
+									<td>{{thread.state}}</td>
+									<td>{{thread.cpu_util}}</td>
+									<td>{{thread.cpu_time | cpuTimeFilter}}</td>
+									<td>{{thread.daemon}}</td>
+								</tr>
+								</tbody>
+							</table>
+						</div>
+					</el-tab-pane>
+
+					<el-tab-pane label="Threads" name="threads" class="work-content">
+						<div id="cpu_time_region">
+							<h4 class="title">CPU Time</h4>
+							<div id="cpu_time_content">
+								<!--									<div class="echarts_bar">-->
+								<!--										<div class="thread_name">Thread 0</div>-->
+								<!--										<div class="thread_bar" id="echartsId"></div>-->
+								<!--									</div>-->
+								<div v-for="thread,index in profiler.data.threads" @click="profiler.select_thread(thread.id, thread.name)" class="echarts_bar" :class="{selected: profiler.selected_thread_id == thread.id}" >
+									<div class="thread_name" :title="thread.name" >{{thread.id}} {{thread.name}}</div>
+									<div class="thread_bar" v-bind:id="'thread_cpu_chart_'+thread.id"></div>
+								</div>
+							</div>
+						</div>
+					</el-tab-pane>
+
+					<el-tab-pane label="Call Graph" name="call_graph" class="graph-content ">
+						<div class="echarts_bar" >
+							<div class="thread_name" :title="profiler.selected_thread_name" >{{profiler.selected_thread_name}}</div>
+							<div class="thread_bar" v-bind:id="'thread_cpu_chart_call_graph'"></div>
+						</div>
+						<div id="flame_graph" class="flame-container" v-show="profiler.show_flame_graph" >
+							<h4 class="title">Flame Graph</h4>
+							<span class="toolbar">
+										<input type="button" value="<<" onclick="profiler.ajdust_flame_view(-0.3)" >
+										<input type="button" value="<" onclick="profiler.ajdust_flame_view(-0.1)" >
+										<input type="button" value=">" onclick="profiler.ajdust_flame_view(0.1)" >
+										<input type="button" value=">>" onclick="profiler.ajdust_flame_view(0.3)" >
+									</span>
+							<div id="flame_graph_svg" v-html="profiler.data.flame_graph_data" ></div>
+						</div>
+						<div id="d3_flame_graph" class="flame-container"  v-show="profiler.show_d3_flame_graph">
+							<h4 class="title" v-show="false">D3 Flame Graph</h4>
+							<div id="d3_flame_graph_svg" >
+								<!--  <d3-flamegraph> </d3-flamegraph> -->
+							</div>
+						</div>
+						<div id="chrome_flame_chart_container" class="flame-container"  v-show="profiler.show_chrome_flame_chart">
+							<iframe id="chrome_flame_chart" src="devtools/flamechart.html"></iframe>
+						</div>
+					</el-tab-pane>
+
+					<el-tab-pane label="Call Tree" name="call_tree" class="work-content">
+						<div id="call_tree" v-show="profiler.show_call_tree">
+							<h4 class="title">Call Stack</h4>
+							<el-input
+									placeholder="输入关键字进行过滤"
+									v-model="treeFilterText">
+							</el-input>
+
+							<div class="tree">
+								<el-tree
+										class="filter-tree"
+										:data="profiler.data.call_tree_data"
+										:props="treeProps"
+										default-expand-all
+										:filter-node-method="filterNode"
+										ref="tree">
+										<span class="custom-tree-node" slot-scope="{ node, data }">
+												<span>{{ data | nodeLabelRender }}</span>
+											<!--												<span>-->
+											<!--												  <el-button-->
+											<!--														  type="text"-->
+											<!--														  size="mini"-->
+											<!--														  @click="() => remove(node, data)">-->
+											<!--													Delete-->
+											<!--												  </el-button>-->
+											<!--												</span>-->
+											</span>
+								</el-tree>
+							</div>
+						</div>
+					</el-tab-pane>
+
+				</el-tabs>
+			</template>
+		</div>
+
+
+        <script type="text/x-template" id="d3-flamegraph-template">
+            <div>
+<!--                <link rel="stylesheet" href="d3-flame-graph/bootstrap.min.css">-->
+<!--                <link rel="stylesheet" type="text/css" href="d3-flame-graph/d3-flamegraph.css">-->
+
+                <div class="container1">
+                    <div class="header clearfix">
+                        <nav>
+                            <div class="pull-right">
+                                <form class="form-inline" id="form" onsubmit="search()">
+                                    <a class="btn" href="javascript: resetZoom();">Reset zoom</a>
+                                    <a class="btn" href="javascript: clear();">Clear</a>
+                                    <div class="form-group">
+                                        <input type="text" class="form-control" id="term">
+                                    </div>
+                                    <a class="btn btn-primary" href="javascript: search();">Search</a>
+                                </form>
+                            </div>
+                        </nav>
+                        <h3 class="text-muted">d3-flame-graph</h3>
+                    </div>
+                    <div id="chart">
+                    </div>
+                    <hr>
+                    <div id="details">
+                    </div>
+                </div>
+            </div>
+        </script>
+
+        <script src="echarts.min.js"></script>
+		<!-- D3.js -->
+<!--		<script src="d3-flame-graph/d3.v4.min.js" charset="utf-8"></script>-->
+		<!-- d3-tip -->
+<!--		<script type="text/javascript" src="d3-flame-graph/d3-tip.min.js" ></script>-->
+		<!-- d3-flamegraph -->
+<!--		<script type="text/javascript" src="d3-flame-graph/d3-flamegraph.min.js"></script>-->
+<!--		<script type="text/javascript" src="d3-flamegraph.js"></script>-->
+        <script src="simpleui.js" ></script>
+
+	</body>
+</html>

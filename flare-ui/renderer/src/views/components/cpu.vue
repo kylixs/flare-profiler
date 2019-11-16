@@ -258,6 +258,9 @@
                         data: echartsData,
                         large: true,
                         largeThreshold: 50,
+                        showSymbol: true,
+                        hoverAnimation: false,
+                        animation: false,
                         itemStyle: {
                             color: '#e74911', // bar颜色
                             opacity: 0 // 透明度，0：不绘制
