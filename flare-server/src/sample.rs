@@ -288,6 +288,11 @@ impl SampleCollector {
             self.sample_method_idx_file = Some(method_idx_file);
             self.sample_cpu_ts_map.clear();
             self.sample_stacktrace_map.clear();
+            self.sample_cpu_ts_cache.clear();
+            //reset sample count
+            for thread in self.threads.values_mut() {
+                thread.sample_count = 0;
+            }
             Ok(true)
         }else {
             Ok(false)
