@@ -100,7 +100,7 @@
 					</el-tab-pane>
 
 					<el-tab-pane label="Threads" name="threads" class="work-content">
-						<div id="cpu_time_region">
+						<div id="cpu_time_region" onscroll="profiler.on_scroll_thread_cpu_charts()">
 							<h4 class="title">CPU Time</h4>
 							<div id="cpu_time_content">
 								<!--									<div class="echarts_bar">-->

@@ -55,6 +55,7 @@ var default_uistate = function () {
         cpu_charts: {}
     };
 }
+let chartIdPrefix = "thread_cpu_chart_";
 
 var profiler = {
     connected: false,
@@ -151,6 +152,12 @@ var profiler = {
         };
         this.socket = socket;
 
+        //注册滚动事件
+        // document.getElementById('cpu_time_content').addEventListener('scroll', function(e) {
+        //     if (profiler.data.activeTab == profiler.tabs.threads){
+        //         profiler.on_scroll_thread_cpu_charts();
+        //     }
+        // });
     },
     start_auto_refresh() {
         if (this.dashboard_timer == null) {
@@ -170,19 +177,22 @@ var profiler = {
         if (profiler.data.session_id == ""){
             return;
         }
-        if(force || profiler.data.type == "attach") {
-            switch (profiler.data.activeTab) {
-                case profiler.tabs.threads:
-                    //case profiler.tabs.call_graph: //暂时不刷新火焰图页面的线程CPU图，因为数据变化导致选择的范围改变
+        let should_update_dashboard = (force || !profiler.uistate.load_dashboard || profiler.data.type == "attach");
+        switch (profiler.data.activeTab) {
+            case profiler.tabs.threads:
+                //case profiler.tabs.call_graph: //暂时不刷新火焰图页面的线程CPU图，因为数据变化导致选择的范围改变
+                if(should_update_dashboard) {
                     profiler.update_dashboard();
-                    setTimeout(function () {
-                        profiler.update_cpu_time();
-                    }, 500);
-                    break;
-                case profiler.tabs.dashboard:
+                }
+                setTimeout(function () {
+                    profiler.update_cpu_time();
+                }, 200);
+                break;
+            case profiler.tabs.dashboard:
+                if(should_update_dashboard) {
                     profiler.update_dashboard();
-                    break;
-            }
+                }
+                break;
         }
     },
     activeTab(tab) {
@@ -210,18 +220,16 @@ var profiler = {
         // for ( var i=0;i<profiler.data.threads.length;i++) {
         //     thread_ids.push(profiler.data.threads[i].id);
         // }
-        if(profiler.data.type == "file") {
-            thread_ids = [];
-        // }else if ( profiler.data.activeTab == profiler.tabs.call_graph) {
+        // if ( profiler.data.activeTab == profiler.tabs.call_graph) {
         //     //如果激活火焰图标签页，则只刷新选择的线程CPU图
         //     thread_ids.push(profiler.flame_graph_state.thread_id);
-        } else if (profiler.data.activeTab == profiler.tabs.threads) {
+        //} else
+        if (profiler.data.activeTab == profiler.tabs.threads) {
             //计算当前在可见区域的线程
             var view = document.getElementById("cpu_time_region");
             let top = view.scrollTop;
             let bottom = top + view.offsetHeight;
 
-            let chartIdPrefix = "thread_cpu_chart_";
             let items = document.getElementById("cpu_time_content").children;
             for(var i=0;i<items.length;i++){
                 let item = items[i];
@@ -236,10 +244,22 @@ var profiler = {
                     break;
                 }
             }
+            //如果为打开文件，不需要重复加载统计图数据
+            if (profiler.data.type == 'file'){
+                let new_thread_ids = [];
+                for(var i=0;i<thread_ids.length;i++){
+                    if(!profiler.uistate.cpu_charts[chartIdPrefix+thread_ids[i]]){
+                        new_thread_ids.push(thread_ids[i]);
+                    }
+                }
+                thread_ids = new_thread_ids;
+            }
+            //如果没有线程需要更新，则终止
             if (thread_ids.length == 0){
                 return;
             }
         }else {
+            //其它tab标签不用更新线程CPU图表
             return;
         }
 
@@ -259,7 +279,7 @@ var profiler = {
         }
         var now = new Date().getTime();
         //暂时避免CPU图表更新混乱而导致的闪烁问题
-        if (now - profiler.uistate.last_loading_thread_cpu_time < 1000){
+        if (now - profiler.uistate.last_loading_thread_cpu_time < 500){
             return;
         }
         profiler.uistate.last_loading_thread_cpu_time = now;
@@ -279,6 +299,16 @@ var profiler = {
         this.socket.send(JSON.stringify(request));
         this.uistate.load_thread_cpu_time = true;
         // console.log("update_cpu_time: ", request);
+    },
+    on_scroll_thread_cpu_charts(){
+        console.log("on_scroll_thread_cpu_charts ..")
+        if(profiler.update_cpu_chart_timer){
+            clearTimeout(profiler.update_cpu_chart_timer);
+        }
+        profiler.update_cpu_chart_timer = setTimeout(function () {
+            profiler.update_cpu_time();
+            profiler.update_cpu_chart_timer = null;
+        }, 100);
     },
     list_sessions() {
         this.show_sessions = true;
@@ -361,7 +391,7 @@ var profiler = {
             let unit_time_ms = thread.unit_time_ms;
             let ts_data = fill_ts_data(thread.ts_data, thread.start_time, thread.end_time, sess_start_time, sess_end_time, unit_time_ms);
 
-            let chartElemId = "thread_cpu_chart_"+thread.id;
+            let chartElemId = chartIdPrefix+thread.id;
             let myChart = profiler.uistate.cpu_charts[chartElemId];
             if (myChart){
                 myChart.off('datazoom');
@@ -750,11 +780,11 @@ var app = new Vue({
         handleTabClick(tab, event) {
             console.log("active tab: ", tab.name);
             if ( tab.name == profiler.tabs.threads){
-                if(profiler.data.type == "attach") {
-                    setTimeout(function () {
-                        profiler.update_cpu_time();
-                    }, 200);
-                }
+                // if(profiler.data.type == "attach") {
+                // }
+                setTimeout(function () {
+                    profiler.update_cpu_time();
+                }, 50);
             } else if(tab.name == profiler.tabs.dashboard){
                 profiler.update_dashboard();
             }
