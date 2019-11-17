@@ -13,7 +13,7 @@
 ### 原理介绍
 
 Flare Profiler 系统交互图如下：  
-![系统交互图](doc/design/flare-profiler-demployment.png)  
+![系统交互图](doc/design/flare-profiler-interaction.png)  
   
 
 ##### 主要功能模块  
