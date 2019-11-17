@@ -1,7 +1,7 @@
 # Flare Profiler
 A Java profiler base on jvmti, insight into thread cpu time and method call stacks.  
 
-[中文说明/Chinese Documentation](https://github.com/kylixs/flare-profiler/blob/master/README_CN.md)   
+[中文说明/Chinese Documentation](README_CN.md)   
   
   
 ### Key features   
