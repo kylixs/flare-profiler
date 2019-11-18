@@ -6,7 +6,7 @@ set TARGET_PID=%1
 set SAMPLE_INTERVAL=%2
 
 if "%TARGET_PID%" == "" (
-    echo usage: start-trace-agent.bat <pid> [sample interval(ms)]
+    echo "usage: start-trace-agent.bat <pid> [sample interval(ms)]"
     exit /b 1
 )
 
