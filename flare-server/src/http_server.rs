@@ -90,6 +90,7 @@ impl SimpleHttpServer {
             },
             Err(e) => {
                 println!("Start flare web server failed, bind addr: {}, error: {}", addr, e);
+            }
         }
 
     }
