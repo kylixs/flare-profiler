@@ -10,8 +10,10 @@ use std::cmp::*;
 
 use super::FileEndian;
 use super::{ValueType, get_unit_len};
+use crate::file_utils::open_file;
+use std::collections::VecDeque;
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum TSValue {
     int16(i16),
     int32(i32),
@@ -49,8 +51,6 @@ pub struct TSResult {
 pub struct TimeSeriesFile {
     //file path
     pub path: String,
-    //file object
-    file: File,
     //data segment start offset
     pub data_offset: u64,
 
@@ -79,6 +79,16 @@ pub struct TimeSeriesFileWriter {
     inited: bool,
     last_save_time: i64,
     last_sample_time: i64,
+
+    //bulk value buffer
+    data_buffer: VecDeque<(i64, TSValue)>,
+    //last write bulk time
+    last_flush_data_time: i64,
+    //write interval
+    data_flush_interval_time: i64,
+    //cache value size limit
+    data_buffer_size_limit: usize,
+
 }
 
 pub trait TimeSeries {
@@ -106,7 +116,6 @@ impl TimeSeriesFile {
     fn new(value_type: ValueType, unit_time: i32, path: &str, file: File) -> TimeSeriesFile {
         TimeSeriesFile{
             path: path.to_string(),
-            file,
             data_offset: 0,
             unit_time,
             unit_len: get_unit_len(value_type),
@@ -115,6 +124,10 @@ impl TimeSeriesFile {
             end_time: 0,
             amount: 0,
         }
+    }
+
+    fn get_file(&self) -> Result<File, Error> {
+        Ok(open_file(&self.path, true)?)
     }
 
     pub fn get_range_value(&self, origin_start_time: i64, origin_end_time: i64, unit_time_ms: i32) -> TSResult {
@@ -136,43 +149,50 @@ impl TimeSeriesFile {
         let offset2 = self.data_offset + self.unit_len as u64 * step2 as u64;
 
         //read specify range data
-        let mut file = &self.file;
-        file.seek(SeekFrom::Start(offset1));
-        //let mut stream = file.take(offset2 - offset1);
-        //stream.read_i16_into::<FileEndian>(data_vec.as_mut_slice());
-        let bytes = offset2 - offset1;
-        let mut buf_reader = BufReader::with_capacity(1024*100, file);
-        let steps = bytes / self.unit_len as u64;
+        match self.get_file() {
+            Ok(mut file) => {
+                file.seek(SeekFrom::Start(offset1));
+                //let mut stream = file.take(offset2 - offset1);
+                //stream.read_i16_into::<FileEndian>(data_vec.as_mut_slice());
+                let bytes = offset2 - offset1;
+                let mut buf_reader = BufReader::with_capacity(1024*100, file);
+                let steps = bytes / self.unit_len as u64;
 
-        match self.value_type {
-            ValueType::UNKNOWN => {},
-            ValueType::INT16 => {
-                for i in 0..steps {
-                    data_vec.push(buf_reader.read_i16::<FileEndian>().unwrap() as i64);
-                }
-            },
-            ValueType::UINT16 => {
-                for i in 0..steps {
-                    data_vec.push(buf_reader.read_u16::<FileEndian>().unwrap() as i64);
-                }
-            },
-            ValueType::INT32 => {
-                for i in 0..steps {
-                    data_vec.push(buf_reader.read_i32::<FileEndian>().unwrap() as i64);
-                }
-            },
-            ValueType::UINT32 => {
-                for i in 0..steps {
-                    data_vec.push(buf_reader.read_u32::<FileEndian>().unwrap() as i64);
-                }
-            },
-            ValueType::INT64 => {
-                for i in 0..steps {
-                    data_vec.push(buf_reader.read_i64::<FileEndian>().unwrap() as i64);
-                }
-            },
+                match self.value_type {
+                    ValueType::UNKNOWN => {},
+                    ValueType::INT16 => {
+                        for i in 0..steps {
+                            data_vec.push(buf_reader.read_i16::<FileEndian>().unwrap() as i64);
+                        }
+                    },
+                    ValueType::UINT16 => {
+                        for i in 0..steps {
+                            data_vec.push(buf_reader.read_u16::<FileEndian>().unwrap() as i64);
+                        }
+                    },
+                    ValueType::INT32 => {
+                        for i in 0..steps {
+                            data_vec.push(buf_reader.read_i32::<FileEndian>().unwrap() as i64);
+                        }
+                    },
+                    ValueType::UINT32 => {
+                        for i in 0..steps {
+                            data_vec.push(buf_reader.read_u32::<FileEndian>().unwrap() as i64);
+                        }
+                    },
+                    ValueType::INT64 => {
+                        for i in 0..steps {
+                            data_vec.push(buf_reader.read_i64::<FileEndian>().unwrap() as i64);
+                        }
+                    },
 //            ValueType::FLOAT64 => {},
+                }
+            },
+            Err(e) => {
+                println!("open ts file failed, path: {}, error: {}", self.path, e);
+            }
         }
+
 
         //convert time unit, merge n source point to one new point
         let merge_num = (unit_time_ms / self.unit_time) as usize;
@@ -282,7 +302,7 @@ impl TimeSeriesFileReader {
 
             //read file header
             let mut flag_buf = [0 as u8;4];
-            let file = &mut info.file;
+            let file = &mut info.get_file()?;
             file.seek(SeekFrom::Start(0));
             //TS file header segment: TSHS (4 bytes)
             file.read_exact(&mut flag_buf[..]);
@@ -346,6 +366,9 @@ impl TimeSeries for TimeSeriesFileReader {
 impl TimeSeriesFileWriter {
 
     pub fn new(value_type: ValueType, unit_time: i32, begin_time: i64, path: &str) -> Result<TimeSeriesFileWriter, Error> {
+        let data_flush_interval_time = 1000;
+        let data_buffer_size_limit = 1000;
+
         let mut path = path.to_string()+".fts";
         let now_time = Local::now().timestamp_millis();
         let file_rs = OpenOptions::new()
@@ -357,10 +380,14 @@ impl TimeSeriesFileWriter {
             Ok(file) => {
                 let info = TimeSeriesFile::new(value_type, unit_time, &path, file);
                 let mut writer = TimeSeriesFileWriter {
-                    info: info,
+                    info,
                     inited: false,
                     last_save_time: 0,
-                    last_sample_time: 0
+                    last_sample_time: 0,
+                    data_buffer: VecDeque::with_capacity(data_buffer_size_limit+2),
+                    data_buffer_size_limit,
+                    last_flush_data_time: 0,
+                    data_flush_interval_time,
                 };
                 writer.init(begin_time);
                 Ok(writer)
@@ -394,26 +421,87 @@ impl TimeSeriesFileWriter {
         header_vec.write_i32::<FileEndian>(info.amount);
 
         //write file header
-        let file = &mut info.file;
-        file.seek(SeekFrom::Start(0));
+        match info.get_file() {
+            Ok(mut file) => {
+                file.seek(SeekFrom::Start(0));
 
-        //TS file header segment: TSHS (4 bytes)
-        file.write_all(b"TSHS");
+                //TS file header segment: TSHS (4 bytes)
+                file.write_all(b"TSHS");
 
-        //header len (2 bytes)
-        file.write_u16::<FileEndian>(header_vec.len() as u16);
+                //header len (2 bytes)
+                file.write_u16::<FileEndian>(header_vec.len() as u16);
 
-        //header data (n bytes)
-        file.write_all(header_vec.as_slice());
+                //header data (n bytes)
+                file.write_all(header_vec.as_slice());
 
-        //data segment flag: TSDS
-        file.write_all(b"TSDS");
+                //data segment flag: TSDS
+                file.write_all(b"TSDS");
 
-        //save data segment start offset
-        info.data_offset = file.seek(SeekFrom::Current(0)).unwrap();
-        //info.data_offset = file.stream_position().unwrap();
+                //save data segment start offset
+                info.data_offset = file.seek(SeekFrom::Current(0)).unwrap();
+                //info.data_offset = file.stream_position().unwrap();
 
-        self.last_save_time = self.last_sample_time;
+                self.last_save_time = self.last_sample_time;
+            },
+            Err(e) =>{
+                println!("save ts file header_info failed, path: {}, error: {}", self.info.path, e);
+            }
+        }
+
+    }
+
+    pub fn flush(&mut self) -> Result<(), Error> {
+        let info = &mut self.info;
+        let file = &mut info.get_file()?;
+
+        while let Some((steps, value)) = self.data_buffer.pop_front() {
+            info.amount = min(info.amount+1, steps as i32 +1);
+            info.end_time = info.begin_time + steps * info.unit_time as i64;
+
+            match value {
+                TSValue::int16(val) => {
+                    if info.value_type != ValueType::INT16 {
+                        println!("value type not match, expect {:?} but {:?}", info.value_type, ValueType::INT16);
+                        return Err(io::Error::new(ErrorKind::InvalidInput, "value type not match"));
+                    }
+                    let offset = (steps * 2) as u64;
+                    file.seek(SeekFrom::Start(info.data_offset + offset));
+                    file.write_i16::<FileEndian>(val);
+                }
+                TSValue::int32(val) => {
+                    if info.value_type != ValueType::INT32 {
+                        println!("value type not match, expect {:?} but {:?}", info.value_type, ValueType::INT32);
+                        return Err(io::Error::new(ErrorKind::InvalidInput, "value type not match"));
+                    }
+                    let offset = (steps * 4) as u64;
+                    file.seek(SeekFrom::Start(info.data_offset + offset));
+                    file.write_i32::<FileEndian>(val);
+                }
+                TSValue::int64(val) => {
+                    if info.value_type != ValueType::INT64 {
+                        println!("value type not match, expect {:?} but {:?}", info.value_type, ValueType::INT64);
+                        return Err(io::Error::new(ErrorKind::InvalidInput, "value type not match"));
+                    }
+                    let offset = (steps * 8) as u64;
+                    file.seek(SeekFrom::Start(info.data_offset + offset));
+                    file.write_i64::<FileEndian>(val);
+                }
+                _ => {
+                    println!("unsupported value type: {:?}", info.value_type);
+                    return Err(io::Error::new(ErrorKind::InvalidInput, "unsupported value type"));
+                }
+            }
+        }
+
+        //save header info periodically
+//        self.last_sample_time = time;
+//        if time - self.last_save_time > 1000 {
+//        }
+        self.save_header_info();
+        let now_time = Local::now().timestamp_millis();
+        self.last_flush_data_time = now_time;
+
+        Ok(())
     }
 
 }
@@ -429,54 +517,23 @@ impl TimeSeries for TimeSeriesFileWriter {
     }
 
     fn add_value(&mut self, time: i64, value: TSValue) -> Result<u32, Error> {
+
         let info = &mut self.info;
         let mut steps = (time - info.begin_time) / info.unit_time as i64;
         if steps < 0 {
             steps = 0;
         }
-        let file = &mut info.file;
-        info.amount = min(info.amount+1, steps as i32 +1);
-        info.end_time = info.begin_time + steps * info.unit_time as i64;
+        self.data_buffer.push_back((steps, value));
 
-        match value {
-            TSValue::int16(val) => {
-                if info.value_type != ValueType::INT16 {
-                    println!("value type not match, expect {:?} but {:?}", info.value_type, ValueType::INT16);
-                    return Err(io::Error::new(ErrorKind::InvalidInput, "value type not match"));
-                }
-                let offset = (steps * 2) as u64;
-                file.seek(SeekFrom::Start(info.data_offset + offset));
-                file.write_i16::<FileEndian>(val);
-            }
-            TSValue::int32(val) => {
-                if info.value_type != ValueType::INT32 {
-                    println!("value type not match, expect {:?} but {:?}", info.value_type, ValueType::INT32);
-                    return Err(io::Error::new(ErrorKind::InvalidInput, "value type not match"));
-                }
-                let offset = (steps * 4) as u64;
-                file.seek(SeekFrom::Start(info.data_offset + offset));
-                file.write_i32::<FileEndian>(val);
-            }
-            TSValue::int64(val) => {
-                if info.value_type != ValueType::INT64 {
-                    println!("value type not match, expect {:?} but {:?}", info.value_type, ValueType::INT64);
-                    return Err(io::Error::new(ErrorKind::InvalidInput, "value type not match"));
-                }
-                let offset = (steps * 8) as u64;
-                file.seek(SeekFrom::Start(info.data_offset + offset));
-                file.write_i64::<FileEndian>(val);
-            }
-            _ => {
-                println!("unsupported value type: {:?}", info.value_type);
-                return Err(io::Error::new(ErrorKind::InvalidInput, "unsupported value type"));
-            }
+        //flush
+        //TODO call get timestamp_millis() may be frequently, maybe too heavily?
+        let now_time = Local::now().timestamp_millis();
+        let interval = now_time - self.last_flush_data_time;
+        if interval > self.data_flush_interval_time || self.data_buffer.len() >= self.data_buffer_size_limit {
+            println!("flushing ts file, data_buffer len:{}, write interval: {} ...", self.data_buffer.len(), interval);
+            self.flush();
         }
 
-        //save header info periodically
-        self.last_sample_time = time;
-        if time - self.last_save_time > 1000 {
-            self.save_header_info();
-        }
         Ok(steps as u32)
     }
 
@@ -488,6 +545,7 @@ impl TimeSeries for TimeSeriesFileWriter {
 impl Drop for TimeSeriesFileWriter {
 
     fn drop(&mut self) {
+        self.flush();
         self.save_header_info();
     }
 

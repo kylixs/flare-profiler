@@ -4,6 +4,7 @@ extern crate rand;
 extern crate chrono;
 //extern crate flareutils;
 
+use flare_utils::*;
 use flare_utils::tuple_indexed::*;
 use chrono::Local;
 use std::{io, fs};
@@ -19,10 +20,13 @@ fn main() -> io::Result<()> {
 
     let mut tuple_file = TupleIndexedFile::new_writer(path, ValueType::INT32)?;
     tuple_file.add_value(get_key(100), b"first line");
-    tuple_file.add_value(get_key(120), &[0,1,1,2]);
-    tuple_file.add_value(get_key(130), &[23,1,1,2,5,6]);
+    tuple_file.add_value(get_key(120), &[0,1,1,2,2]);
+    std::thread::sleep_ms(1005);
+    tuple_file.add_value(get_key(130), &[23,1,1,2,5,6,0]);
+    std::thread::sleep_ms(1005);
     tuple_file.add_value(get_key(150), &[120,1,21,24,2,7,8,2]);
 
+    tuple_file.flush();
     println!("get value: {:?}", tuple_file.get_value(&get_key(100)));
     println!("get value: {:?}", tuple_file.get_value(&get_key(150)));
 

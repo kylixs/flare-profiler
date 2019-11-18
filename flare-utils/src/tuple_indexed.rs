@@ -8,7 +8,7 @@ use std::io;
 use byteorder::{WriteBytesExt, ReadBytesExt, NetworkEndian};
 use std::str::from_utf8;
 use num::{FromPrimitive, PrimInt};
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::cmp::*;
 
 use super::FileEndian;
@@ -90,15 +90,24 @@ pub struct TupleIndexedFile {
     index_vec: Vec<TupleValue>,
 
     //indexed file
-    pub indexed_file: File,
     pub indexed_path: String,
     //data segment start offset
     pub indexed_data_offset: u64,
 
     //extra data file
-    extra_file: File,
     extra_path: String,
     extra_data_offset: u64,
+
+    //bulk value buffer
+    bulk_buffer: VecDeque<(TupleValue, Vec<u8>)>,
+    //last write bulk time
+    last_flush_bulk_time: i64,
+    //write interval
+    bulk_flush_interval_time: i64,
+    //cache bytes
+    bulk_buffer_bytes: usize,
+    //buffer bytes limit
+    bulk_buffer_bytes_limit: usize,
 
     //header info
     // index value type
@@ -141,19 +150,22 @@ impl TupleIndexedFile {
         let indexed_path = path.to_string() + ".fidx";
         let extra_path = path.to_string() + ".fdata";
         let unit_len = get_unit_len(index_type) + get_unit_len(bulk_offset_type);
-        let indexed_file = open_file(&indexed_path, writable)?;
-        let extra_file = open_file(&extra_path, writable)?;
+        let bulk_write_interval_time = 1000;
+        let bulk_buffer_bytes_limit = 100*1024;
         Ok(TupleIndexedFile {
             inited: false,
             writable,
             index_map: HashMap::new(),
             index_vec: vec![],
-            indexed_file,
             indexed_path,
             indexed_data_offset: 0,
-            extra_file,
             extra_path,
             extra_data_offset: 0,
+            bulk_buffer: VecDeque::with_capacity(256),
+            last_flush_bulk_time: 0,
+            bulk_flush_interval_time: bulk_write_interval_time,
+            bulk_buffer_bytes: 0,
+            bulk_buffer_bytes_limit,
             index_type,
             bulk_offset_type,
             unit_len,
@@ -178,7 +190,8 @@ impl TupleIndexedFile {
 
             //读取已经存在的文件头信息
             let mut load = false;
-            if let Ok(len) = self.indexed_file.seek(SeekFrom::End(0)) {
+            let mut indexed_file = self.get_indexed_file()?;
+            if let Ok(len) = indexed_file.seek(SeekFrom::End(0)) {
                 if len > 0 {
                     if let Err(e) = self.init_reader() {
                         //load file failed
@@ -203,6 +216,14 @@ impl TupleIndexedFile {
         Ok(())
     }
 
+    fn get_indexed_file(&self) -> Result<File, Error> {
+        Ok(open_file(&self.indexed_path, self.writable)?)
+    }
+
+    fn get_extra_file(&self) -> Result<File, Error> {
+        Ok(open_file(&self.extra_path, self.writable)?)
+    }
+
     pub fn save_indexed_header_info(&mut self) -> Result<(), Error> {
 
         let mut header_map = HashMap::new();
@@ -215,11 +236,11 @@ impl TupleIndexedFile {
         header_map.insert("amount", self.amount.to_string()); //变长
 
         //write file header
-        let file = &mut self.indexed_file;
+        let mut file = self.get_indexed_file()?;
         file.seek(SeekFrom::Start(0));
 
         //save data segment start offset
-        self.indexed_data_offset = write_header_info(file, &header_map, TUPLE_INDEXED_HEADER_SEGMENT_FLAG, TUPLE_INDEXED_DATA_SEGMENT_FLAG)?;
+        self.indexed_data_offset = write_header_info(&mut file, &header_map, TUPLE_INDEXED_HEADER_SEGMENT_FLAG, TUPLE_INDEXED_DATA_SEGMENT_FLAG)?;
 
         Ok(())
     }
@@ -236,10 +257,10 @@ impl TupleIndexedFile {
         header_map.insert("amount", self.amount.to_string()); //变长
 
         //write file header
-        let file = &mut self.extra_file;
+        let mut file = self.get_extra_file()?;
         file.seek(SeekFrom::Start(0));
 
-        write_header_info(file, &header_map, TUPLE_EXTRA_HEADER_SEGMENT_FLAG, TUPLE_EXTRA_DATA_SEGMENT_FLAG)?;
+        write_header_info(&mut file, &header_map, TUPLE_EXTRA_HEADER_SEGMENT_FLAG, TUPLE_EXTRA_DATA_SEGMENT_FLAG)?;
 
         //save data segment start offset
         self.extra_data_offset = file.seek(SeekFrom::Current(0)).unwrap();
@@ -249,11 +270,11 @@ impl TupleIndexedFile {
 
     fn load_indexed_header_info(&mut self) -> Result<(), io::Error> {
         //read indexed file header
-        let file = &mut self.indexed_file;
+        let mut file = self.get_indexed_file()?;
         file.seek(SeekFrom::Start(0));
 
         let mut header_map: HashMap<String, String> = HashMap::new();
-        self.indexed_data_offset = read_header_info(file, &mut header_map, TUPLE_INDEXED_HEADER_SEGMENT_FLAG, TUPLE_INDEXED_DATA_SEGMENT_FLAG)?;
+        self.indexed_data_offset = read_header_info(&mut file, &mut header_map, TUPLE_INDEXED_HEADER_SEGMENT_FLAG, TUPLE_INDEXED_DATA_SEGMENT_FLAG)?;
         self.index_type = ValueType::from_i8(get_as_i8(&mut header_map, "first_el_type")).unwrap();
         self.bulk_offset_type = ValueType::from_i8(get_as_i8(&mut header_map, "second_el_type")).unwrap();
         self.begin_time = get_as_i64(&mut header_map, "begin_time");
@@ -266,11 +287,11 @@ impl TupleIndexedFile {
     fn load_extra_header_info(&mut self) -> Result<(), io::Error> {
         //read extra file header
 
-        let file = &mut self.extra_file;
+        let mut file = self.get_extra_file()?;
         file.seek(SeekFrom::Start(0));
 
         let mut header_map: HashMap<String, String> = HashMap::new();
-        self.extra_data_offset = read_header_info(file, &mut header_map, TUPLE_EXTRA_HEADER_SEGMENT_FLAG, TUPLE_EXTRA_DATA_SEGMENT_FLAG)?;
+        self.extra_data_offset = read_header_info(&mut file, &mut header_map, TUPLE_EXTRA_HEADER_SEGMENT_FLAG, TUPLE_EXTRA_DATA_SEGMENT_FLAG)?;
         Ok(())
     }
 
@@ -286,52 +307,74 @@ impl TupleIndexedFile {
             return Err(io::Error::new(ErrorKind::InvalidInput, "index type not match"));
         }
 
-        let bulk_offset = self.extra_file.seek(SeekFrom::End(0)).unwrap();
-        //bulk len  FIXME 数据块长度没有判断，大于64KB会溢出
-        self.extra_file.write_u16::<FileEndian>(bulk_value.len() as u16)?;
-        //bulk data
-        self.extra_file.write_all(bulk_value)?;
+        //put into bulk buffer
+        self.bulk_buffer_bytes += bulk_value.len();
+        self.bulk_buffer.push_back((index.clone(), bulk_value.to_vec()));
 
-        //index value
-        self.write_indexed_value(&index, self.index_type);
-        //bulk offset
-        let bulk_offset_value = TupleValue::uint32(bulk_offset as u32);
-        self.write_indexed_value(&bulk_offset_value, self.bulk_offset_type);
-
-        self.index_vec.push(index.clone());
-        self.index_map.insert(index, bulk_offset_value);
-        self.amount += 1;
+        //flush
+        //TODO call get timestamp_millis() may be frequently, maybe too heavily?
+        let now_time = Local::now().timestamp_millis();
+        let interval = now_time - self.last_flush_bulk_time;
+        if interval > self.bulk_flush_interval_time || self.bulk_buffer_bytes >= self.bulk_buffer_bytes_limit {
+            println!("flushing indexed file, bulk_buffer_bytes:{}, write interval: {} ...", self.bulk_buffer_bytes, interval);
+            self.flush();
+        }
 
         Ok(())
     }
 
-    fn write_indexed_value(&mut self, value: &TupleValue, expect_value_type: ValueType) -> io::Result<()> {
+    pub fn flush(&mut self) -> io::Result<()> {
+        let mut indexed_file = self.get_indexed_file()?;
+        let mut extra_file = self.get_extra_file()?;
+        while let Some((index, bulk_value)) = self.bulk_buffer.pop_front() {
+            let bulk_offset = extra_file.seek(SeekFrom::End(0)).unwrap();
+            //bulk len  FIXME 数据块长度没有判断，大于64KB会溢出
+            extra_file.write_u16::<FileEndian>(bulk_value.len() as u16)?;
+            //bulk data
+            extra_file.write_all(&bulk_value)?;
+
+            //index value
+            self.write_indexed_value(&mut indexed_file,&index, self.index_type);
+            //bulk offset
+            let bulk_offset_value = TupleValue::uint32(bulk_offset as u32);
+            self.write_indexed_value(&mut indexed_file,&bulk_offset_value, self.bulk_offset_type);
+
+            self.index_vec.push(index.clone());
+            self.index_map.insert(index, bulk_offset_value);
+            self.amount += 1;
+            self.bulk_buffer_bytes -= bulk_value.len();
+        }
+        let now_time = Local::now().timestamp_millis();
+        self.last_flush_bulk_time = now_time;
+        Ok(())
+    }
+
+    fn write_indexed_value(&mut self, indexed_file: &mut File, value: &TupleValue, expect_value_type: ValueType) -> io::Result<()> {
         let val_type = get_value_type(&value);
         if val_type != expect_value_type {
             println!("value type not match, expect '{:?}' but '{:?}'", expect_value_type, val_type );
             return Err(io::Error::new(ErrorKind::InvalidInput, "value type not match"));
         }
 
-        let file = &mut self.indexed_file;
-        file.seek(SeekFrom::End(0));
+        indexed_file.seek(SeekFrom::End(0));
         match value {
             TupleValue::int16(v) => {
-                file.write_i16::<FileEndian>(*v);
+                indexed_file.write_i16::<FileEndian>(*v);
             },
             TupleValue::uint16(v) => {
-                file.write_u16::<FileEndian>(*v);
+                indexed_file.write_u16::<FileEndian>(*v);
             },
             TupleValue::int32(v) => {
-                file.write_i32::<FileEndian>(*v);
+                indexed_file.write_i32::<FileEndian>(*v);
             },
             TupleValue::uint32(v) => {
-                file.write_u32::<FileEndian>(*v);
+                indexed_file.write_u32::<FileEndian>(*v);
             },
             TupleValue::int64(v) => {
-                file.write_i64::<FileEndian>(*v);
+                indexed_file.write_i64::<FileEndian>(*v);
             },
 //            TupleValue::float64(v) => {
-//                file.write_f64::<FileEndian>(*v);
+//                indexed_file.write_f64::<FileEndian>(*v);
 //            },
 //            _ => {
 //                println!("unsupported indexed value: {:?}", value);
@@ -369,7 +412,7 @@ impl TupleIndexedFile {
     }
 
     fn load_index_map(&mut self) -> io::Result<()> {
-        let file = &mut self.indexed_file;
+        let mut file = self.get_indexed_file()?;
         file.seek(SeekFrom::Start(self.indexed_data_offset));
 
         let mut reader = BufReader::new(file);
@@ -404,11 +447,12 @@ impl TupleIndexedFile {
     }
 
     fn read_bulk_data(&mut self, bulk_offset: u32) -> Result<(Vec<u8>,u32), Error> {
-        self.extra_file.seek(SeekFrom::Start(bulk_offset as u64));
-        let bytes_to_read = self.extra_file.read_u16::<FileEndian>()? as usize;
+        let mut extra_file = self.get_extra_file()?;
+        extra_file.seek(SeekFrom::Start(bulk_offset as u64));
+        let bytes_to_read = extra_file.read_u16::<FileEndian>()? as usize;
         let mut buf = vec![0u8; bytes_to_read];
-        self.extra_file.read_exact(&mut buf)?;
-        let new_offset = self.extra_file.seek(SeekFrom::Current(0)).unwrap();
+        extra_file.read_exact(&mut buf)?;
+        let new_offset = extra_file.seek(SeekFrom::Current(0)).unwrap();
         Ok((buf, new_offset as u32))
     }
 
@@ -474,6 +518,7 @@ impl Drop for TupleIndexedFile {
     fn drop(&mut self) {
         if self.writable {
             self.save_indexed_header_info();
+            self.flush();
         }
     }
 
