@@ -27,4 +27,6 @@ if [[ "$TARGET_PID" == ""  ]];then
     exit 1
 fi
 
-/usr/bin/su - $USER_ACCOUNT  -s /bin/sh -c "$PROJECT_PATH/bin/$ACTION_SCRIPT $TARGET_PID > $PROJECT_PATH/logs/flare_agent_stdout.log 2>&1  & "
+#may not have permission to create log dir
+#/usr/bin/su - $USER_ACCOUNT  -s /bin/sh -c "$PROJECT_PATH/bin/$ACTION_SCRIPT $TARGET_PID > $PROJECT_PATH/logs/flare_agent_stdout.log 2>&1  & "
+/usr/bin/su - $USER_ACCOUNT  -s /bin/sh -c "$PROJECT_PATH/bin/$ACTION_SCRIPT $TARGET_PID & "
