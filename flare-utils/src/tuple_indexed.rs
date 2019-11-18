@@ -227,7 +227,7 @@ impl TupleIndexedFile {
     pub fn save_indexed_header_info(&mut self) -> Result<(), Error> {
 
         let mut header_map = HashMap::new();
-        header_map.insert("ver", "indexed_file_v0.1".to_string());
+        header_map.insert("desc", "flare profiler indexed file".to_string());
         header_map.insert("first_el_type", (self.index_type as i8).to_string());
         header_map.insert("second_el_type", (self.bulk_offset_type as i8).to_string());
         header_map.insert("unit_len", self.unit_len.to_string());
@@ -240,7 +240,7 @@ impl TupleIndexedFile {
         file.seek(SeekFrom::Start(0));
 
         //save data segment start offset
-        self.indexed_data_offset = write_header_info(&mut file, &header_map, TUPLE_INDEXED_HEADER_SEGMENT_FLAG, TUPLE_INDEXED_DATA_SEGMENT_FLAG)?;
+        self.indexed_data_offset = write_header_info(&mut file, &mut header_map, TUPLE_INDEXED_HEADER_SEGMENT_FLAG, TUPLE_INDEXED_DATA_SEGMENT_FLAG)?;
 
         Ok(())
     }
@@ -248,7 +248,7 @@ impl TupleIndexedFile {
     fn save_extra_header_info(&mut self) -> Result<(), Error> {
 
         let mut header_map = HashMap::new();
-        header_map.insert("ver", "bulk_file_v0.1".to_string());
+        header_map.insert("desc", "flare profiler data file".to_string());
         header_map.insert("first_el_type", (self.index_type as i8).to_string());
         header_map.insert("second_el_type", (self.bulk_offset_type as i8).to_string());
         header_map.insert("unit_len", self.unit_len.to_string());
@@ -260,7 +260,7 @@ impl TupleIndexedFile {
         let mut file = self.get_extra_file()?;
         file.seek(SeekFrom::Start(0));
 
-        write_header_info(&mut file, &header_map, TUPLE_EXTRA_HEADER_SEGMENT_FLAG, TUPLE_EXTRA_DATA_SEGMENT_FLAG)?;
+        write_header_info(&mut file, &mut header_map, TUPLE_EXTRA_HEADER_SEGMENT_FLAG, TUPLE_EXTRA_DATA_SEGMENT_FLAG)?;
 
         //save data segment start offset
         self.extra_data_offset = file.seek(SeekFrom::Current(0)).unwrap();

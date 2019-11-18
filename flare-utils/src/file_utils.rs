@@ -17,7 +17,10 @@ pub fn open_file(path: &str, rw: bool) -> Result<File, io::Error> {
 }
 
 //write common file header
-pub fn write_header_info(file: &mut File, header_map: &HashMap<&str, String>, header_segment_flag: &str, data_segment_flag: &str) -> Result<u64, io::Error> {
+pub fn write_header_info(file: &mut File, header_map: &mut HashMap<&str, String>, header_segment_flag: &str, data_segment_flag: &str) -> Result<u64, io::Error> {
+    //file version
+    header_map.insert("ver", "0.1.0".to_string());
+
     //encode header
     let mut header_vec = vec![];
     //property size (1 byte)
