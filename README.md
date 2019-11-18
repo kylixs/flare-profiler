@@ -40,7 +40,7 @@ Flare Profiler 系统交互图如下：
 
 
 ### 常见问题
-1、可能超出最大可打开的文件数量
+~~1、可能超出最大可打开的文件数量~~(**此问题已经解决**)  
 save summary info failed: Too many open files (os error 24)  
 原因：  
    Flare Profiler为每个JVM线程创建两个文件，如果JVM线程太多，将导致打开或者保存文件失败。  
@@ -52,6 +52,7 @@ save summary info failed: Too many open files (os error 24)
    sudo ulimit -n 65535  
    ulimit -n 65535  
    ```
+
    
 2、方法调用栈火焰图（Call Graph标签页）加载异常  
 火焰图组件来源于Chrome浏览器调试工具项目（devtools），仅支持在Chrome浏览器77以上版本运行，如果出现显示异常请升级Chrome到最新版本或者使用Protable版本。
