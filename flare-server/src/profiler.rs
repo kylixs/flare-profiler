@@ -293,14 +293,21 @@ impl Profiler {
         let self_ref = self.self_ref.as_ref().unwrap().clone();
         let bind_addr = self.bind_addr.clone();
         thread::spawn(move || {
-            println!("Flare profiler started on port: {}", bind_addr);
-            let server = Server::bind(bind_addr).unwrap();
-            for request in server.filter_map(Result::ok) {
-                if !self_ref.lock().unwrap().is_running() {
-                    println!("Shutting down analysis ws server ...");
-                    return;
+            match Server::bind(bind_addr.clone()) {
+                Ok(server) => {
+                    println!("Flare profiler started on port: {}", bind_addr);
+                    for request in server.filter_map(Result::ok) {
+                        if !self_ref.lock().unwrap().is_running() {
+                            println!("Shutting down flare analysis server ...");
+                            return;
+                        }
+                        Profiler::handle_connection(self_ref.clone(), request);
+                    }
                 }
-                Profiler::handle_connection(self_ref.clone(), request);
+                Err(e) => {
+                    println!("Start flare analysis server failed, bind addr: {}, error: {}", bind_addr, e);
+                    self_ref.lock().unwrap().shutdown();
+                }
             }
         });
     }
