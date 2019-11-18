@@ -22,9 +22,9 @@ echo "AGENT_PATH: %AGENT_PATH%"
 echo "AGENT_OPTS: %AGENT_OPTS%"
 echo "TARGET_PID: %TARGET_PID%"
 
-if "%JAVA_HOME%" == "" {
+if "%JAVA_HOME%" == "" (
     echo Required system env: JAVA_HOME
     exit /b 1
-}
+)
 "%JAVA_HOME%\bin\java" -Xbootclasspath/a:%JAVA_HOME%/lib/tools.jar -jar %ATTACHER_PATH%  %AGENT_PATH%  %AGENT_OPTIONS% %TARGET_PID%
 
