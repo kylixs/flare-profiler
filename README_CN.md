@@ -48,9 +48,12 @@ save summary info failed: Too many open files (os error 24)
    ulimit -n 65535  
    ```
    
-2、Call Graph标签页加载异常  
-火焰图组件来源于Chrome浏览器调试工具项目（devtools），仅支持在Chrome浏览器77以上版本运行。
+2、方法调用栈火焰图（Call Graph标签页）加载异常  
+火焰图组件来源于Chrome浏览器调试工具项目（devtools），仅支持在Chrome浏览器77以上版本运行，如果出现显示异常请升级Chrome到最新版本或者使用Protable版本。
 
 
 Links:  
 [v0.1.0-alpha 版本介绍](https://github.com/kylixs/kylixs.github.io/blob/master/flare-profiler-v0.1.0-alpha-demo.md)
+
+Flare Profiler 开源交流QQ群： 837682428，欢迎加群一起探讨学习Java & Rust !  
+![Flare Profiler 开源交流QQ群： 837682428](doc/flare-profiler-qq-group.png)  
