@@ -6,8 +6,8 @@
 	</head>
 	<body>
 		<script>
-			var socket = new WebSocket("ws://127.0.0.1:3344");
-			// var socket = new WebSocket("ws://127.0.0.1:3344", "flare-ws");
+			var socket = new WebSocket("ws://127.0.0.1:3891");
+			// var socket = new WebSocket("ws://127.0.0.1:3891", "flare-ws");
 			socket.onmessage = function (event) {
 				var received = document.getElementById("received");
 				var br = document.createElement("BR");

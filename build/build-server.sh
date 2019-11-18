@@ -45,4 +45,4 @@ cp $BIN_FILE $DIST_DIR/bin/
 
 
 #copy simpleui
-cp -r $PROJECT_PATH/flare-server/static/simpleui $DIST_DIR/res/static/
+cp -r $PROJECT_PATH/flare-server/static/simpleui/* $DIST_DIR/res/static/

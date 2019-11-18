@@ -85,12 +85,11 @@ impl SimpleHttpServer {
                     .serve(move || future::ok::<_, Error>(MainService::new(static_dir)))
                     .map_err(|e| eprintln!("server error: {}", e));
                 println!("Http server running on http://127.0.0.1:{}/", addr.port());
-                println!("Simpleui: http://127.0.0.1:{}/simpleui/", addr.port());
+                //println!("Simpleui: http://127.0.0.1:{}/simpleui/", addr.port());
                 hyper::rt::run(server);
             },
             Err(e) => {
                 println!("Start flare web server failed, bind addr: {}, error: {}", addr, e);
-            }
         }
 
     }

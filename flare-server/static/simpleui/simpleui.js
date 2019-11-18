@@ -60,8 +60,8 @@ let chartIdPrefix = "thread_cpu_chart_";
 var profiler = {
     connected: false,
     agent_addr: "localhost:3333",
-    profiler_addr: "localhost:3344",
-    // profiler_addr: "192.168.2.220:3344",
+    profiler_addr: "localhost:3891",
+    // profiler_addr: "192.168.2.220:3891",
     socket: null,
     sample_dir: null,
     dashboard_timer: null,
@@ -125,7 +125,7 @@ var profiler = {
         return addr;
     },
     init(){
-        profiler.profiler_addr = this.parse_host(window.location.href)+":3344";
+        profiler.profiler_addr = this.parse_host(window.location.href)+":3891";
         console.info("Connecting flare websocket server: "+profiler.profiler_addr);
         var socket = new WebSocket("ws://"+profiler.profiler_addr, "flare-profiler");
         socket.onopen = function(evt) {

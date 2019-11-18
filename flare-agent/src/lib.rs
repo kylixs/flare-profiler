@@ -398,6 +398,9 @@ pub extern fn Agent_OnAttach(vm: JavaVMPtr, options: MutString, reserved: VoidPt
 
                         //sample interval
                         std::thread::sleep(std::time::Duration::from_millis(interval));
+
+                        //TODO auto close after exceed max idle time
+
                     }
                     stop_trace();
                     println!("Trace agent is stopped.");

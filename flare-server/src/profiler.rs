@@ -47,7 +47,7 @@ impl Profiler {
     pub fn new() -> Arc<Mutex<Profiler>> {
         let mut inst = Arc::new(Mutex::new(Profiler {
             self_ref: None,
-            bind_addr: "0.0.0.0:3344".to_string(),
+            bind_addr: "0.0.0.0:3891".to_string(),
             running: true,
             sample_session_map: HashMap::new(),
         }));
