@@ -1,5 +1,5 @@
 # Flare Profiler
-[English Document](README.md)    
+[English Document](README_EN.md)    
 
 一个基于JVMTI技术的Java诊断工具，支持快速分析JVM线程CPU时间及方法调用栈。
 
