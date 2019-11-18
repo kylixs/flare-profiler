@@ -530,7 +530,7 @@ impl TimeSeries for TimeSeriesFileWriter {
         let now_time = Local::now().timestamp_millis();
         let interval = now_time - self.last_flush_data_time;
         if interval > self.data_flush_interval_time || self.data_buffer.len() >= self.data_buffer_size_limit {
-            println!("flushing ts file, data_buffer len:{}, write interval: {} ...", self.data_buffer.len(), interval);
+            //println!("flushing ts file, data_buffer len:{}, write interval: {} ...", self.data_buffer.len(), interval);
             self.flush();
         }
 

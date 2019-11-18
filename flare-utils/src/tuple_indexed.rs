@@ -316,7 +316,7 @@ impl TupleIndexedFile {
         let now_time = Local::now().timestamp_millis();
         let interval = now_time - self.last_flush_bulk_time;
         if interval > self.bulk_flush_interval_time || self.bulk_buffer_bytes >= self.bulk_buffer_bytes_limit {
-            println!("flushing indexed file, bulk_buffer_bytes:{}, write interval: {} ...", self.bulk_buffer_bytes, interval);
+            //println!("flushing indexed file, bulk_buffer_bytes:{}, write interval: {} ...", self.bulk_buffer_bytes, interval);
             self.flush();
         }
 
