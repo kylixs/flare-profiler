@@ -6,11 +6,13 @@ if [[ "$1" == "clean" ]];then
 fi
 
 #cargo params
-export RUSTFLAGS=-Awarnings
+#compile with crt-static, making bin file without depends vcruntime dll
+export RUSTFLAGS="-Awarnings -C target-feature=+crt-static"
+CARGO_TARGET="x86_64-pc-windows-msvc"
 
 PROJECT_PATH="$(cd "$(dirname $0)/.."; pwd -P )"
 DIST_DIR="$PROJECT_PATH/target/flare-profiler/agent"
-BUILD_DIR="$PROJECT_PATH/flare-agent/target/release"
+BUILD_DIR="$PROJECT_PATH/flare-agent/target/$CARGO_TARGET/release"
 
 if [[ "$REBUILD" == "true" ]];then
     echo "cleaning flare-agent dist dir: $DIST_DIR .."
@@ -27,7 +29,7 @@ cp -r $PROJECT_PATH/assets/agent/* $DIST_DIR/
 #build flare-agent
 echo "build flare-agent lib .."
 cd $PROJECT_PATH/flare-agent
-cargo build --release
+cargo build --target $CARGO_TARGET --release
 
 #copy agent lib file
 AGENT_LIB_FILE=""
