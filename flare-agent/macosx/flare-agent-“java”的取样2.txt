@@ -1,0 +1,1260 @@
+Sampling process 1128 for 3 seconds with 1 millisecond of run time between samples
+Sampling completed, processing symbols...
+Analysis of sampling java (pid 1128) every 1 millisecond
+Process:         java [1128]
+Path:            /Library/Java/JavaVirtualMachines/jdk1.8.0_121.jdk/Contents/Home/bin/java
+Load Address:    0x10eca4000
+Identifier:      java
+Version:         1.0 (1.0)
+Code Type:       X86-64
+Parent Process:  bash [1118]
+
+Date/Time:       2019-11-19 00:04:46.477 +0800
+Launch Time:     2019-11-19 00:00:17.240 +0800
+OS Version:      Mac OS X 10.12.6 (16G2136)
+Report Version:  7
+Analysis Tool:   /usr/bin/sample
+----
+
+Call graph:
+    2194 Thread_18895   DispatchQueue_1: com.apple.main-thread  (serial)
+    + 2194 start  (in java) + 52  [0x10eca59e4]
+    +   2194 main  (in java) + 101  [0x10ecac4c2]
+    +     2194 JLI_Launch  (in java) + 1952  [0x10eca618c]
+    +       2194 CreateExecutionEnvironment  (in java) + 871  [0x10ecaa465]
+    +         2194 CFRunLoopRunSpecific  (in CoreFoundation) + 420  [0x7fffd30c0fb4]
+    +           2194 __CFRunLoopRun  (in CoreFoundation) + 1361  [0x7fffd30c1761]
+    +             2194 __CFRunLoopServiceMachPort  (in CoreFoundation) + 212  [0x7fffd30c22e4]
+    +               2194 mach_msg  (in libsystem_kernel.dylib) + 232  [0x7fffe8e2f848]
+    +                 2194 mach_msg_trap  (in libsystem_kernel.dylib) + 10  [0x7fffe8e3034a]
+    2194 Thread_18896
+    + 2194 thread_start  (in libsystem_pthread.dylib) + 13  [0x7fffe8f2208d]
+    +   2194 _pthread_start  (in libsystem_pthread.dylib) + 286  [0x7fffe8f22887]
+    +     2194 _pthread_body  (in libsystem_pthread.dylib) + 180  [0x7fffe8f2293b]
+    +       2194 apple_main  (in java) + 92  [0x10ecaa0f7]
+    +         2194 main  (in java) + 101  [0x10ecac4c2]
+    +           2194 JLI_Launch  (in java) + 4837  [0x10eca6cd1]
+    +             2194 JVMInit  (in java) + 315  [0x10eca97f7]
+    +               2194 ContinueInNewThread  (in java) + 201  [0x10eca6f53]
+    +                 2194 ContinueInNewThread0  (in java) + 102  [0x10eca9a22]
+    +                   2194 pthread_join  (in libsystem_pthread.dylib) + 425  [0x7fffe8f246e5]
+    +                     2194 __semwait_signal  (in libsystem_kernel.dylib) + 10  [0x7fffe8e37f46]
+    2194 Thread_18899
+    + 2194 start_wqthread  (in libsystem_pthread.dylib) + 13  [0x7fffe8f2207d]
+    +   2194 _pthread_wqthread  (in libsystem_pthread.dylib) + 1023  [0x7fffe8f2248e]
+    +     2194 __workq_kernreturn  (in libsystem_kernel.dylib) + 10  [0x7fffe8e3844e]
+    2194 Thread_18901
+    + 2194 thread_start  (in libsystem_pthread.dylib) + 13  [0x7fffe8f2208d]
+    +   2194 _pthread_start  (in libsystem_pthread.dylib) + 286  [0x7fffe8f22887]
+    +     2194 _pthread_body  (in libsystem_pthread.dylib) + 180  [0x7fffe8f2293b]
+    +       2194 JavaMain  (in java) + 805  [0x10eca7292]
+    +         2194 jni_DestroyJavaVM  (in libjvm.dylib) + 254  [0x10f923d23]
+    +           2194 Threads::destroy_vm()  (in libjvm.dylib) + 80  [0x10fb6a9ae]
+    +             2194 Monitor::wait(bool, long, bool)  (in libjvm.dylib) + 246  [0x10fa63f18]
+    +               2194 Monitor::IWait(Thread*, long)  (in libjvm.dylib) + 168  [0x10fa63d30]
+    +                 2194 ParkCommon(ParkEvent*, long)  (in libjvm.dylib) + 42  [0x10fa6345a]
+    +                   2194 os::PlatformEvent::park()  (in libjvm.dylib) + 192  [0x10fa8634e]
+    +                     2194 _pthread_cond_wait  (in libsystem_pthread.dylib) + 712  [0x7fffe8f237fa]
+    +                       2194 __psynch_cvwait  (in libsystem_kernel.dylib) + 10  [0x7fffe8e37bf2]
+    2194 Thread_18904
+    + 2194 thread_start  (in libsystem_pthread.dylib) + 13  [0x7fffe8f2208d]
+    +   2194 _pthread_start  (in libsystem_pthread.dylib) + 286  [0x7fffe8f22887]
+    +     2194 _pthread_body  (in libsystem_pthread.dylib) + 180  [0x7fffe8f2293b]
+    +       2194 java_start(Thread*)  (in libjvm.dylib) + 246  [0x10fa8a5b2]
+    +         2194 GCTaskThread::run()  (in libjvm.dylib) + 349  [0x10f876593]
+    +           2194 GCTaskManager::get_task(unsigned int)  (in libjvm.dylib) + 56  [0x10f8754c6]
+    +             2194 Monitor::wait(bool, long, bool)  (in libjvm.dylib) + 375  [0x10fa63f99]
+    +               2194 Monitor::IWait(Thread*, long)  (in libjvm.dylib) + 168  [0x10fa63d30]
+    +                 2194 ParkCommon(ParkEvent*, long)  (in libjvm.dylib) + 42  [0x10fa6345a]
+    +                   2194 os::PlatformEvent::park()  (in libjvm.dylib) + 192  [0x10fa8634e]
+    +                     2194 _pthread_cond_wait  (in libsystem_pthread.dylib) + 712  [0x7fffe8f237fa]
+    +                       2194 __psynch_cvwait  (in libsystem_kernel.dylib) + 10  [0x7fffe8e37bf2]
+    2194 Thread_18905
+    + 2194 thread_start  (in libsystem_pthread.dylib) + 13  [0x7fffe8f2208d]
+    +   2194 _pthread_start  (in libsystem_pthread.dylib) + 286  [0x7fffe8f22887]
+    +     2194 _pthread_body  (in libsystem_pthread.dylib) + 180  [0x7fffe8f2293b]
+    +       2194 java_start(Thread*)  (in libjvm.dylib) + 246  [0x10fa8a5b2]
+    +         2194 GCTaskThread::run()  (in libjvm.dylib) + 349  [0x10f876593]
+    +           2194 GCTaskManager::get_task(unsigned int)  (in libjvm.dylib) + 56  [0x10f8754c6]
+    +             2194 Monitor::wait(bool, long, bool)  (in libjvm.dylib) + 375  [0x10fa63f99]
+    +               2194 Monitor::IWait(Thread*, long)  (in libjvm.dylib) + 168  [0x10fa63d30]
+    +                 2194 ParkCommon(ParkEvent*, long)  (in libjvm.dylib) + 42  [0x10fa6345a]
+    +                   2194 os::PlatformEvent::park()  (in libjvm.dylib) + 192  [0x10fa8634e]
+    +                     2194 _pthread_cond_wait  (in libsystem_pthread.dylib) + 712  [0x7fffe8f237fa]
+    +                       2194 __psynch_cvwait  (in libsystem_kernel.dylib) + 10  [0x7fffe8e37bf2]
+    2194 Thread_18906
+    + 2194 thread_start  (in libsystem_pthread.dylib) + 13  [0x7fffe8f2208d]
+    +   2194 _pthread_start  (in libsystem_pthread.dylib) + 286  [0x7fffe8f22887]
+    +     2194 _pthread_body  (in libsystem_pthread.dylib) + 180  [0x7fffe8f2293b]
+    +       2194 java_start(Thread*)  (in libjvm.dylib) + 246  [0x10fa8a5b2]
+    +         2194 GCTaskThread::run()  (in libjvm.dylib) + 349  [0x10f876593]
+    +           2194 GCTaskManager::get_task(unsigned int)  (in libjvm.dylib) + 56  [0x10f8754c6]
+    +             2194 Monitor::wait(bool, long, bool)  (in libjvm.dylib) + 375  [0x10fa63f99]
+    +               2194 Monitor::IWait(Thread*, long)  (in libjvm.dylib) + 168  [0x10fa63d30]
+    +                 2194 ParkCommon(ParkEvent*, long)  (in libjvm.dylib) + 42  [0x10fa6345a]
+    +                   2194 os::PlatformEvent::park()  (in libjvm.dylib) + 192  [0x10fa8634e]
+    +                     2194 _pthread_cond_wait  (in libsystem_pthread.dylib) + 712  [0x7fffe8f237fa]
+    +                       2194 __psynch_cvwait  (in libsystem_kernel.dylib) + 10  [0x7fffe8e37bf2]
+    2194 Thread_18907
+    + 2194 thread_start  (in libsystem_pthread.dylib) + 13  [0x7fffe8f2208d]
+    +   2194 _pthread_start  (in libsystem_pthread.dylib) + 286  [0x7fffe8f22887]
+    +     2194 _pthread_body  (in libsystem_pthread.dylib) + 180  [0x7fffe8f2293b]
+    +       2194 java_start(Thread*)  (in libjvm.dylib) + 246  [0x10fa8a5b2]
+    +         2194 GCTaskThread::run()  (in libjvm.dylib) + 349  [0x10f876593]
+    +           2194 GCTaskManager::get_task(unsigned int)  (in libjvm.dylib) + 56  [0x10f8754c6]
+    +             2194 Monitor::wait(bool, long, bool)  (in libjvm.dylib) + 375  [0x10fa63f99]
+    +               2194 Monitor::IWait(Thread*, long)  (in libjvm.dylib) + 168  [0x10fa63d30]
+    +                 2194 ParkCommon(ParkEvent*, long)  (in libjvm.dylib) + 42  [0x10fa6345a]
+    +                   2194 os::PlatformEvent::park()  (in libjvm.dylib) + 192  [0x10fa8634e]
+    +                     2194 _pthread_cond_wait  (in libsystem_pthread.dylib) + 712  [0x7fffe8f237fa]
+    +                       2194 __psynch_cvwait  (in libsystem_kernel.dylib) + 10  [0x7fffe8e37bf2]
+    2194 Thread_18908
+    + 2194 thread_start  (in libsystem_pthread.dylib) + 13  [0x7fffe8f2208d]
+    +   2194 _pthread_start  (in libsystem_pthread.dylib) + 286  [0x7fffe8f22887]
+    +     2194 _pthread_body  (in libsystem_pthread.dylib) + 180  [0x7fffe8f2293b]
+    +       2194 java_start(Thread*)  (in libjvm.dylib) + 246  [0x10fa8a5b2]
+    +         2194 VMThread::run()  (in libjvm.dylib) + 121  [0x10fbb689d]
+    +           2160 VMThread::loop()  (in libjvm.dylib) + 444  [0x10fbb6e12]
+    +           ! 2160 Monitor::wait(bool, long, bool)  (in libjvm.dylib) + 375  [0x10fa63f99]
+    +           !   2160 Monitor::IWait(Thread*, long)  (in libjvm.dylib) + 168  [0x10fa63d30]
+    +           !     2160 os::PlatformEvent::park(long)  (in libjvm.dylib) + 404  [0x10fa87238]
+    +           !       2149 _pthread_cond_wait  (in libsystem_pthread.dylib) + 712  [0x7fffe8f237fa]
+    +           !       : 2149 __psynch_cvwait  (in libsystem_kernel.dylib) + 10  [0x7fffe8e37bf2]
+    +           !       10 _pthread_cond_wait  (in libsystem_pthread.dylib) + 726  [0x7fffe8f23808]
+    +           !       1 _pthread_cond_wait  (in libsystem_pthread.dylib) + 731  [0x7fffe8f2380d]
+    +           !         1 _pthread_testcancel  (in libsystem_pthread.dylib) + 34  [0x7fffe8f234c4]
+    +           17 VMThread::loop()  (in libjvm.dylib) + 808  [0x10fbb6f7e]
+    +           ! 17 VMThread::evaluate_operation(VM_Operation*)  (in libjvm.dylib) + 223  [0x10fbb6b31]
+    +           !   17 VM_Operation::evaluate()  (in libjvm.dylib) + 79  [0x10fbb84c5]
+    +           !     16 VM_GetAllStackTraces::doit()  (in libjvm.dylib) + 208  [0x10f98b0a4]
+    +           !     : 16 VM_GetMultipleStackTraces::fill_frames(_jobject*, JavaThread*, oopDesc*)  (in libjvm.dylib) + 240  [0x10f98bc04]
+    +           !     :   8 JvmtiEnvBase::get_stack_trace(JavaThread*, int, int, _jvmtiFrameInfo*, int*)  (in libjvm.dylib) + 434  [0x10f98ba78]
+    +           !     :   | 8 vframe::java_sender() const  (in libjvm.dylib) + 45  [0x10fba8b3d]
+    +           !     :   |   5 compiledVFrame::sender() const  (in libjvm.dylib) + 106  [0x10fbab8f2]
+    +           !     :   |   + 3 vframe::sender() const  (in libjvm.dylib) + 149  [0x10fba90d3]
+    +           !     :   |   + ! 1 vframe::new_vframe(frame const*, RegisterMap const*, JavaThread*)  (in libjvm.dylib) + 53  [0x10fba9ceb]
+    +           !     :   |   + ! : 1 resource_allocate_bytes(unsigned long, AllocFailStrategy::AllocFailEnum)  (in libjvm.dylib) + 27  [0x10fadafbb]
+    +           !     :   |   + ! :   1 pthread_getspecific  (in libsystem_pthread.dylib) + 0  [0x7fffe8f209d6]
+    +           !     :   |   + ! 1 vframe::new_vframe(frame const*, RegisterMap const*, JavaThread*)  (in libjvm.dylib) + 78  [0x10fba9d04]
+    +           !     :   |   + ! : 1 vframe::vframe(frame const*, RegisterMap const*, JavaThread*)  (in libjvm.dylib) + 9  [0x10fba8a4b]
+    +           !     :   |   + ! 1 vframe::new_vframe(frame const*, RegisterMap const*, JavaThread*)  (in libjvm.dylib) + 177  [0x10fba9d67]
+    +           !     :   |   + !   1 compiledVFrame::compiledVFrame(frame const*, RegisterMap const*, JavaThread*, nmethod*)  (in libjvm.dylib) + 64  [0x10fbabd22]
+    +           !     :   |   + !     1 nmethod::scope_desc_at(unsigned char*)  (in libjvm.dylib) + 98  [0x10fa69bc4]
+    +           !     :   |   + !       1 resource_allocate_bytes(unsigned long, AllocFailStrategy::AllocFailEnum)  (in libjvm.dylib) + 27  [0x10fadafbb]
+    +           !     :   |   + !         1 pthread_getspecific  (in libsystem_pthread.dylib) + 9  [0x7fffe8f209df]
+    +           !     :   |   + 2 vframe::sender() const  (in libjvm.dylib) + 88  [0x10fba9096]
+    +           !     :   |   +   1 frame::real_sender(RegisterMap*) const  (in libjvm.dylib) + 30  [0x10f84a890]
+    +           !     :   |   +   : 1 frame::sender(RegisterMap*) const  (in libjvm.dylib) + 114  [0x10f84bf2e]
+    +           !     :   |   +   :   1 frame::sender_for_compiled_frame(RegisterMap*) const  (in libjvm.dylib) + 112  [0x10f84bcfc]
+    +           !     :   |   +   :     1 OopMapSet::update_register_map(frame const*, RegisterMap*)  (in libjvm.dylib) + 209  [0x10fa80579]
+    +           !     :   |   +   :       1 OopMapStream::find_next()  (in libjvm.dylib) + 39  [0x10fa8036b]
+    +           !     :   |   +   :         1 OopMapValue::read_from(CompressedReadStream*)  (in libjvm.dylib) + 21  [0x10fa809fd]
+    +           !     :   |   +   :           1 CompressedReadStream::read_int()  (in libjvm.dylib) + 15  [0x10f7f5aaf]
+    +           !     :   |   +   1 frame::real_sender(RegisterMap*) const  (in libjvm.dylib) + 34  [0x10f84a894]
+    +           !     :   |   1 vframe::sender() const  (in libjvm.dylib) + 36  [0x10fba9062]
+    +           !     :   |   + 1 _platform_memmove$VARIANT$Nehalem  (in libsystem_platform.dylib) + 186  [0x7fffe8f1809a]
+    +           !     :   |   1 vframe::sender() const  (in libjvm.dylib) + 88  [0x10fba9096]
+    +           !     :   |   + 1 frame::real_sender(RegisterMap*) const  (in libjvm.dylib) + 30  [0x10f84a890]
+    +           !     :   |   +   1 frame::sender(RegisterMap*) const  (in libjvm.dylib) + 91  [0x10f84bf17]
+    +           !     :   |   +     1 frame::sender_for_interpreter_frame(RegisterMap*) const  (in libjvm.dylib) + 24  [0x10f84bbb4]
+    +           !     :   |   1 vframe::sender() const  (in libjvm.dylib) + 149  [0x10fba90d3]
+    +           !     :   |     1 vframe::new_vframe(frame const*, RegisterMap const*, JavaThread*)  (in libjvm.dylib) + 78  [0x10fba9d04]
+    +           !     :   |       1 vframe::vframe(frame const*, RegisterMap const*, JavaThread*)  (in libjvm.dylib) + 92  [0x10fba8a9e]
+    +           !     :   |         1 RegisterMap::RegisterMap(RegisterMap const*)  (in libjvm.dylib) + 106  [0x10f8491d4]
+    +           !     :   2 JvmtiEnvBase::get_stack_trace(JavaThread*, int, int, _jvmtiFrameInfo*, int*)  (in libjvm.dylib) + 420  [0x10f98ba6a]
+    +           !     :   | 1 interpretedVFrame::bci() const  (in libjvm.dylib) + 92  [0x10fba98c2]
+    +           !     :   | + 1 Method::bci_from(unsigned char*) const  (in libjvm.dylib) + 4  [0x10fa4cf78]
+    +           !     :   | 1 interpretedVFrame::bci() const  (in libjvm.dylib) + 87  [0x10fba98bd]
+    +           !     :   2 JvmtiEnvBase::get_stack_trace(JavaThread*, int, int, _jvmtiFrameInfo*, int*)  (in libjvm.dylib) + 480  [0x10f98baa6]
+    +           !     :   | 1 Method::jmethod_id()  (in libjvm.dylib) + 61  [0x10f926075]
+    +           !     :   | + 1 GrowableArray<Metadata*>::append(Metadata* const&)  (in libjvm.dylib) + 1  [0x10f775639]
+    +           !     :   | 1 Method::jmethod_id()  (in libjvm.dylib) + 173  [0x10f9260e5]
+    +           !     :   2 JvmtiEnvBase::get_stack_trace(JavaThread*, int, int, _jvmtiFrameInfo*, int*)  (in libjvm.dylib) + 540  [0x10f98bae2]
+    +           !     :   | 2 ResourceMark::reset_to_mark()  (in libjvm.dylib) + 17  [0x10f73bacd]
+    +           !     :   1 JvmtiEnvBase::get_stack_trace(JavaThread*, int, int, _jvmtiFrameInfo*, int*)  (in libjvm.dylib) + 174  [0x10f98b974]
+    +           !     :   | 1 JavaThread::last_java_vframe(RegisterMap*)  (in libjvm.dylib) + 58  [0x10fb683b0]
+    +           !     :   1 JvmtiEnvBase::get_stack_trace(JavaThread*, int, int, _jvmtiFrameInfo*, int*)  (in libjvm.dylib) + 500  [0x10f98baba]
+    +           !     1 VM_GetAllStackTraces::doit()  (in libjvm.dylib) + 231  [0x10f98b0bb]
+    +           !       1 VM_GetMultipleStackTraces::allocate_and_fill_stacks(int)  (in libjvm.dylib) + 42  [0x10f98b568]
+    +           !         1 JvmtiEnvBase::allocate(long, unsigned char**)  (in libjvm.dylib) + 46  [0x10f98a7b2]
+    +           !           1 os::malloc(unsigned long, MemoryType)  (in libjvm.dylib) + 131  [0x10fa84e8f]
+    +           12 VMThread::loop()  (in libjvm.dylib) + 793  [0x10fbb6f6f]
+    +           ! 10 SafepointSynchronize::begin()  (in libjvm.dylib) + 1022  [0x10fae18f8]
+    +           ! : 5 SafepointSynchronize::do_cleanup_tasks()  (in libjvm.dylib) + 48  [0x10fae126e]
+    +           ! : | 4 ObjectSynchronizer::deflate_idle_monitors()  (in libjvm.dylib) + 136,113,...  [0x10fb35c78,0x10fb35c61,...]
+    +           ! : | 1 ObjectSynchronizer::deflate_idle_monitors()  (in libjvm.dylib) + 512  [0x10fb35df0]
+    +           ! : |   1 os::random()  (in libjvm.dylib) + 1  [0x10fa82c7b]
+    +           ! : 5 SafepointSynchronize::do_cleanup_tasks()  (in libjvm.dylib) + 170  [0x10fae12e8]
+    +           ! :   5 Threads::nmethods_do(CodeBlobClosure*)  (in libjvm.dylib) + 33  [0x10fb691e1]
+    +           ! :     3 JavaThread::nmethods_do(CodeBlobClosure*)  (in libjvm.dylib) + 88  [0x10fb691a8]
+    +           ! :     + 3 StackFrameStream::next()  (in libjvm.dylib) + 37  [0x10f7f2845]
+    +           ! :     +   3 frame::sender(RegisterMap*) const  (in libjvm.dylib) + 114  [0x10f84bf2e]
+    +           ! :     +     1 frame::sender_for_compiled_frame(RegisterMap*) const  (in libjvm.dylib) + 112  [0x10f84bcfc]
+    +           ! :     +     ! 1 OopMapSet::update_register_map(frame const*, RegisterMap*)  (in libjvm.dylib) + 92  [0x10fa80504]
+    +           ! :     +     !   1 OopMapSet::find_map_at_offset(int) const  (in libjvm.dylib) + 14  [0x10fa7fc28]
+    +           ! :     +     1 frame::sender_for_compiled_frame(RegisterMap*) const  (in libjvm.dylib) + 124  [0x10f84bd08]
+    +           ! :     +     ! 1 frame::update_map_with_saved_link(RegisterMap*, long**)  (in libjvm.dylib) + 48  [0x10f84b894]
+    +           ! :     +     1 frame::sender_for_compiled_frame(RegisterMap*) const  (in libjvm.dylib) + 162  [0x10f84bd2e]
+    +           ! :     +       1 CodeCache::find_blob(void*)  (in libjvm.dylib) + 31  [0x10f79c765]
+    +           ! :     +         1 nmethod::is_zombie() const  (in libjvm.dylib) + 11  [0x10fa6d797]
+    +           ! :     1 JavaThread::nmethods_do(CodeBlobClosure*)  (in libjvm.dylib) + 50  [0x10fb69182]
+    +           ! :     + 1 StackFrameStream::StackFrameStream(JavaThread*, bool)  (in libjvm.dylib) + 114  [0x10f849630]
+    +           ! :     +   1 JavaThread::pd_last_frame()  (in libjvm.dylib) + 84  [0x10f7f28d0]
+    +           ! :     +     1 nmethod::get_deopt_original_pc(frame const*)  (in libjvm.dylib) + 39  [0x10fa68445]
+    +           ! :     1 JavaThread::nmethods_do(CodeBlobClosure*)  (in libjvm.dylib) + 96  [0x10fb691b0]
+    +           ! :       1 StackFrameStream::is_done()  (in libjvm.dylib) + 9  [0x10f7f2de9]
+    +           ! 1 SafepointSynchronize::begin()  (in libjvm.dylib) + 551  [0x10fae1721]
+    +           ! : 1 ThreadSafepointState::examine_state_of_thread()  (in libjvm.dylib) + 83  [0x10fae0ac7]
+    +           ! :   1 SafepointSynchronize::check_for_lazy_critical_native(JavaThread*, JavaThreadState)  (in libjvm.dylib) + 41  [0x10fae094b]
+    +           ! :     1 JavaThread::pd_last_frame()  (in libjvm.dylib) + 64  [0x10f7f28bc]
+    +           ! :       1 CodeCache::find_blob(void*)  (in libjvm.dylib) + 14  [0x10f79c754]
+    +           ! :         1 CodeCache::find_blob_unsafe(void*)  (in libjvm.dylib) + 38  [0x10fa6db6a]
+    +           ! :           1 CodeHeap::find_start(void*) const  (in libjvm.dylib) + 44  [0x10f89f438]
+    +           ! 1 SafepointSynchronize::begin()  (in libjvm.dylib) + 541  [0x10fae1717]
+    +           2 VMThread::loop()  (in libjvm.dylib) + 143  [0x10fbb6ce5]
+    +           ! 2 os::PlatformEvent::unpark()  (in libjvm.dylib) + 68  [0x10fa86162]
+    +           !   2 _pthread_cond_signal  (in libsystem_pthread.dylib) + 621  [0x7fffe8f214b6]
+    +           !     2 __psynch_cvsignal  (in libsystem_kernel.dylib) + 0,10  [0x7fffe8e37bd0,0x7fffe8e37bda]
+    +           1 VMThread::loop()  (in libjvm.dylib) + 80  [0x10fbb6ca6]
+    +           ! 1 EventMark::~EventMark()  (in libjvm.dylib) + 60  [0x10f840ea0]
+    +           !   1 Events::log(Thread*, char const*, ...)  (in libjvm.dylib) + 151  [0x10f7f29ab]
+    +           !     1 StringEventLog::logv(Thread*, char const*, __va_list_tag*)  (in libjvm.dylib) + 199  [0x10f7ba141]
+    +           !       1 jio_vsnprintf  (in libjvm.dylib) + 29  [0x10f948cad]
+    +           !         1 vsnprintf  (in libsystem_c.dylib) + 80  [0x7fffe8d929d3]
+    +           !           1 _vsnprintf  (in libsystem_c.dylib) + 586  [0x7fffe8d9292a]
+    +           !             1 __v2printf  (in libsystem_c.dylib) + 699  [0x7fffe8dae423]
+    +           !               1 __vfprintf  (in libsystem_c.dylib) + 10068  [0x7fffe8d86b0b]
+    +           1 VMThread::loop()  (in libjvm.dylib) + 691  [0x10fbb6f09]
+    +           ! 1 HandleMark::initialize(Thread*)  (in libjvm.dylib) + 22  [0x10f89bb66]
+    +           1 VMThread::loop()  (in libjvm.dylib) + 980  [0x10fbb702a]
+    +             1 SafepointSynchronize::end()  (in libjvm.dylib) + 175  [0x10fae1495]
+    +               1 ThreadSafepointState::restart()  (in libjvm.dylib) + 12  [0x10fae0ae4]
+    2194 Thread_18909: Java: Reference Handler
+    + 2194 thread_start  (in libsystem_pthread.dylib) + 13  [0x7fffe8f2208d]
+    +   2194 _pthread_start  (in libsystem_pthread.dylib) + 286  [0x7fffe8f22887]
+    +     2194 _pthread_body  (in libsystem_pthread.dylib) + 180  [0x7fffe8f2293b]
+    +       2194 java_start(Thread*)  (in libjvm.dylib) + 246  [0x10fa8a5b2]
+    +         2194 JavaThread::run()  (in libjvm.dylib) + 450  [0x10fb6c1fc]
+    +           2194 JavaThread::thread_main_inner()  (in libjvm.dylib) + 155  [0x10fb6ab0f]
+    +             2194 thread_entry(JavaThread*, Thread*)  (in libjvm.dylib) + 124  [0x10f948a5d]
+    +               2194 JavaCalls::call_virtual(JavaValue*, Handle, KlassHandle, Symbol*, Symbol*, Thread*)  (in libjvm.dylib) + 74  [0x10f8ee310]
+    +                 2194 JavaCalls::call_virtual(JavaValue*, KlassHandle, Symbol*, Symbol*, JavaCallArguments*, Thread*)  (in libjvm.dylib) + 356  [0x10f8ee164]
+    +                   2194 JavaCalls::call_helper(JavaValue*, methodHandle*, JavaCallArguments*, Thread*)  (in libjvm.dylib) + 1710  [0x10f8ed9d6]
+    +                     2194 ???  (in <unknown binary>)  [0x114ee97a7]
+    +                       2194 ???  (in <unknown binary>)  [0x11521fac4]
+    +                         2194 ???  (in <unknown binary>)  [0x114f009f4]
+    +                           2194 JVM_MonitorWait  (in libjvm.dylib) + 156  [0x10f94f46f]
+    +                             2194 ObjectSynchronizer::wait(Handle, long, Thread*)  (in libjvm.dylib) + 202  [0x10fb3745c]
+    +                               2194 ObjectMonitor::wait(long, bool, Thread*)  (in libjvm.dylib) + 748  [0x10fa7deb6]
+    +                                 2194 os::PlatformEvent::park()  (in libjvm.dylib) + 192  [0x10fa8634e]
+    +                                   2194 _pthread_cond_wait  (in libsystem_pthread.dylib) + 712  [0x7fffe8f237fa]
+    +                                     2194 __psynch_cvwait  (in libsystem_kernel.dylib) + 10  [0x7fffe8e37bf2]
+    2194 Thread_18910: Java: Finalizer
+    + 2194 thread_start  (in libsystem_pthread.dylib) + 13  [0x7fffe8f2208d]
+    +   2194 _pthread_start  (in libsystem_pthread.dylib) + 286  [0x7fffe8f22887]
+    +     2194 _pthread_body  (in libsystem_pthread.dylib) + 180  [0x7fffe8f2293b]
+    +       2194 java_start(Thread*)  (in libjvm.dylib) + 246  [0x10fa8a5b2]
+    +         2194 JavaThread::run()  (in libjvm.dylib) + 450  [0x10fb6c1fc]
+    +           2194 JavaThread::thread_main_inner()  (in libjvm.dylib) + 155  [0x10fb6ab0f]
+    +             2194 thread_entry(JavaThread*, Thread*)  (in libjvm.dylib) + 124  [0x10f948a5d]
+    +               2194 JavaCalls::call_virtual(JavaValue*, Handle, KlassHandle, Symbol*, Symbol*, Thread*)  (in libjvm.dylib) + 74  [0x10f8ee310]
+    +                 2194 JavaCalls::call_virtual(JavaValue*, KlassHandle, Symbol*, Symbol*, JavaCallArguments*, Thread*)  (in libjvm.dylib) + 356  [0x10f8ee164]
+    +                   2194 JavaCalls::call_helper(JavaValue*, methodHandle*, JavaCallArguments*, Thread*)  (in libjvm.dylib) + 1710  [0x10f8ed9d6]
+    +                     2194 ???  (in <unknown binary>)  [0x114ee97a7]
+    +                       2194 ???  (in <unknown binary>)  [0x1152230b4]
+    +                         2194 ???  (in <unknown binary>)  [0x114f009f4]
+    +                           2194 JVM_MonitorWait  (in libjvm.dylib) + 156  [0x10f94f46f]
+    +                             2194 ObjectSynchronizer::wait(Handle, long, Thread*)  (in libjvm.dylib) + 202  [0x10fb3745c]
+    +                               2194 ObjectMonitor::wait(long, bool, Thread*)  (in libjvm.dylib) + 748  [0x10fa7deb6]
+    +                                 2194 os::PlatformEvent::park()  (in libjvm.dylib) + 192  [0x10fa8634e]
+    +                                   2194 _pthread_cond_wait  (in libsystem_pthread.dylib) + 712  [0x7fffe8f237fa]
+    +                                     2194 __psynch_cvwait  (in libsystem_kernel.dylib) + 10  [0x7fffe8e37bf2]
+    2194 Thread_18917: Java: Signal Dispatcher
+    + 2194 thread_start  (in libsystem_pthread.dylib) + 13  [0x7fffe8f2208d]
+    +   2194 _pthread_start  (in libsystem_pthread.dylib) + 286  [0x7fffe8f22887]
+    +     2194 _pthread_body  (in libsystem_pthread.dylib) + 180  [0x7fffe8f2293b]
+    +       2194 java_start(Thread*)  (in libjvm.dylib) + 246  [0x10fa8a5b2]
+    +         2194 JavaThread::run()  (in libjvm.dylib) + 450  [0x10fb6c1fc]
+    +           2194 JavaThread::thread_main_inner()  (in libjvm.dylib) + 155  [0x10fb6ab0f]
+    +             2194 signal_thread_entry(JavaThread*, Thread*)  (in libjvm.dylib) + 667  [0x10fa85649]
+    +               2194 check_pending_signals(bool)  (in libjvm.dylib) + 128  [0x10fa888a0]
+    +                 2194 semaphore_wait_trap  (in libsystem_kernel.dylib) + 10  [0x7fffe8e30386]
+    2194 Thread_18918: Java: C2 CompilerThread0
+    + 2194 thread_start  (in libsystem_pthread.dylib) + 13  [0x7fffe8f2208d]
+    +   2194 _pthread_start  (in libsystem_pthread.dylib) + 286  [0x7fffe8f22887]
+    +     2194 _pthread_body  (in libsystem_pthread.dylib) + 180  [0x7fffe8f2293b]
+    +       2194 java_start(Thread*)  (in libjvm.dylib) + 246  [0x10fa8a5b2]
+    +         2194 JavaThread::run()  (in libjvm.dylib) + 450  [0x10fb6c1fc]
+    +           2194 JavaThread::thread_main_inner()  (in libjvm.dylib) + 155  [0x10fb6ab0f]
+    +             2194 CompileBroker::compiler_thread_loop()  (in libjvm.dylib) + 376  [0x10f7b8bf6]
+    +               2194 CompileQueue::get()  (in libjvm.dylib) + 122  [0x10f7b89d4]
+    +                 2194 Monitor::wait(bool, long, bool)  (in libjvm.dylib) + 222  [0x10fa63f00]
+    +                   2194 Monitor::IWait(Thread*, long)  (in libjvm.dylib) + 168  [0x10fa63d30]
+    +                     2194 os::PlatformEvent::park(long)  (in libjvm.dylib) + 404  [0x10fa87238]
+    +                       2194 _pthread_cond_wait  (in libsystem_pthread.dylib) + 712  [0x7fffe8f237fa]
+    +                         2194 __psynch_cvwait  (in libsystem_kernel.dylib) + 10  [0x7fffe8e37bf2]
+    2194 Thread_18919: Java: C2 CompilerThread1
+    + 2194 thread_start  (in libsystem_pthread.dylib) + 13  [0x7fffe8f2208d]
+    +   2194 _pthread_start  (in libsystem_pthread.dylib) + 286  [0x7fffe8f22887]
+    +     2194 _pthread_body  (in libsystem_pthread.dylib) + 180  [0x7fffe8f2293b]
+    +       2194 java_start(Thread*)  (in libjvm.dylib) + 246  [0x10fa8a5b2]
+    +         2194 JavaThread::run()  (in libjvm.dylib) + 450  [0x10fb6c1fc]
+    +           2194 JavaThread::thread_main_inner()  (in libjvm.dylib) + 155  [0x10fb6ab0f]
+    +             2194 CompileBroker::compiler_thread_loop()  (in libjvm.dylib) + 376  [0x10f7b8bf6]
+    +               2194 CompileQueue::get()  (in libjvm.dylib) + 122  [0x10f7b89d4]
+    +                 2194 Monitor::wait(bool, long, bool)  (in libjvm.dylib) + 222  [0x10fa63f00]
+    +                   2194 Monitor::IWait(Thread*, long)  (in libjvm.dylib) + 168  [0x10fa63d30]
+    +                     2194 os::PlatformEvent::park(long)  (in libjvm.dylib) + 404  [0x10fa87238]
+    +                       2194 _pthread_cond_wait  (in libsystem_pthread.dylib) + 712  [0x7fffe8f237fa]
+    +                         2194 __psynch_cvwait  (in libsystem_kernel.dylib) + 10,12  [0x7fffe8e37bf2,0x7fffe8e37bf4]
+    2194 Thread_18920: Java: C1 CompilerThread2
+    + 2194 thread_start  (in libsystem_pthread.dylib) + 13  [0x7fffe8f2208d]
+    +   2194 _pthread_start  (in libsystem_pthread.dylib) + 286  [0x7fffe8f22887]
+    +     2194 _pthread_body  (in libsystem_pthread.dylib) + 180  [0x7fffe8f2293b]
+    +       2194 java_start(Thread*)  (in libjvm.dylib) + 246  [0x10fa8a5b2]
+    +         2194 JavaThread::run()  (in libjvm.dylib) + 450  [0x10fb6c1fc]
+    +           2194 JavaThread::thread_main_inner()  (in libjvm.dylib) + 155  [0x10fb6ab0f]
+    +             2194 CompileBroker::compiler_thread_loop()  (in libjvm.dylib) + 376  [0x10f7b8bf6]
+    +               2194 CompileQueue::get()  (in libjvm.dylib) + 122  [0x10f7b89d4]
+    +                 2194 Monitor::wait(bool, long, bool)  (in libjvm.dylib) + 222  [0x10fa63f00]
+    +                   2194 Monitor::IWait(Thread*, long)  (in libjvm.dylib) + 168  [0x10fa63d30]
+    +                     2194 os::PlatformEvent::park(long)  (in libjvm.dylib) + 404  [0x10fa87238]
+    +                       2194 _pthread_cond_wait  (in libsystem_pthread.dylib) + 712  [0x7fffe8f237fa]
+    +                         2194 __psynch_cvwait  (in libsystem_kernel.dylib) + 10  [0x7fffe8e37bf2]
+    2194 Thread_18921: Java: Service Thread
+    + 2194 thread_start  (in libsystem_pthread.dylib) + 13  [0x7fffe8f2208d]
+    +   2194 _pthread_start  (in libsystem_pthread.dylib) + 286  [0x7fffe8f22887]
+    +     2194 _pthread_body  (in libsystem_pthread.dylib) + 180  [0x7fffe8f2293b]
+    +       2194 java_start(Thread*)  (in libjvm.dylib) + 246  [0x10fa8a5b2]
+    +         2194 JavaThread::run()  (in libjvm.dylib) + 450  [0x10fb6c1fc]
+    +           2194 JavaThread::thread_main_inner()  (in libjvm.dylib) + 155  [0x10fb6ab0f]
+    +             2194 ServiceThread::service_thread_entry(JavaThread*, Thread*)  (in libjvm.dylib) + 132  [0x10fae23e0]
+    +               2194 Monitor::wait(bool, long, bool)  (in libjvm.dylib) + 375  [0x10fa63f99]
+    +                 2194 Monitor::IWait(Thread*, long)  (in libjvm.dylib) + 168  [0x10fa63d30]
+    +                   2194 ParkCommon(ParkEvent*, long)  (in libjvm.dylib) + 42  [0x10fa6345a]
+    +                     2194 os::PlatformEvent::park()  (in libjvm.dylib) + 192  [0x10fa8634e]
+    +                       2194 _pthread_cond_wait  (in libsystem_pthread.dylib) + 712  [0x7fffe8f237fa]
+    +                         2194 __psynch_cvwait  (in libsystem_kernel.dylib) + 10  [0x7fffe8e37bf2]
+    2194 Thread_18922
+    + 2194 thread_start  (in libsystem_pthread.dylib) + 13  [0x7fffe8f2208d]
+    +   2194 _pthread_start  (in libsystem_pthread.dylib) + 286  [0x7fffe8f22887]
+    +     2194 _pthread_body  (in libsystem_pthread.dylib) + 180  [0x7fffe8f2293b]
+    +       2194 java_start(Thread*)  (in libjvm.dylib) + 246  [0x10fa8a5b2]
+    +         2194 WatcherThread::run()  (in libjvm.dylib) + 243  [0x10fb6be71]
+    +           2191 WatcherThread::sleep() const  (in libjvm.dylib) + 126  [0x10fb6afec]
+    +           ! 2191 Monitor::wait(bool, long, bool)  (in libjvm.dylib) + 375  [0x10fa63f99]
+    +           !   2190 Monitor::IWait(Thread*, long)  (in libjvm.dylib) + 168  [0x10fa63d30]
+    +           !   : 2189 os::PlatformEvent::park(long)  (in libjvm.dylib) + 404  [0x10fa87238]
+    +           !   : | 2186 _pthread_cond_wait  (in libsystem_pthread.dylib) + 712  [0x7fffe8f237fa]
+    +           !   : | + 2185 __psynch_cvwait  (in libsystem_kernel.dylib) + 10  [0x7fffe8e37bf2]
+    +           !   : | + 1 cerror_nocancel  (in libsystem_kernel.dylib) + 20  [0x7fffe8e30cc3]
+    +           !   : | 2 _pthread_cond_wait  (in libsystem_pthread.dylib) + 726  [0x7fffe8f23808]
+    +           !   : | 1 _pthread_cond_wait  (in libsystem_pthread.dylib) + 225  [0x7fffe8f23613]
+    +           !   : |   1 __gettimeofday  (in libsystem_kernel.dylib) + 17  [0x7fffe8e37552]
+    +           !   : 1 os::PlatformEvent::park(long)  (in libjvm.dylib) + 497  [0x10fa87295]
+    +           !   :   1 pthread_mutex_unlock  (in libsystem_pthread.dylib) + 0  [0x7fffe8f206f7]
+    +           !   1 Monitor::IWait(Thread*, long)  (in libjvm.dylib) + 334  [0x10fa63dd6]
+    +           !     1 Monitor::ILock(Thread*)  (in libjvm.dylib) + 0  [0x10fa639e6]
+    +           3 WatcherThread::sleep() const  (in libjvm.dylib) + 134  [0x10fb6aff4]
+    +             2 os::javaTimeNanos()  (in libjvm.dylib) + 9  [0x10fa89edb]
+    +             : 2 mach_absolute_time  (in libsystem_kernel.dylib) + 18,1  [0x7fffe8e2f727,0x7fffe8e2f716]
+    +             1 os::javaTimeNanos()  (in libjvm.dylib) + 1  [0x10fa89ed3]
+    2194 Thread_19002: Java: ContainerBackgroundProcessor[StandardEngine[Tomcat].Stand
+    + 2194 thread_start  (in libsystem_pthread.dylib) + 13  [0x7fffe8f2208d]
+    +   2194 _pthread_start  (in libsystem_pthread.dylib) + 286  [0x7fffe8f22887]
+    +     2194 _pthread_body  (in libsystem_pthread.dylib) + 180  [0x7fffe8f2293b]
+    +       2194 java_start(Thread*)  (in libjvm.dylib) + 246  [0x10fa8a5b2]
+    +         2194 JavaThread::run()  (in libjvm.dylib) + 450  [0x10fb6c1fc]
+    +           2194 JavaThread::thread_main_inner()  (in libjvm.dylib) + 155  [0x10fb6ab0f]
+    +             2194 thread_entry(JavaThread*, Thread*)  (in libjvm.dylib) + 124  [0x10f948a5d]
+    +               2194 JavaCalls::call_virtual(JavaValue*, Handle, KlassHandle, Symbol*, Symbol*, Thread*)  (in libjvm.dylib) + 74  [0x10f8ee310]
+    +                 2194 JavaCalls::call_virtual(JavaValue*, KlassHandle, Symbol*, Symbol*, JavaCallArguments*, Thread*)  (in libjvm.dylib) + 356  [0x10f8ee164]
+    +                   2194 JavaCalls::call_helper(JavaValue*, methodHandle*, JavaCallArguments*, Thread*)  (in libjvm.dylib) + 1710  [0x10f8ed9d6]
+    +                     2194 ???  (in <unknown binary>)  [0x114ee97a7]
+    +                       2194 ???  (in <unknown binary>)  [0x114ef1302]
+    +                         2194 ???  (in <unknown binary>)  [0x114ef12bd]
+    +                           2194 ???  (in <unknown binary>)  [0x114f009f4]
+    +                             2194 JVM_Sleep  (in libjvm.dylib) + 269  [0x10f9484d6]
+    +                               2194 os::sleep(Thread*, long, bool)  (in libjvm.dylib) + 216  [0x10fa8a01a]
+    +                                 2194 os::PlatformEvent::park(long)  (in libjvm.dylib) + 404  [0x10fa87238]
+    +                                   2194 _pthread_cond_wait  (in libsystem_pthread.dylib) + 712  [0x7fffe8f237fa]
+    +                                     2194 __psynch_cvwait  (in libsystem_kernel.dylib) + 10  [0x7fffe8e37bf2]
+    2194 Thread_19003: Java: container-0
+    + 2194 thread_start  (in libsystem_pthread.dylib) + 13  [0x7fffe8f2208d]
+    +   2194 _pthread_start  (in libsystem_pthread.dylib) + 286  [0x7fffe8f22887]
+    +     2194 _pthread_body  (in libsystem_pthread.dylib) + 180  [0x7fffe8f2293b]
+    +       2194 java_start(Thread*)  (in libjvm.dylib) + 246  [0x10fa8a5b2]
+    +         2194 JavaThread::run()  (in libjvm.dylib) + 450  [0x10fb6c1fc]
+    +           2194 JavaThread::thread_main_inner()  (in libjvm.dylib) + 155  [0x10fb6ab0f]
+    +             2194 thread_entry(JavaThread*, Thread*)  (in libjvm.dylib) + 124  [0x10f948a5d]
+    +               2194 JavaCalls::call_virtual(JavaValue*, Handle, KlassHandle, Symbol*, Symbol*, Thread*)  (in libjvm.dylib) + 74  [0x10f8ee310]
+    +                 2194 JavaCalls::call_virtual(JavaValue*, KlassHandle, Symbol*, Symbol*, JavaCallArguments*, Thread*)  (in libjvm.dylib) + 356  [0x10f8ee164]
+    +                   2194 JavaCalls::call_helper(JavaValue*, methodHandle*, JavaCallArguments*, Thread*)  (in libjvm.dylib) + 1710  [0x10f8ed9d6]
+    +                     2194 ???  (in <unknown binary>)  [0x114ee97a7]
+    +                       2194 ???  (in <unknown binary>)  [0x114ef1302]
+    +                         2194 ???  (in <unknown binary>)  [0x114ef12bd]
+    +                           2194 ???  (in <unknown binary>)  [0x114f009f4]
+    +                             2194 JVM_Sleep  (in libjvm.dylib) + 269  [0x10f9484d6]
+    +                               2194 os::sleep(Thread*, long, bool)  (in libjvm.dylib) + 216  [0x10fa8a01a]
+    +                                 2194 os::PlatformEvent::park(long)  (in libjvm.dylib) + 404  [0x10fa87238]
+    +                                   2194 _pthread_cond_wait  (in libsystem_pthread.dylib) + 712  [0x7fffe8f237fa]
+    +                                     2194 __psynch_cvwait  (in libsystem_kernel.dylib) + 10  [0x7fffe8e37bf2]
+    2194 Thread_19005: Java: NioBlockingSelector.BlockPoller-1
+    + 2193 ???  (in <unknown binary>)  [0x115b2efd4]
+    + ! 2193 ???  (in <unknown binary>)  [0x1155a01b2]
+    + !   2193 Java_sun_nio_ch_KQueueArrayWrapper_kevent0  (in libnio.dylib) + 98  [0x113b6fa20]
+    + !     2193 kevent  (in libsystem_kernel.dylib) + 10  [0x7fffe8e38d96]
+    + 1 ???  (in <unknown binary>)  [0x115d4b8dc]
+    2194 Thread_19006: Java: http-nio-8080-ClientPoller-0
+    + 2193 ???  (in <unknown binary>)  [0x115b2efd4]
+    + ! 2193 ???  (in <unknown binary>)  [0x1155a01b2]
+    + !   2193 Java_sun_nio_ch_KQueueArrayWrapper_kevent0  (in libnio.dylib) + 98  [0x113b6fa20]
+    + !     2193 kevent  (in libsystem_kernel.dylib) + 10  [0x7fffe8e38d96]
+    + 1 ???  (in <unknown binary>)  [0x115869171]
+    2194 Thread_19007: Java: http-nio-8080-ClientPoller-1
+    + 2193 ???  (in <unknown binary>)  [0x115b2efd4]
+    + ! 2193 ???  (in <unknown binary>)  [0x1155a01b2]
+    + !   2193 Java_sun_nio_ch_KQueueArrayWrapper_kevent0  (in libnio.dylib) + 98  [0x113b6fa20]
+    + !     2193 kevent  (in libsystem_kernel.dylib) + 10  [0x7fffe8e38d96]
+    + 1 ???  (in <unknown binary>)  [0x11586918c]
+    2194 Thread_19008: Java: http-nio-8080-Acceptor-0
+    + 2194 thread_start  (in libsystem_pthread.dylib) + 13  [0x7fffe8f2208d]
+    +   2194 _pthread_start  (in libsystem_pthread.dylib) + 286  [0x7fffe8f22887]
+    +     2194 _pthread_body  (in libsystem_pthread.dylib) + 180  [0x7fffe8f2293b]
+    +       2194 java_start(Thread*)  (in libjvm.dylib) + 246  [0x10fa8a5b2]
+    +         2194 JavaThread::run()  (in libjvm.dylib) + 450  [0x10fb6c1fc]
+    +           2194 JavaThread::thread_main_inner()  (in libjvm.dylib) + 155  [0x10fb6ab0f]
+    +             2194 thread_entry(JavaThread*, Thread*)  (in libjvm.dylib) + 124  [0x10f948a5d]
+    +               2194 JavaCalls::call_virtual(JavaValue*, Handle, KlassHandle, Symbol*, Symbol*, Thread*)  (in libjvm.dylib) + 74  [0x10f8ee310]
+    +                 2194 JavaCalls::call_virtual(JavaValue*, KlassHandle, Symbol*, Symbol*, JavaCallArguments*, Thread*)  (in libjvm.dylib) + 356  [0x10f8ee164]
+    +                   2194 JavaCalls::call_helper(JavaValue*, methodHandle*, JavaCallArguments*, Thread*)  (in libjvm.dylib) + 1710  [0x10f8ed9d6]
+    +                     2194 ???  (in <unknown binary>)  [0x114ee97a7]
+    +                       2194 ???  (in <unknown binary>)  [0x114ef1302]
+    +                         2194 ???  (in <unknown binary>)  [0x115a56994]
+    +                           2194 ???  (in <unknown binary>)  [0x115a5d46a]
+    +                             2194 Java_sun_nio_ch_ServerSocketChannelImpl_accept0  (in libnio.dylib) + 98  [0x113b70bb0]
+    +                               2194 __accept  (in libsystem_kernel.dylib) + 10  [0x7fffe8e370c2]
+    2194 Thread_19240: Java: Attach Listener
+    + 2194 thread_start  (in libsystem_pthread.dylib) + 13  [0x7fffe8f2208d]
+    +   2194 _pthread_start  (in libsystem_pthread.dylib) + 286  [0x7fffe8f22887]
+    +     2194 _pthread_body  (in libsystem_pthread.dylib) + 180  [0x7fffe8f2293b]
+    +       2194 java_start(Thread*)  (in libjvm.dylib) + 246  [0x10fa8a5b2]
+    +         2194 JavaThread::run()  (in libjvm.dylib) + 450  [0x10fb6c1fc]
+    +           2194 JavaThread::thread_main_inner()  (in libjvm.dylib) + 155  [0x10fb6ab0f]
+    +             2194 attach_listener_thread_entry(JavaThread*, Thread*)  (in libjvm.dylib) + 362  [0x10f6cb8c3]
+    +               2194 AttachListener::dequeue()  (in libjvm.dylib) + 69  [0x10f6cc9c7]
+    +                 2194 BsdAttachListener::dequeue()  (in libjvm.dylib) + 122  [0x10f6cc962]
+    +                   2194 __accept  (in libsystem_kernel.dylib) + 10  [0x7fffe8e370c2]
+    2194 Thread_19241
+    + 2190 thread_start  (in libsystem_pthread.dylib) + 13  [0x7fffe8f2208d]
+    + ! 2190 _pthread_start  (in libsystem_pthread.dylib) + 286  [0x7fffe8f22887]
+    + !   2190 _pthread_body  (in libsystem_pthread.dylib) + 180  [0x7fffe8f2293b]
+    + !     2190 std::sys::unix::thread::Thread::new::thread_start::he418bbb505b1b1b9  (in libflareagent.dylib) + 142  [0x12e5b785e]
+    + !       2190 _$LT$alloc..boxed..Box$LT$F$GT$$u20$as$u20$core..ops..function..FnOnce$LT$A$GT$$GT$::call_once::h184cdfe19b856bb1  (in libflareagent.dylib) + 62  [0x12e58ad8e]
+    + !         2190 core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::hcf94025407821adc  (in libflareagent.dylib) + 112  [0x12e3db490]
+    + !           2190 __rust_maybe_catch_panic  (in libflareagent.dylib) + 31  [0x12e5b8a6f]
+    + !             1941 std::sys_common::backtrace::__rust_begin_short_backtrace::h1128093f49133514  (in libflareagent.dylib) + 1177  [0x12e3d7ac9]
+    + !             : 1939 std::thread::sleep::h58e161e41ff34b94  (in libflareagent.dylib) + 112  [0x12e58b5c0]
+    + !             : | 1935 nanosleep  (in libsystem_c.dylib) + 199  [0x7fffe8dbeb72]
+    + !             : | + 1915 __semwait_signal  (in libsystem_kernel.dylib) + 10  [0x7fffe8e37f46]
+    + !             : | + 12 cerror  (in libsystem_kernel.dylib) + 0,1  [0x7fffe8e30cd4,0x7fffe8e30cd5]
+    + !             : | + 8 cerror  (in libsystem_kernel.dylib) + 20  [0x7fffe8e30ce8]
+    + !             : | +   8 cerror_nocancel  (in libsystem_kernel.dylib) + 20  [0x7fffe8e30cc3]
+    + !             : | 3 nanosleep  (in libsystem_c.dylib) + 91  [0x7fffe8dbeb06]
+    + !             : | + 3 clock_get_time  (in libsystem_kernel.dylib) + 77  [0x7fffe8e1f2ca]
+    + !             : | +   3 mach_msg  (in libsystem_kernel.dylib) + 55  [0x7fffe8e2f797]
+    + !             : | +     3 mach_msg_trap  (in libsystem_kernel.dylib) + 10  [0x7fffe8e3034a]
+    + !             : | 1 nanosleep  (in libsystem_c.dylib) + 208  [0x7fffe8dbeb7b]
+    + !             : |   1 __error  (in libsystem_kernel.dylib) + 0  [0x7fffe8e30c97]
+    + !             : 2 std::thread::sleep::h58e161e41ff34b94  (in libflareagent.dylib) + 117  [0x12e58b5c5]
+    + !             176 std::sys_common::backtrace::__rust_begin_short_backtrace::h1128093f49133514  (in libflareagent.dylib) + 541  [0x12e3d784d]
+    + !             : 162 _$LT$flareagent..environment..jvmti..JVMTIEnvironment$u20$as$u20$flareagent..environment..jvmti..JVMTI$GT$::get_all_stacktraces::h7ee504ab4c0d317a  (in libflareagent.dylib) + 396  [0x12e43350c]
+    + !             : | 155 jvmti_GetAllStackTraces  (in libjvm.dylib) + 197  [0x10f957728]
+    + !             : | + 155 JvmtiEnv::GetAllStackTraces(int, _jvmtiStackInfo**, int*)  (in libjvm.dylib) + 130  [0x10f984b86]
+    + !             : | +   94 VMThread::execute(VM_Operation*)  (in libjvm.dylib) + 269  [0x10fbb7405]
+    + !             : | +   ! 90 Monitor::wait(bool, long, bool)  (in libjvm.dylib) + 222  [0x10fa63f00]
+    + !             : | +   ! : 89 Monitor::IWait(Thread*, long)  (in libjvm.dylib) + 168  [0x10fa63d30]
+    + !             : | +   ! : | 89 ParkCommon(ParkEvent*, long)  (in libjvm.dylib) + 42  [0x10fa6345a]
+    + !             : | +   ! : |   83 os::PlatformEvent::park()  (in libjvm.dylib) + 192  [0x10fa8634e]
+    + !             : | +   ! : |   + 77 _pthread_cond_wait  (in libsystem_pthread.dylib) + 712  [0x7fffe8f237fa]
+    + !             : | +   ! : |   + ! 77 __psynch_cvwait  (in libsystem_kernel.dylib) + 10  [0x7fffe8e37bf2]
+    + !             : | +   ! : |   + 2 _pthread_cond_wait  (in libsystem_pthread.dylib) + 157  [0x7fffe8f235cf]
+    + !             : | +   ! : |   + ! 2 _pthread_testcancel  (in libsystem_pthread.dylib) + 39,73  [0x7fffe8f234c9,0x7fffe8f234eb]
+    + !             : | +   ! : |   + 2 _pthread_cond_wait  (in libsystem_pthread.dylib) + 559  [0x7fffe8f23761]
+    + !             : | +   ! : |   + ! 2 __mtx_droplock  (in libsystem_pthread.dylib) + 226,389  [0x7fffe8f23975,0x7fffe8f23a18]
+    + !             : | +   ! : |   + 2 _pthread_cond_wait  (in libsystem_pthread.dylib) + 12,522  [0x7fffe8f2353e,0x7fffe8f2373c]
+    + !             : | +   ! : |   4 os::PlatformEvent::park()  (in libjvm.dylib) + 63,49,...  [0x10fa862cd,0x10fa862bf,...]
+    + !             : | +   ! : |   1 os::PlatformEvent::park()  (in libjvm.dylib) + 131  [0x10fa86311]
+    + !             : | +   ! : |   + 1 pthread_mutex_lock  (in libsystem_pthread.dylib) + 0  [0x7fffe8f2038c]
+    + !             : | +   ! : |   1 os::PlatformEvent::park()  (in libjvm.dylib) + 216  [0x10fa86366]
+    + !             : | +   ! : |     1 pthread_mutex_unlock  (in libsystem_pthread.dylib) + 0  [0x7fffe8f206f7]
+    + !             : | +   ! : 1 Monitor::IWait(Thread*, long)  (in libjvm.dylib) + 128  [0x10fa63d08]
+    + !             : | +   ! :   1 Thread::muxRelease(long volatile*)  (in libjvm.dylib) + 57  [0x10fb668bd]
+    + !             : | +   ! 2 Monitor::wait(bool, long, bool)  (in libjvm.dylib) + 182  [0x10fa63ed8]
+    + !             : | +   ! : 2 ThreadStateTransition::trans_and_fence(JavaThreadState, JavaThreadState)  (in libjvm.dylib) + 81,1  [0x10f7751bd,0x10f77516d]
+    + !             : | +   ! 2 Monitor::wait(bool, long, bool)  (in libjvm.dylib) + 193  [0x10fa63ee3]
+    + !             : | +   47 VMThread::execute(VM_Operation*)  (in libjvm.dylib) + 208  [0x10fbb73c8]
+    + !             : | +   ! 46 os::PlatformEvent::unpark()  (in libjvm.dylib) + 68  [0x10fa86162]
+    + !             : | +   ! : 44 _pthread_cond_signal  (in libsystem_pthread.dylib) + 621  [0x7fffe8f214b6]
+    + !             : | +   ! : | 44 __psynch_cvsignal  (in libsystem_kernel.dylib) + 10  [0x7fffe8e37bda]
+    + !             : | +   ! : 1 _pthread_cond_signal  (in libsystem_pthread.dylib) + 6  [0x7fffe8f2124f]
+    + !             : | +   ! : 1 pthread_cond_signal  (in libsystem_pthread.dylib) + 2  [0x7fffe8f24919]
+    + !             : | +   ! 1 Monitor::IUnlock(bool)  (in libjvm.dylib) + 62  [0x10fa635c0]
+    + !             : | +   3 VMThread::execute(VM_Operation*)  (in libjvm.dylib) + 181  [0x10fbb73ad]
+    + !             : | +   ! 2 VMOperationQueue::add(VM_Operation*)  (in libjvm.dylib) + 63  [0x10fbb726f]
+    + !             : | +   ! : 2 strlen  (in libsystem_c.dylib) + 22,1  [0x7fffe8d3fb56,0x7fffe8d3fb41]
+    + !             : | +   ! 1 VMOperationQueue::add(VM_Operation*)  (in libjvm.dylib) + 109  [0x10fbb729d]
+    + !             : | +   2 VMThread::execute(VM_Operation*)  (in libjvm.dylib) + 108  [0x10fbb7364]
+    + !             : | +   ! 2 VM_Operation::set_calling_thread(Thread*, ThreadPriority)  (in libjvm.dylib) + 0  [0x10fbb7c24]
+    + !             : | +   2 VMThread::execute(VM_Operation*)  (in libjvm.dylib) + 199  [0x10fbb73bf]
+    + !             : | +   ! 1 Monitor::notify()  (in libjvm.dylib) + 49  [0x10fa63495]
+    + !             : | +   ! : 1 Thread::muxAcquire(long volatile*, char const*)  (in libjvm.dylib) + 1  [0x10fb66d17]
+    + !             : | +   ! 1 Monitor::notify()  (in libjvm.dylib) + 78  [0x10fa634b2]
+    + !             : | +   1 VMThread::execute(VM_Operation*)  (in libjvm.dylib) + 50  [0x10fbb732a]
+    + !             : | +   ! 1 Thread::is_VM_thread() const  (in libjvm.dylib) + 1  [0x10f7c0ca7]
+    + !             : | +   1 VMThread::execute(VM_Operation*)  (in libjvm.dylib) + 67  [0x10fbb733b]
+    + !             : | +   ! 1 VM_Operation::evaluate_concurrently() const  (in libjvm.dylib) + 1  [0x10f7da23d]
+    + !             : | +   1 VMThread::execute(VM_Operation*)  (in libjvm.dylib) + 79  [0x10fbb7347]
+    + !             : | +   ! 1 VM_Operation::doit_prologue()  (in libjvm.dylib) + 1  [0x10f911ba1]
+    + !             : | +   1 VMThread::execute(VM_Operation*)  (in libjvm.dylib) + 95  [0x10fbb7357]
+    + !             : | +   ! 1 Thread::get_priority(Thread const*)  (in libjvm.dylib) + 17  [0x10fb6ba8d]
+    + !             : | +   !   1 os::get_priority(Thread const*, ThreadPriority&)  (in libjvm.dylib) + 21  [0x10fa85801]
+    + !             : | +   !     1 os::get_native_priority(Thread const*, int*)  (in libjvm.dylib) + 35  [0x10fa881a9]
+    + !             : | +   1 VMThread::execute(VM_Operation*)  (in libjvm.dylib) + 166  [0x10fbb739e]
+    + !             : | +   ! 1 Monitor::lock_without_safepoint_check()  (in libjvm.dylib) + 1  [0x10fa63b73]
+    + !             : | +   1 VMThread::execute(VM_Operation*)  (in libjvm.dylib) + 186  [0x10fbb73b2]
+    + !             : | +   ! 1 os::javaTimeMillis()  (in libjvm.dylib) + 19  [0x10fa86267]
+    + !             : | +   !   1 gettimeofday  (in libsystem_c.dylib) + 1  [0x7fffe8d4f44b]
+    + !             : | +   1 VMThread::execute(VM_Operation*)  (in libjvm.dylib) + 140  [0x10fbb7384]
+    + !             : | 2 jvmti_GetAllStackTraces  (in libjvm.dylib) + 116  [0x10f9576d7]
+    + !             : | + 2 ThreadStateTransition::trans_from_native(JavaThreadState)  (in libjvm.dylib) + 29,59  [0x10f769e45,0x10f769e63]
+    + !             : | 2 jvmti_GetAllStackTraces  (in libjvm.dylib) + 132  [0x10f9576e7]
+    + !             : | + 1 CautiouslyPreserveExceptionMark::CautiouslyPreserveExceptionMark(Thread*)  (in libjvm.dylib) + 1  [0x10fab8a7b]
+    + !             : | + 1 ThreadShadow::clear_pending_exception()  (in libjvm.dylib) + 1  [0x10f841905]
+    + !             : | 2 jvmti_GetAllStackTraces  (in libjvm.dylib) + 1  [0x10f957664]
+    + !             : | 1 jvmti_GetAllStackTraces  (in libjvm.dylib) + 94  [0x10f9576c1]
+    + !             : |   1 JavaThread::is_Java_thread() const  (in libjvm.dylib) + 0  [0x10f7c13f0]
+    + !             : 6 _$LT$flareagent..environment..jvmti..JVMTIEnvironment$u20$as$u20$flareagent..environment..jvmti..JVMTI$GT$::get_all_stacktraces::h7ee504ab4c0d317a  (in libflareagent.dylib) + 49  [0x12e4333b1]
+    + !             : | 4 chrono::offset::local::Local::now::h30e32d1005c422cb  (in libflareagent.dylib) + 23  [0x12e444d37]
+    + !             : | + 3 time::now::h59e7179ae279e53d  (in libflareagent.dylib) + 104  [0x12e57dc18]
+    + !             : | + ! 1 localtime_r  (in libsystem_c.dylib) + 41  [0x7fffe8d95844]
+    + !             : | + ! : 1 _st_tzset_basic  (in libsystem_c.dylib) + 50  [0x7fffe8d93f0b]
+    + !             : | + ! :   1 getenv  (in libsystem_c.dylib) + 49  [0x7fffe8d9e626]
+    + !             : | + ! :     1 __findenv_locked  (in libsystem_c.dylib) + 141  [0x7fffe8d9e558]
+    + !             : | + ! 1 localtime_r  (in libsystem_c.dylib) + 54  [0x7fffe8d95851]
+    + !             : | + ! : 1 _st_localsub  (in libsystem_c.dylib) + 169  [0x7fffe8d95050]
+    + !             : | + ! :   1 timesub  (in libsystem_c.dylib) + 1246  [0x7fffe8d9568c]
+    + !             : | + ! 1 localtime_r  (in libsystem_c.dylib) + 8  [0x7fffe8d95823]
+    + !             : | + 1 time::now::h59e7179ae279e53d  (in libflareagent.dylib) + 43  [0x12e57dbdb]
+    + !             : | +   1 gettimeofday  (in libsystem_c.dylib) + 62  [0x7fffe8d4f488]
+    + !             : | 2 chrono::offset::local::Local::now::h30e32d1005c422cb  (in libflareagent.dylib) + 301  [0x12e444e4d]
+    + !             : |   1 chrono::offset::fixed::add_with_leapsecond::h69dc316690f53628  (in libflareagent.dylib) + 84  [0x12e445ce4]
+    + !             : |   ! 1 chrono::naive::time::NaiveTime::overflowing_add_signed::hd4ddc97e520fd912  (in libflareagent.dylib) + 250  [0x12e44aeba]
+    + !             : |   1 chrono::offset::fixed::add_with_leapsecond::h69dc316690f53628  (in libflareagent.dylib) + 130  [0x12e445d12]
+    + !             : |     1 chrono::naive::date::NaiveDate::checked_add_signed::hbfd5c5a397380f6e  (in libflareagent.dylib) + 186  [0x12e44bd0a]
+    + !             : 2 flareagent::profile::sample::Sampler::add_stack_traces::hc0a3a39385d0f01a  (in libflareagent.dylib) + 4634  [0x12e3d6a2a]
+    + !             : | 2 flareagent::profile::server::add_sample_data_batch::h16df5e06bc02d048  (in libflareagent.dylib) + 181  [0x12e3ec8e5]
+    + !             : |   2 0x0
+    + !             : |     2 __commpage_gettimeofday  (in libsystem_kernel.dylib) + 67,31  [0x7fffe8e30553,0x7fffe8e3052f]
+    + !             : 1 _$LT$flareagent..environment..jvmti..JVMTIEnvironment$u20$as$u20$flareagent..environment..jvmti..JVMTI$GT$::get_all_stacktraces::h7ee504ab4c0d317a  (in libflareagent.dylib) + 967  [0x12e433747]
+    + !             : | 1 JvmtiEnv::GetThreadLocalStorage(_jobject*, void**)  (in libjvm.dylib) + 313  [0x10f9881a9]
+    + !             : 1 _$LT$flareagent..environment..jvmti..JVMTIEnvironment$u20$as$u20$flareagent..environment..jvmti..JVMTI$GT$::get_all_stacktraces::h7ee504ab4c0d317a  (in libflareagent.dylib) + 2514  [0x12e433d52]
+    + !             : | 1 _$LT$flareagent..environment..jvmti..JVMTIEnvironment$u20$as$u20$flareagent..environment..jvmti..JVMTI$GT$::get_thread_cpu_time::h0c52a193c829f5be  (in libflareagent.dylib) + 51  [0x12e434933]
+    + !             : |   1 jvmti_GetThreadCpuTime  (in libjvm.dylib) + 333  [0x10f955709]
+    + !             : |     1 JvmtiEnv::GetThreadCpuTime(JavaThread*, long*)  (in libjvm.dylib) + 20  [0x10f9848f2]
+    + !             : |       1 os::thread_cpu_time(Thread*, bool)  (in libjvm.dylib) + 46  [0x10fa864e2]
+    + !             : |         1 thread_info  (in libsystem_kernel.dylib) + 147  [0x7fffe8e2cb25]
+    + !             : |           1 mach_msg  (in libsystem_kernel.dylib) + 55  [0x7fffe8e2f797]
+    + !             : |             1 mach_msg_trap  (in libsystem_kernel.dylib) + 10  [0x7fffe8e3034a]
+    + !             : 1 _$LT$flareagent..environment..jvmti..JVMTIEnvironment$u20$as$u20$flareagent..environment..jvmti..JVMTI$GT$::get_all_stacktraces::h7ee504ab4c0d317a  (in libflareagent.dylib) + 2633  [0x12e433dc9]
+    + !             : | 1 _$LT$flareagent..environment..jni..JNIEnvironment$u20$as$u20$flareagent..environment..jni..JNI$GT$::delete_local_ref::h9c2b784f7cc3e45a  (in libflareagent.dylib) + 3  [0x12e4156e3]
+    + !             : 1 _$LT$flareagent..environment..jvmti..JVMTIEnvironment$u20$as$u20$flareagent..environment..jvmti..JVMTI$GT$::get_all_stacktraces::h7ee504ab4c0d317a  (in libflareagent.dylib) + 2780  [0x12e433e5c]
+    + !             : | 1 malloc  (in libsystem_malloc.dylib) + 24  [0x7fffe8e8a310]
+    + !             : |   1 malloc_zone_malloc  (in libsystem_malloc.dylib) + 107  [0x7fffe8e8b31a]
+    + !             : |     1 szone_malloc_should_clear  (in libsystem_malloc.dylib) + 164  [0x7fffe8e8b41e]
+    + !             : 1 _$LT$flareagent..environment..jvmti..JVMTIEnvironment$u20$as$u20$flareagent..environment..jvmti..JVMTI$GT$::get_all_stacktraces::h7ee504ab4c0d317a  (in libflareagent.dylib) + 3261  [0x12e43403d]
+    + !             : | 1 realloc  (in libsystem_malloc.dylib) + 256  [0x7fffe8e8e0a8]
+    + !             : |   1 malloc_zone_realloc  (in libsystem_malloc.dylib) + 115  [0x7fffe8e8e1b9]
+    + !             : |     1 szone_realloc  (in libsystem_malloc.dylib) + 2941  [0x7fffe8e8ed8e]
+    + !             : |       1 free_small  (in libsystem_malloc.dylib) + 491  [0x7fffe8e99bc4]
+    + !             : 1 _$LT$flareagent..environment..jvmti..JVMTIEnvironment$u20$as$u20$flareagent..environment..jvmti..JVMTI$GT$::get_all_stacktraces::h7ee504ab4c0d317a  (in libflareagent.dylib) + 122  [0x12e4333fa]
+    + !             66 std::sys_common::backtrace::__rust_begin_short_backtrace::h1128093f49133514  (in libflareagent.dylib) + 517  [0x12e3d7835]
+    + !             : 60 chrono::offset::local::Local::now::h30e32d1005c422cb  (in libflareagent.dylib) + 23  [0x12e444d37]
+    + !             : | 49 time::now::h59e7179ae279e53d  (in libflareagent.dylib) + 104  [0x12e57dc18]
+    + !             : | + 33 localtime_r  (in libsystem_c.dylib) + 41  [0x7fffe8d95844]
+    + !             : | + ! 16 tzsetwall_basic  (in libsystem_c.dylib) + 45  [0x7fffe8d93d97]
+    + !             : | + ! : 14 notify_check_tz  (in libsystem_c.dylib) + 24  [0x7fffe8d94164]
+    + !             : | + ! : | 7 notify_check  (in libsystem_notify.dylib) + 105  [0x7fffe8f1378d]
+    + !             : | + ! : | + 4 registration_node_find  (in libsystem_notify.dylib) + 53  [0x7fffe8f1221e]
+    + !             : | + ! : | + ! 4 _nc_table_find_64  (in libsystem_notify.dylib) + 33,1  [0x7fffe8f15224,0x7fffe8f15204]
+    + !             : | + ! : | + 3 registration_node_find  (in libsystem_notify.dylib) + 38  [0x7fffe8f1220f]
+    + !             : | + ! : | +   3 pthread_mutex_lock  (in libsystem_pthread.dylib) + 0  [0x7fffe8f2038c]
+    + !             : | + ! : | 4 notify_check  (in libsystem_notify.dylib) + 73,0,...  [0x7fffe8f1376d,0x7fffe8f13724,...]
+    + !             : | + ! : | 1 notify_check  (in libsystem_notify.dylib) + 260  [0x7fffe8f13828]
+    + !             : | + ! : | + 1 _os_nospin_lock_lock  (in libsystem_platform.dylib) + 14  [0x7fffe8f1b74b]
+    + !             : | + ! : | 1 notify_check  (in libsystem_notify.dylib) + 303  [0x7fffe8f13853]
+    + !             : | + ! : | + 1 _os_nospin_lock_unlock  (in libsystem_platform.dylib) + 16  [0x7fffe8f1b82f]
+    + !             : | + ! : | 1 notify_check  (in libsystem_notify.dylib) + 327  [0x7fffe8f1386b]
+    + !             : | + ! : |   1 registration_node_release  (in libsystem_notify.dylib) + 40  [0x7fffe8f12285]
+    + !             : | + ! : |     1 pthread_mutex_lock  (in libsystem_pthread.dylib) + 85  [0x7fffe8f203e1]
+    + !             : | + ! : 1 DYLD-STUB$$notify_check  (in libsystem_c.dylib) + 0  [0x7fffe8dc48e6]
+    + !             : | + ! : 1 notify_check_tz  (in libsystem_c.dylib) + 19  [0x7fffe8d9415f]
+    + !             : | + ! 10 _st_tzset_basic  (in libsystem_c.dylib) + 50  [0x7fffe8d93f0b]
+    + !             : | + ! : 6 getenv  (in libsystem_c.dylib) + 49  [0x7fffe8d9e626]
+    + !             : | + ! : | 6 __findenv_locked  (in libsystem_c.dylib) + 87,42,...  [0x7fffe8d9e522,0x7fffe8d9e4f5,...]
+    + !             : | + ! : 4 getenv  (in libsystem_c.dylib) + 37,1  [0x7fffe8d9e61a,0x7fffe8d9e5f6]
+    + !             : | + ! 4 _st_tzset_basic  (in libsystem_c.dylib) + 1,369  [0x7fffe8d93eda,0x7fffe8d9404a]
+    + !             : | + ! 3 tzsetwall_basic  (in libsystem_c.dylib) + 253,0,...  [0x7fffe8d93e67,0x7fffe8d93d6a,...]
+    + !             : | + 9 localtime_r  (in libsystem_c.dylib) + 31  [0x7fffe8d9583a]
+    + !             : | + ! 5 pthread_rwlock_rdlock  (in libsystem_pthread.dylib) + 0  [0x7fffe8f21231]
+    + !             : | + ! 4 _pthread_rwlock_lock  (in libsystem_pthread.dylib) + 1,8,...  [0x7fffe8f20b9a,0x7fffe8f20ba1,...]
+    + !             : | + 3 localtime_r  (in libsystem_c.dylib) + 54  [0x7fffe8d95851]
+    + !             : | + ! 2 _st_localsub  (in libsystem_c.dylib) + 169  [0x7fffe8d95050]
+    + !             : | + ! : 2 timesub  (in libsystem_c.dylib) + 860,0  [0x7fffe8d9550a,0x7fffe8d951ae]
+    + !             : | + ! 1 _st_localsub  (in libsystem_c.dylib) + 0  [0x7fffe8d94fa7]
+    + !             : | + 3 localtime_r  (in libsystem_c.dylib) + 65  [0x7fffe8d9585c]
+    + !             : | + ! 3 pthread_rwlock_unlock  (in libsystem_pthread.dylib) + 194,379  [0x7fffe8f2107b,0x7fffe8f21134]
+    + !             : | + 1 localtime_r  (in libsystem_c.dylib) + 1  [0x7fffe8d9581c]
+    + !             : | 10 time::now::h59e7179ae279e53d  (in libflareagent.dylib) + 68,1  [0x12e57dbf4,0x12e57dbb1]
+    + !             : | 1 time::now::h59e7179ae279e53d  (in libflareagent.dylib) + 43  [0x12e57dbdb]
+    + !             : |   1 gettimeofday  (in libsystem_c.dylib) + 0  [0x7fffe8d4f44a]
+    + !             : 5 chrono::offset::local::Local::now::h30e32d1005c422cb  (in libflareagent.dylib) + 301  [0x12e444e4d]
+    + !             : | 3 chrono::offset::fixed::add_with_leapsecond::h69dc316690f53628  (in libflareagent.dylib) + 84  [0x12e445ce4]
+    + !             : | + 1 chrono::naive::time::NaiveTime::overflowing_add_signed::hd4ddc97e520fd912  (in libflareagent.dylib) + 143  [0x12e44ae4f]
+    + !             : | + ! 1 time::duration::Duration::num_seconds::h826f57e717b40401  (in libflareagent.dylib) + 1  [0x12e5839c1]
+    + !             : | + 1 chrono::naive::time::NaiveTime::overflowing_add_signed::hd4ddc97e520fd912  (in libflareagent.dylib) + 211  [0x12e44ae93]
+    + !             : | + ! 1 time::duration::Duration::num_nanoseconds::h97c608e52b6752e7  (in libflareagent.dylib) + 0  [0x12e583a90]
+    + !             : | + 1 chrono::naive::time::NaiveTime::overflowing_add_signed::hd4ddc97e520fd912  (in libflareagent.dylib) + 1  [0x12e44adc1]
+    + !             : | 2 chrono::offset::fixed::add_with_leapsecond::h69dc316690f53628  (in libflareagent.dylib) + 130  [0x12e445d12]
+    + !             : |   2 chrono::naive::date::NaiveDate::checked_add_signed::hbfd5c5a397380f6e  (in libflareagent.dylib) + 115,1  [0x12e44bcc3,0x12e44bc51]
+    + !             : 1 chrono::offset::local::Local::now::h30e32d1005c422cb  (in libflareagent.dylib) + 225  [0x12e444e01]
+    + !             4 std::sys_common::backtrace::__rust_begin_short_backtrace::h1128093f49133514  (in libflareagent.dylib) + 527,503,...  [0x12e3d783f,0x12e3d7827,...]
+    + !             1 std::sys_common::backtrace::__rust_begin_short_backtrace::h1128093f49133514  (in libflareagent.dylib) + 839  [0x12e3d7977]
+    + !             : 1 flareagent::profile::sample::Sampler::add_stack_traces::hc0a3a39385d0f01a  (in libflareagent.dylib) + 46  [0x12e3d583e]
+    + !             :   1 chrono::offset::local::Local::now::h30e32d1005c422cb  (in libflareagent.dylib) + 301  [0x12e444e4d]
+    + !             :     1 chrono::offset::fixed::add_with_leapsecond::h69dc316690f53628  (in libflareagent.dylib) + 130  [0x12e445d12]
+    + !             :       1 chrono::naive::date::NaiveDate::checked_add_signed::hbfd5c5a397380f6e  (in libflareagent.dylib) + 127  [0x12e44bccf]
+    + !             1 std::sys_common::backtrace::__rust_begin_short_backtrace::h1128093f49133514  (in libflareagent.dylib) + 937  [0x12e3d79d9]
+    + !             : 1 free_tiny  (in libsystem_malloc.dylib) + 671  [0x7fffe8ea3165]
+    + !             :   1 tiny_free_no_lock  (in libsystem_malloc.dylib) + 193  [0x7fffe8ea2499]
+    + !             1 std::sys_common::backtrace::__rust_begin_short_backtrace::h1128093f49133514  (in libflareagent.dylib) + 966  [0x12e3d79f6]
+    + !               1 free_tiny  (in libsystem_malloc.dylib) + 671  [0x7fffe8ea3165]
+    + !                 1 tiny_free_no_lock  (in libsystem_malloc.dylib) + 1589  [0x7fffe8ea2a0d]
+    + 2 __commpage_gettimeofday  (in libsystem_kernel.dylib) + 31,83  [0x7fffe8e3052f,0x7fffe8e30563]
+    + 1 anon.bc9688f56d43c5c1040237c008d58ecc.3.llvm.4627532338323084011  (in libflareagent.dylib) + 40  [0x12e667ee0]
+    + ! 1 0x0
+    + !   1 __commpage_gettimeofday  (in libsystem_kernel.dylib) + 31  [0x7fffe8e3052f]
+    + 1 tiny_free_list_add_ptr  (in libsystem_malloc.dylib) + 226  [0x7fffe8e8d761]
+    2194 Thread_19242
+    + 2194 thread_start  (in libsystem_pthread.dylib) + 13  [0x7fffe8f2208d]
+    +   2194 _pthread_start  (in libsystem_pthread.dylib) + 286  [0x7fffe8f22887]
+    +     2194 _pthread_body  (in libsystem_pthread.dylib) + 180  [0x7fffe8f2293b]
+    +       2194 std::sys::unix::thread::Thread::new::thread_start::he418bbb505b1b1b9  (in libflareagent.dylib) + 142  [0x12e5b785e]
+    +         2194 _$LT$alloc..boxed..Box$LT$F$GT$$u20$as$u20$core..ops..function..FnOnce$LT$A$GT$$GT$::call_once::h184cdfe19b856bb1  (in libflareagent.dylib) + 62  [0x12e58ad8e]
+    +           2194 core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::h3dce57980554e0c2  (in libflareagent.dylib) + 115  [0x12e3db1d3]
+    +             2194 __rust_maybe_catch_panic  (in libflareagent.dylib) + 31  [0x12e5b8a6f]
+    +               2194 flareagent::profile::server::start_server::hd3258f0f2b817a06  (in libflareagent.dylib) + 402  [0x12e3ecc42]
+    +                 2194 _$LT$std..net..tcp..Incoming$u20$as$u20$core..iter..traits..iterator..Iterator$GT$::next::h47b4c79c0686e8d3  (in libflareagent.dylib) + 24  [0x12e59b1b8]
+    +                   2194 std::net::tcp::TcpListener::accept::h8ef600281dc65bc5  (in libflareagent.dylib) + 100  [0x12e59ae54]
+    +                     2194 std::sys::unix::net::Socket::accept::h189786235d434add  (in libflareagent.dylib) + 44  [0x12e5b214c]
+    +                       2194 __accept  (in libsystem_kernel.dylib) + 10  [0x7fffe8e370c2]
+    2194 Thread_19243
+    + 2194 thread_start  (in libsystem_pthread.dylib) + 13  [0x7fffe8f2208d]
+    +   2194 _pthread_start  (in libsystem_pthread.dylib) + 286  [0x7fffe8f22887]
+    +     2194 _pthread_body  (in libsystem_pthread.dylib) + 180  [0x7fffe8f2293b]
+    +       2194 std::sys::unix::thread::Thread::new::thread_start::he418bbb505b1b1b9  (in libflareagent.dylib) + 142  [0x12e5b785e]
+    +         2194 _$LT$alloc..boxed..Box$LT$F$GT$$u20$as$u20$core..ops..function..FnOnce$LT$A$GT$$GT$::call_once::h184cdfe19b856bb1  (in libflareagent.dylib) + 62  [0x12e58ad8e]
+    +           2194 core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::hf553dc1db74c4c81  (in libflareagent.dylib) + 127  [0x12e4375ef]
+    +             2194 __rust_maybe_catch_panic  (in libflareagent.dylib) + 31  [0x12e5b8a6f]
+    +               2194 std::panicking::try::do_call::h1c633c0db8ec5ad7 (.llvm.7919423648418532691)  (in libflareagent.dylib) + 40  [0x12e435f88]
+    +                 2194 std::sys_common::backtrace::__rust_begin_short_backtrace::h4b26838eb989ff5a (.llvm.7314625647687338888)  (in libflareagent.dylib) + 107  [0x12e43d4ab]
+    +                   2194 _$LT$std..sync..mpsc..Iter$LT$T$GT$$u20$as$u20$core..iter..traits..iterator..Iterator$GT$::next::h1f5edcedbbdacd7f  (in libflareagent.dylib) + 175  [0x12e4365cf]
+    +                     2194 std::sync::mpsc::oneshot::Packet$LT$T$GT$::recv::hd97a5cbf03e32d9e  (in libflareagent.dylib) + 591  [0x12e43acaf]
+    +                       2194 std::sync::mpsc::blocking::WaitToken::wait::h41d836622de09a8c  (in libflareagent.dylib) + 49  [0x12e5a2461]
+    +                         2194 std::thread::park::hddb77c9be958ec5c  (in libflareagent.dylib) + 242  [0x12e58b752]
+    +                           2194 _pthread_cond_wait  (in libsystem_pthread.dylib) + 712  [0x7fffe8f237fa]
+    +                             2194 __psynch_cvwait  (in libsystem_kernel.dylib) + 10  [0x7fffe8e37bf2]
+    2194 Thread_19244: Timer thread
+    + 2194 thread_start  (in libsystem_pthread.dylib) + 13  [0x7fffe8f2208d]
+    +   2194 _pthread_start  (in libsystem_pthread.dylib) + 286  [0x7fffe8f22887]
+    +     2194 _pthread_body  (in libsystem_pthread.dylib) + 180  [0x7fffe8f2293b]
+    +       2194 std::sys::unix::thread::Thread::new::thread_start::he418bbb505b1b1b9  (in libflareagent.dylib) + 142  [0x12e5b785e]
+    +         2194 _$LT$alloc..boxed..Box$LT$F$GT$$u20$as$u20$core..ops..function..FnOnce$LT$A$GT$$GT$::call_once::h184cdfe19b856bb1  (in libflareagent.dylib) + 62  [0x12e58ad8e]
+    +           2194 core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::h7d80e96a17d1c379  (in libflareagent.dylib) + 112  [0x12e437470]
+    +             2194 __rust_maybe_catch_panic  (in libflareagent.dylib) + 31  [0x12e5b8a6f]
+    +               2194 std::sys_common::backtrace::__rust_begin_short_backtrace::h02a11f129062fbed (.llvm.7314625647687338888)  (in libflareagent.dylib) + 113  [0x12e43d391]
+    +                 2194 timer::Scheduler$LT$T$C$E$GT$::run::hbf9305b9440708f9  (in libflareagent.dylib) + 1832  [0x12e43ca98]
+    +                   2194 std::sys::unix::condvar::Condvar::wait_timeout::h7304ef6cc220a10d  (in libflareagent.dylib) + 208  [0x12e5ac6a0]
+    +                     2194 _pthread_cond_wait  (in libsystem_pthread.dylib) + 712  [0x7fffe8f237fa]
+    +                       2194 __psynch_cvwait  (in libsystem_kernel.dylib) + 10  [0x7fffe8e37bf2]
+    2194 Thread_19308
+    + 2194 thread_start  (in libsystem_pthread.dylib) + 13  [0x7fffe8f2208d]
+    +   2194 _pthread_start  (in libsystem_pthread.dylib) + 286  [0x7fffe8f22887]
+    +     2194 _pthread_body  (in libsystem_pthread.dylib) + 180  [0x7fffe8f2293b]
+    +       2194 std::sys::unix::thread::Thread::new::thread_start::he418bbb505b1b1b9  (in libflareagent.dylib) + 142  [0x12e5b785e]
+    +         2194 _$LT$alloc..boxed..Box$LT$F$GT$$u20$as$u20$core..ops..function..FnOnce$LT$A$GT$$GT$::call_once::h184cdfe19b856bb1  (in libflareagent.dylib) + 62  [0x12e58ad8e]
+    +           2194 core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::h56ceadbc34a250e6  (in libflareagent.dylib) + 110  [0x12e3db31e]
+    +             2194 __rust_maybe_catch_panic  (in libflareagent.dylib) + 31  [0x12e5b8a6f]
+    +               2184 flareagent::profile::server::handle_client::hde1078eaa522a2e9  (in libflareagent.dylib) + 3961  [0x12e3ee2d9]
+    +               ! 2183 std::thread::sleep::h58e161e41ff34b94  (in libflareagent.dylib) + 112  [0x12e58b5c0]
+    +               ! : 2152 nanosleep  (in libsystem_c.dylib) + 199  [0x7fffe8dbeb72]
+    +               ! : | 2145 __semwait_signal  (in libsystem_kernel.dylib) + 10  [0x7fffe8e37f46]
+    +               ! : | 5 cerror  (in libsystem_kernel.dylib) + 20  [0x7fffe8e30ce8]
+    +               ! : | + 5 cerror_nocancel  (in libsystem_kernel.dylib) + 20,22  [0x7fffe8e30cc3,0x7fffe8e30cc5]
+    +               ! : | 2 cerror  (in libsystem_kernel.dylib) + 0  [0x7fffe8e30cd4]
+    +               ! : 30 nanosleep  (in libsystem_c.dylib) + 91  [0x7fffe8dbeb06]
+    +               ! : | 30 clock_get_time  (in libsystem_kernel.dylib) + 77  [0x7fffe8e1f2ca]
+    +               ! : |   28 mach_msg  (in libsystem_kernel.dylib) + 55  [0x7fffe8e2f797]
+    +               ! : |   + 28 mach_msg_trap  (in libsystem_kernel.dylib) + 10  [0x7fffe8e3034a]
+    +               ! : |   2 mach_msg  (in libsystem_kernel.dylib) + 57,1  [0x7fffe8e2f799,0x7fffe8e2f761]
+    +               ! : 1 nanosleep  (in libsystem_c.dylib) + 0  [0x7fffe8dbeaab]
+    +               ! 1 std::thread::sleep::h58e161e41ff34b94  (in libflareagent.dylib) + 134  [0x12e58b5d6]
+    +               4 flareagent::profile::server::handle_client::hde1078eaa522a2e9  (in libflareagent.dylib) + 3825  [0x12e3ee251]
+    +               ! 3 _$LT$flareagent..profile..sample..ThreadData$u20$as$u20$flareagent..profile..sample..SampleData$GT$::encode::h4b1c31d77980c34f  (in libflareagent.dylib) + 26  [0x12e3d4e9a]
+    +               ! : 1 flareagent::profile::encoder::resp_encode_thread_data::hd6f041c87c3c0750  (in libflareagent.dylib) + 419  [0x12e40e713]
+    +               ! : | 1 malloc  (in libsystem_malloc.dylib) + 24  [0x7fffe8e8a310]
+    +               ! : |   1 malloc_zone_malloc  (in libsystem_malloc.dylib) + 107  [0x7fffe8e8b31a]
+    +               ! : |     1 szone_malloc_should_clear  (in libsystem_malloc.dylib) + 6  [0x7fffe8e8b380]
+    +               ! : 1 flareagent::profile::encoder::resp_encode_thread_data::hd6f041c87c3c0750  (in libflareagent.dylib) + 609  [0x12e40e7d1]
+    +               ! : | 1 malloc  (in libsystem_malloc.dylib) + 24  [0x7fffe8e8a310]
+    +               ! : |   1 malloc_zone_malloc  (in libsystem_malloc.dylib) + 107  [0x7fffe8e8b31a]
+    +               ! : |     1 szone_malloc_should_clear  (in libsystem_malloc.dylib) + 400  [0x7fffe8e8b50a]
+    +               ! : |       1 tiny_malloc_from_free_list  (in libsystem_malloc.dylib) + 474  [0x7fffe8e8c9e2]
+    +               ! : 1 flareagent::profile::encoder::resp_encode_thread_data::hd6f041c87c3c0750  (in libflareagent.dylib) + 50  [0x12e40e5a2]
+    +               ! 1 _$LT$flareagent..profile..sample..ThreadData$u20$as$u20$flareagent..profile..sample..SampleData$GT$::encode::h4b1c31d77980c34f  (in libflareagent.dylib) + 37  [0x12e3d4ea5]
+    +               !   1 resp::value::Value::encode::h94e747f8be740355  (in libflareagent.dylib) + 51  [0x12e451e43]
+    +               !     1 resp::serialize::buf_encode::h09c3f47adc84712c (.llvm.17202488842200026623)  (in libflareagent.dylib) + 2293  [0x12e454045]
+    +               !       1 free_tiny  (in libsystem_malloc.dylib) + 671  [0x7fffe8ea3165]
+    +               !         1 tiny_free_no_lock  (in libsystem_malloc.dylib) + 80  [0x7fffe8ea2428]
+    +               !           1 get_tiny_previous_free_msize  (in libsystem_malloc.dylib) + 63  [0x7fffe8e8d675]
+    +               2 flareagent::profile::server::handle_client::hde1078eaa522a2e9  (in libflareagent.dylib) + 3708  [0x12e3ee1dc]
+    +               ! 1 std::panicking::panicking::h59a7bbbccfc7f88b  (in libflareagent.dylib) + 13  [0x12e5a8b1d]
+    +               ! : 1 tlv_get_addr  (in libdyld.dylib) + 13  [0x7fffe8d078a4]
+    +               ! 1 std::panicking::panicking::h59a7bbbccfc7f88b  (in libflareagent.dylib) + 69  [0x12e5a8b55]
+    +               2 flareagent::profile::server::handle_client::hde1078eaa522a2e9  (in libflareagent.dylib) + 3698  [0x12e3ee1d2]
+    +               1 flareagent::profile::server::handle_client::hde1078eaa522a2e9  (in libflareagent.dylib) + 3703  [0x12e3ee1d7]
+    +               ! 1 pthread_mutex_lock  (in libsystem_pthread.dylib) + 7  [0x7fffe8f20393]
+    +               1 flareagent::profile::server::handle_client::hde1078eaa522a2e9  (in libflareagent.dylib) + 3852  [0x12e3ee26c]
+    +                 1 std::io::Write::write_all::h69e0221d3a144b8d  (in libflareagent.dylib) + 65  [0x12e3da5f1]
+    +                   1 _$LT$std..net..tcp..TcpStream$u20$as$u20$std..io..Write$GT$::write::h873bd3d6fb1a9450  (in libflareagent.dylib) + 28  [0x12e59abfc]
+    +                     1 __sendto  (in libsystem_kernel.dylib) + 10  [0x7fffe8e37fa6]
+    2194 Thread_20202: Java: http-nio-8080-exec-8
+    + 2194 thread_start  (in libsystem_pthread.dylib) + 13  [0x7fffe8f2208d]
+    +   2194 _pthread_start  (in libsystem_pthread.dylib) + 286  [0x7fffe8f22887]
+    +     2194 _pthread_body  (in libsystem_pthread.dylib) + 180  [0x7fffe8f2293b]
+    +       2194 java_start(Thread*)  (in libjvm.dylib) + 246  [0x10fa8a5b2]
+    +         2194 JavaThread::run()  (in libjvm.dylib) + 450  [0x10fb6c1fc]
+    +           2194 JavaThread::thread_main_inner()  (in libjvm.dylib) + 155  [0x10fb6ab0f]
+    +             2194 thread_entry(JavaThread*, Thread*)  (in libjvm.dylib) + 124  [0x10f948a5d]
+    +               2194 JavaCalls::call_virtual(JavaValue*, Handle, KlassHandle, Symbol*, Symbol*, Thread*)  (in libjvm.dylib) + 74  [0x10f8ee310]
+    +                 2194 JavaCalls::call_virtual(JavaValue*, KlassHandle, Symbol*, Symbol*, JavaCallArguments*, Thread*)  (in libjvm.dylib) + 356  [0x10f8ee164]
+    +                   2194 JavaCalls::call_helper(JavaValue*, methodHandle*, JavaCallArguments*, Thread*)  (in libjvm.dylib) + 1710  [0x10f8ed9d6]
+    +                     2194 ???  (in <unknown binary>)  [0x114ee97a7]
+    +                       2194 ???  (in <unknown binary>)  [0x114ef1302]
+    +                         2194 ???  (in <unknown binary>)  [0x114ef1302]
+    +                           2194 ???  (in <unknown binary>)  [0x114ef12bd]
+    +                             2194 ???  (in <unknown binary>)  [0x11596d534]
+    +                               2194 ???  (in <unknown binary>)  [0x114ef1040]
+    +                                 2194 ???  (in <unknown binary>)  [0x114ef1040]
+    +                                   2194 ???  (in <unknown binary>)  [0x114ef1302]
+    +                                     2194 ???  (in <unknown binary>)  [0x1152ae0ac]
+    +                                       2194 ???  (in <unknown binary>)  [0x11594e32a]
+    +                                         2194 Unsafe_Park  (in libjvm.dylib) + 126  [0x10fb812f7]
+    +                                           2194 Parker::park(bool, long)  (in libjvm.dylib) + 495  [0x10fa87005]
+    +                                             2194 _pthread_cond_wait  (in libsystem_pthread.dylib) + 712  [0x7fffe8f237fa]
+    +                                               2194 __psynch_cvwait  (in libsystem_kernel.dylib) + 10  [0x7fffe8e37bf2]
+    2194 Thread_20206: Java: http-nio-8080-exec-12
+    + 2194 thread_start  (in libsystem_pthread.dylib) + 13  [0x7fffe8f2208d]
+    +   2194 _pthread_start  (in libsystem_pthread.dylib) + 286  [0x7fffe8f22887]
+    +     2194 _pthread_body  (in libsystem_pthread.dylib) + 180  [0x7fffe8f2293b]
+    +       2194 java_start(Thread*)  (in libjvm.dylib) + 246  [0x10fa8a5b2]
+    +         2194 JavaThread::run()  (in libjvm.dylib) + 450  [0x10fb6c1fc]
+    +           2194 JavaThread::thread_main_inner()  (in libjvm.dylib) + 155  [0x10fb6ab0f]
+    +             2194 thread_entry(JavaThread*, Thread*)  (in libjvm.dylib) + 124  [0x10f948a5d]
+    +               2194 JavaCalls::call_virtual(JavaValue*, Handle, KlassHandle, Symbol*, Symbol*, Thread*)  (in libjvm.dylib) + 74  [0x10f8ee310]
+    +                 2194 JavaCalls::call_virtual(JavaValue*, KlassHandle, Symbol*, Symbol*, JavaCallArguments*, Thread*)  (in libjvm.dylib) + 356  [0x10f8ee164]
+    +                   2194 JavaCalls::call_helper(JavaValue*, methodHandle*, JavaCallArguments*, Thread*)  (in libjvm.dylib) + 1710  [0x10f8ed9d6]
+    +                     2194 ???  (in <unknown binary>)  [0x114ee97a7]
+    +                       2194 ???  (in <unknown binary>)  [0x114ef1302]
+    +                         2194 ???  (in <unknown binary>)  [0x114ef1302]
+    +                           2194 ???  (in <unknown binary>)  [0x114ef12bd]
+    +                             2194 ???  (in <unknown binary>)  [0x11596d534]
+    +                               2194 ???  (in <unknown binary>)  [0x114ef1040]
+    +                                 2194 ???  (in <unknown binary>)  [0x114ef1040]
+    +                                   2194 ???  (in <unknown binary>)  [0x114ef1302]
+    +                                     2194 ???  (in <unknown binary>)  [0x1152ae0ac]
+    +                                       2194 ???  (in <unknown binary>)  [0x11594e32a]
+    +                                         2194 Unsafe_Park  (in libjvm.dylib) + 126  [0x10fb812f7]
+    +                                           2194 Parker::park(bool, long)  (in libjvm.dylib) + 495  [0x10fa87005]
+    +                                             2194 _pthread_cond_wait  (in libsystem_pthread.dylib) + 712  [0x7fffe8f237fa]
+    +                                               2194 __psynch_cvwait  (in libsystem_kernel.dylib) + 10  [0x7fffe8e37bf2]
+    2194 Thread_20211: Java: http-nio-8080-exec-17
+    + 2194 thread_start  (in libsystem_pthread.dylib) + 13  [0x7fffe8f2208d]
+    +   2194 _pthread_start  (in libsystem_pthread.dylib) + 286  [0x7fffe8f22887]
+    +     2194 _pthread_body  (in libsystem_pthread.dylib) + 180  [0x7fffe8f2293b]
+    +       2194 java_start(Thread*)  (in libjvm.dylib) + 246  [0x10fa8a5b2]
+    +         2194 JavaThread::run()  (in libjvm.dylib) + 450  [0x10fb6c1fc]
+    +           2194 JavaThread::thread_main_inner()  (in libjvm.dylib) + 155  [0x10fb6ab0f]
+    +             2194 thread_entry(JavaThread*, Thread*)  (in libjvm.dylib) + 124  [0x10f948a5d]
+    +               2194 JavaCalls::call_virtual(JavaValue*, Handle, KlassHandle, Symbol*, Symbol*, Thread*)  (in libjvm.dylib) + 74  [0x10f8ee310]
+    +                 2194 JavaCalls::call_virtual(JavaValue*, KlassHandle, Symbol*, Symbol*, JavaCallArguments*, Thread*)  (in libjvm.dylib) + 356  [0x10f8ee164]
+    +                   2194 JavaCalls::call_helper(JavaValue*, methodHandle*, JavaCallArguments*, Thread*)  (in libjvm.dylib) + 1710  [0x10f8ed9d6]
+    +                     2194 ???  (in <unknown binary>)  [0x114ee97a7]
+    +                       2194 ???  (in <unknown binary>)  [0x114ef1302]
+    +                         2194 ???  (in <unknown binary>)  [0x114ef1302]
+    +                           2194 ???  (in <unknown binary>)  [0x114ef12bd]
+    +                             2194 ???  (in <unknown binary>)  [0x11596d534]
+    +                               2194 ???  (in <unknown binary>)  [0x114ef1040]
+    +                                 2194 ???  (in <unknown binary>)  [0x114ef1040]
+    +                                   2194 ???  (in <unknown binary>)  [0x114ef1302]
+    +                                     2194 ???  (in <unknown binary>)  [0x1152ae0ac]
+    +                                       2194 ???  (in <unknown binary>)  [0x11594e32a]
+    +                                         2194 Unsafe_Park  (in libjvm.dylib) + 126  [0x10fb812f7]
+    +                                           2194 Parker::park(bool, long)  (in libjvm.dylib) + 495  [0x10fa87005]
+    +                                             2194 _pthread_cond_wait  (in libsystem_pthread.dylib) + 712  [0x7fffe8f237fa]
+    +                                               2194 __psynch_cvwait  (in libsystem_kernel.dylib) + 10  [0x7fffe8e37bf2]
+    2194 Thread_20229: Java: http-nio-8080-exec-35
+    + 2194 thread_start  (in libsystem_pthread.dylib) + 13  [0x7fffe8f2208d]
+    +   2194 _pthread_start  (in libsystem_pthread.dylib) + 286  [0x7fffe8f22887]
+    +     2194 _pthread_body  (in libsystem_pthread.dylib) + 180  [0x7fffe8f2293b]
+    +       2194 java_start(Thread*)  (in libjvm.dylib) + 246  [0x10fa8a5b2]
+    +         2194 JavaThread::run()  (in libjvm.dylib) + 450  [0x10fb6c1fc]
+    +           2194 JavaThread::thread_main_inner()  (in libjvm.dylib) + 155  [0x10fb6ab0f]
+    +             2194 thread_entry(JavaThread*, Thread*)  (in libjvm.dylib) + 124  [0x10f948a5d]
+    +               2194 JavaCalls::call_virtual(JavaValue*, Handle, KlassHandle, Symbol*, Symbol*, Thread*)  (in libjvm.dylib) + 74  [0x10f8ee310]
+    +                 2194 JavaCalls::call_virtual(JavaValue*, KlassHandle, Symbol*, Symbol*, JavaCallArguments*, Thread*)  (in libjvm.dylib) + 356  [0x10f8ee164]
+    +                   2194 JavaCalls::call_helper(JavaValue*, methodHandle*, JavaCallArguments*, Thread*)  (in libjvm.dylib) + 1710  [0x10f8ed9d6]
+    +                     2194 ???  (in <unknown binary>)  [0x114ee97a7]
+    +                       2194 ???  (in <unknown binary>)  [0x114ef1302]
+    +                         2194 ???  (in <unknown binary>)  [0x114ef1302]
+    +                           2194 ???  (in <unknown binary>)  [0x114ef12bd]
+    +                             2194 ???  (in <unknown binary>)  [0x11596d534]
+    +                               2194 ???  (in <unknown binary>)  [0x114ef1040]
+    +                                 2194 ???  (in <unknown binary>)  [0x114ef1040]
+    +                                   2194 ???  (in <unknown binary>)  [0x114ef1302]
+    +                                     2194 ???  (in <unknown binary>)  [0x1152ae0ac]
+    +                                       2194 ???  (in <unknown binary>)  [0x11594e32a]
+    +                                         2194 Unsafe_Park  (in libjvm.dylib) + 126  [0x10fb812f7]
+    +                                           2194 Parker::park(bool, long)  (in libjvm.dylib) + 495  [0x10fa87005]
+    +                                             2194 _pthread_cond_wait  (in libsystem_pthread.dylib) + 712  [0x7fffe8f237fa]
+    +                                               2194 __psynch_cvwait  (in libsystem_kernel.dylib) + 10  [0x7fffe8e37bf2]
+    2194 Thread_20274: Java: http-nio-8080-exec-75
+    + 2194 thread_start  (in libsystem_pthread.dylib) + 13  [0x7fffe8f2208d]
+    +   2194 _pthread_start  (in libsystem_pthread.dylib) + 286  [0x7fffe8f22887]
+    +     2194 _pthread_body  (in libsystem_pthread.dylib) + 180  [0x7fffe8f2293b]
+    +       2194 java_start(Thread*)  (in libjvm.dylib) + 246  [0x10fa8a5b2]
+    +         2194 JavaThread::run()  (in libjvm.dylib) + 450  [0x10fb6c1fc]
+    +           2194 JavaThread::thread_main_inner()  (in libjvm.dylib) + 155  [0x10fb6ab0f]
+    +             2194 thread_entry(JavaThread*, Thread*)  (in libjvm.dylib) + 124  [0x10f948a5d]
+    +               2194 JavaCalls::call_virtual(JavaValue*, Handle, KlassHandle, Symbol*, Symbol*, Thread*)  (in libjvm.dylib) + 74  [0x10f8ee310]
+    +                 2194 JavaCalls::call_virtual(JavaValue*, KlassHandle, Symbol*, Symbol*, JavaCallArguments*, Thread*)  (in libjvm.dylib) + 356  [0x10f8ee164]
+    +                   2194 JavaCalls::call_helper(JavaValue*, methodHandle*, JavaCallArguments*, Thread*)  (in libjvm.dylib) + 1710  [0x10f8ed9d6]
+    +                     2194 ???  (in <unknown binary>)  [0x114ee97a7]
+    +                       2194 ???  (in <unknown binary>)  [0x114ef1302]
+    +                         2194 ???  (in <unknown binary>)  [0x114ef1302]
+    +                           2194 ???  (in <unknown binary>)  [0x114ef12bd]
+    +                             2194 ???  (in <unknown binary>)  [0x11596d534]
+    +                               2194 ???  (in <unknown binary>)  [0x114ef1040]
+    +                                 2194 ???  (in <unknown binary>)  [0x114ef1040]
+    +                                   2194 ???  (in <unknown binary>)  [0x114ef1302]
+    +                                     2194 ???  (in <unknown binary>)  [0x114ef12bd]
+    +                                       2194 ???  (in <unknown binary>)  [0x114ef12bd]
+    +                                         2194 ???  (in <unknown binary>)  [0x11594e32a]
+    +                                           2194 Unsafe_Park  (in libjvm.dylib) + 126  [0x10fb812f7]
+    +                                             2194 Parker::park(bool, long)  (in libjvm.dylib) + 495  [0x10fa87005]
+    +                                               2194 _pthread_cond_wait  (in libsystem_pthread.dylib) + 712  [0x7fffe8f237fa]
+    +                                                 2194 __psynch_cvwait  (in libsystem_kernel.dylib) + 10  [0x7fffe8e37bf2]
+    2194 Thread_20298: Java: http-nio-8080-exec-100
+    + 2194 thread_start  (in libsystem_pthread.dylib) + 13  [0x7fffe8f2208d]
+    +   2194 _pthread_start  (in libsystem_pthread.dylib) + 286  [0x7fffe8f22887]
+    +     2194 _pthread_body  (in libsystem_pthread.dylib) + 180  [0x7fffe8f2293b]
+    +       2194 java_start(Thread*)  (in libjvm.dylib) + 246  [0x10fa8a5b2]
+    +         2194 JavaThread::run()  (in libjvm.dylib) + 450  [0x10fb6c1fc]
+    +           2194 JavaThread::thread_main_inner()  (in libjvm.dylib) + 155  [0x10fb6ab0f]
+    +             2194 thread_entry(JavaThread*, Thread*)  (in libjvm.dylib) + 124  [0x10f948a5d]
+    +               2194 JavaCalls::call_virtual(JavaValue*, Handle, KlassHandle, Symbol*, Symbol*, Thread*)  (in libjvm.dylib) + 74  [0x10f8ee310]
+    +                 2194 JavaCalls::call_virtual(JavaValue*, KlassHandle, Symbol*, Symbol*, JavaCallArguments*, Thread*)  (in libjvm.dylib) + 356  [0x10f8ee164]
+    +                   2194 JavaCalls::call_helper(JavaValue*, methodHandle*, JavaCallArguments*, Thread*)  (in libjvm.dylib) + 1710  [0x10f8ed9d6]
+    +                     2194 ???  (in <unknown binary>)  [0x114ee97a7]
+    +                       2194 ???  (in <unknown binary>)  [0x114ef1302]
+    +                         2194 ???  (in <unknown binary>)  [0x114ef1302]
+    +                           2194 ???  (in <unknown binary>)  [0x114ef12bd]
+    +                             2194 ???  (in <unknown binary>)  [0x11596d534]
+    +                               2194 ???  (in <unknown binary>)  [0x114ef1040]
+    +                                 2194 ???  (in <unknown binary>)  [0x114ef1040]
+    +                                   2194 ???  (in <unknown binary>)  [0x114ef1302]
+    +                                     2194 ???  (in <unknown binary>)  [0x1152ae0ac]
+    +                                       2194 ???  (in <unknown binary>)  [0x11594e32a]
+    +                                         2194 Unsafe_Park  (in libjvm.dylib) + 126  [0x10fb812f7]
+    +                                           2194 Parker::park(bool, long)  (in libjvm.dylib) + 495  [0x10fa87005]
+    +                                             2194 _pthread_cond_wait  (in libsystem_pthread.dylib) + 712  [0x7fffe8f237fa]
+    +                                               2194 __psynch_cvwait  (in libsystem_kernel.dylib) + 10  [0x7fffe8e37bf2]
+    2194 Thread_20319: Java: http-nio-8080-exec-120
+    + 2194 thread_start  (in libsystem_pthread.dylib) + 13  [0x7fffe8f2208d]
+    +   2194 _pthread_start  (in libsystem_pthread.dylib) + 286  [0x7fffe8f22887]
+    +     2194 _pthread_body  (in libsystem_pthread.dylib) + 180  [0x7fffe8f2293b]
+    +       2194 java_start(Thread*)  (in libjvm.dylib) + 246  [0x10fa8a5b2]
+    +         2194 JavaThread::run()  (in libjvm.dylib) + 450  [0x10fb6c1fc]
+    +           2194 JavaThread::thread_main_inner()  (in libjvm.dylib) + 155  [0x10fb6ab0f]
+    +             2194 thread_entry(JavaThread*, Thread*)  (in libjvm.dylib) + 124  [0x10f948a5d]
+    +               2194 JavaCalls::call_virtual(JavaValue*, Handle, KlassHandle, Symbol*, Symbol*, Thread*)  (in libjvm.dylib) + 74  [0x10f8ee310]
+    +                 2194 JavaCalls::call_virtual(JavaValue*, KlassHandle, Symbol*, Symbol*, JavaCallArguments*, Thread*)  (in libjvm.dylib) + 356  [0x10f8ee164]
+    +                   2194 JavaCalls::call_helper(JavaValue*, methodHandle*, JavaCallArguments*, Thread*)  (in libjvm.dylib) + 1710  [0x10f8ed9d6]
+    +                     2194 ???  (in <unknown binary>)  [0x114ee97a7]
+    +                       2194 ???  (in <unknown binary>)  [0x114ef1302]
+    +                         2194 ???  (in <unknown binary>)  [0x114ef1302]
+    +                           2194 ???  (in <unknown binary>)  [0x114ef12bd]
+    +                             2194 ???  (in <unknown binary>)  [0x11596d534]
+    +                               2194 ???  (in <unknown binary>)  [0x114ef1040]
+    +                                 2194 ???  (in <unknown binary>)  [0x114ef1040]
+    +                                   2194 ???  (in <unknown binary>)  [0x114ef1302]
+    +                                     2194 ???  (in <unknown binary>)  [0x114ef12bd]
+    +                                       2194 ???  (in <unknown binary>)  [0x114ef12bd]
+    +                                         2194 ???  (in <unknown binary>)  [0x11594e32a]
+    +                                           2194 Unsafe_Park  (in libjvm.dylib) + 126  [0x10fb812f7]
+    +                                             2194 Parker::park(bool, long)  (in libjvm.dylib) + 495  [0x10fa87005]
+    +                                               2194 _pthread_cond_wait  (in libsystem_pthread.dylib) + 712  [0x7fffe8f237fa]
+    +                                                 2194 __psynch_cvwait  (in libsystem_kernel.dylib) + 10  [0x7fffe8e37bf2]
+    2194 Thread_20323: Java: http-nio-8080-exec-124
+    + 2194 thread_start  (in libsystem_pthread.dylib) + 13  [0x7fffe8f2208d]
+    +   2194 _pthread_start  (in libsystem_pthread.dylib) + 286  [0x7fffe8f22887]
+    +     2194 _pthread_body  (in libsystem_pthread.dylib) + 180  [0x7fffe8f2293b]
+    +       2194 java_start(Thread*)  (in libjvm.dylib) + 246  [0x10fa8a5b2]
+    +         2194 JavaThread::run()  (in libjvm.dylib) + 450  [0x10fb6c1fc]
+    +           2194 JavaThread::thread_main_inner()  (in libjvm.dylib) + 155  [0x10fb6ab0f]
+    +             2194 thread_entry(JavaThread*, Thread*)  (in libjvm.dylib) + 124  [0x10f948a5d]
+    +               2194 JavaCalls::call_virtual(JavaValue*, Handle, KlassHandle, Symbol*, Symbol*, Thread*)  (in libjvm.dylib) + 74  [0x10f8ee310]
+    +                 2194 JavaCalls::call_virtual(JavaValue*, KlassHandle, Symbol*, Symbol*, JavaCallArguments*, Thread*)  (in libjvm.dylib) + 356  [0x10f8ee164]
+    +                   2194 JavaCalls::call_helper(JavaValue*, methodHandle*, JavaCallArguments*, Thread*)  (in libjvm.dylib) + 1710  [0x10f8ed9d6]
+    +                     2194 ???  (in <unknown binary>)  [0x114ee97a7]
+    +                       2194 ???  (in <unknown binary>)  [0x114ef1302]
+    +                         2194 ???  (in <unknown binary>)  [0x114ef1302]
+    +                           2194 ???  (in <unknown binary>)  [0x114ef12bd]
+    +                             2194 ???  (in <unknown binary>)  [0x11596d534]
+    +                               2194 ???  (in <unknown binary>)  [0x114ef1040]
+    +                                 2194 ???  (in <unknown binary>)  [0x114ef1040]
+    +                                   2194 ???  (in <unknown binary>)  [0x114ef1302]
+    +                                     2194 ???  (in <unknown binary>)  [0x1152ae0ac]
+    +                                       2194 ???  (in <unknown binary>)  [0x11594e32a]
+    +                                         2194 Unsafe_Park  (in libjvm.dylib) + 126  [0x10fb812f7]
+    +                                           2194 Parker::park(bool, long)  (in libjvm.dylib) + 495  [0x10fa87005]
+    +                                             2194 _pthread_cond_wait  (in libsystem_pthread.dylib) + 712  [0x7fffe8f237fa]
+    +                                               2194 __psynch_cvwait  (in libsystem_kernel.dylib) + 10  [0x7fffe8e37bf2]
+    2194 Thread_20325: Java: http-nio-8080-exec-125
+    + 2194 thread_start  (in libsystem_pthread.dylib) + 13  [0x7fffe8f2208d]
+    +   2194 _pthread_start  (in libsystem_pthread.dylib) + 286  [0x7fffe8f22887]
+    +     2194 _pthread_body  (in libsystem_pthread.dylib) + 180  [0x7fffe8f2293b]
+    +       2194 java_start(Thread*)  (in libjvm.dylib) + 246  [0x10fa8a5b2]
+    +         2194 JavaThread::run()  (in libjvm.dylib) + 450  [0x10fb6c1fc]
+    +           2194 JavaThread::thread_main_inner()  (in libjvm.dylib) + 155  [0x10fb6ab0f]
+    +             2194 thread_entry(JavaThread*, Thread*)  (in libjvm.dylib) + 124  [0x10f948a5d]
+    +               2194 JavaCalls::call_virtual(JavaValue*, Handle, KlassHandle, Symbol*, Symbol*, Thread*)  (in libjvm.dylib) + 74  [0x10f8ee310]
+    +                 2194 JavaCalls::call_virtual(JavaValue*, KlassHandle, Symbol*, Symbol*, JavaCallArguments*, Thread*)  (in libjvm.dylib) + 356  [0x10f8ee164]
+    +                   2194 JavaCalls::call_helper(JavaValue*, methodHandle*, JavaCallArguments*, Thread*)  (in libjvm.dylib) + 1710  [0x10f8ed9d6]
+    +                     2194 ???  (in <unknown binary>)  [0x114ee97a7]
+    +                       2194 ???  (in <unknown binary>)  [0x114ef1302]
+    +                         2194 ???  (in <unknown binary>)  [0x114ef1302]
+    +                           2194 ???  (in <unknown binary>)  [0x114ef12bd]
+    +                             2194 ???  (in <unknown binary>)  [0x11596d534]
+    +                               2194 ???  (in <unknown binary>)  [0x114ef1040]
+    +                                 2194 ???  (in <unknown binary>)  [0x114ef1040]
+    +                                   2194 ???  (in <unknown binary>)  [0x114ef1302]
+    +                                     2194 ???  (in <unknown binary>)  [0x114ef12bd]
+    +                                       2194 ???  (in <unknown binary>)  [0x114ef12bd]
+    +                                         2194 ???  (in <unknown binary>)  [0x11594e32a]
+    +                                           2194 Unsafe_Park  (in libjvm.dylib) + 126  [0x10fb812f7]
+    +                                             2194 Parker::park(bool, long)  (in libjvm.dylib) + 495  [0x10fa87005]
+    +                                               2194 _pthread_cond_wait  (in libsystem_pthread.dylib) + 712  [0x7fffe8f237fa]
+    +                                                 2194 __psynch_cvwait  (in libsystem_kernel.dylib) + 10  [0x7fffe8e37bf2]
+    2194 Thread_20340: Java: http-nio-8080-exec-130
+      2194 thread_start  (in libsystem_pthread.dylib) + 13  [0x7fffe8f2208d]
+        2194 _pthread_start  (in libsystem_pthread.dylib) + 286  [0x7fffe8f22887]
+          2194 _pthread_body  (in libsystem_pthread.dylib) + 180  [0x7fffe8f2293b]
+            2194 java_start(Thread*)  (in libjvm.dylib) + 246  [0x10fa8a5b2]
+              2194 JavaThread::run()  (in libjvm.dylib) + 450  [0x10fb6c1fc]
+                2194 JavaThread::thread_main_inner()  (in libjvm.dylib) + 155  [0x10fb6ab0f]
+                  2194 thread_entry(JavaThread*, Thread*)  (in libjvm.dylib) + 124  [0x10f948a5d]
+                    2194 JavaCalls::call_virtual(JavaValue*, Handle, KlassHandle, Symbol*, Symbol*, Thread*)  (in libjvm.dylib) + 74  [0x10f8ee310]
+                      2194 JavaCalls::call_virtual(JavaValue*, KlassHandle, Symbol*, Symbol*, JavaCallArguments*, Thread*)  (in libjvm.dylib) + 356  [0x10f8ee164]
+                        2194 JavaCalls::call_helper(JavaValue*, methodHandle*, JavaCallArguments*, Thread*)  (in libjvm.dylib) + 1710  [0x10f8ed9d6]
+                          2194 ???  (in <unknown binary>)  [0x114ee97a7]
+                            2194 ???  (in <unknown binary>)  [0x114ef1302]
+                              2194 ???  (in <unknown binary>)  [0x114ef1302]
+                                2194 ???  (in <unknown binary>)  [0x114ef12bd]
+                                  2194 ???  (in <unknown binary>)  [0x11596d534]
+                                    2194 ???  (in <unknown binary>)  [0x114ef1040]
+                                      2194 ???  (in <unknown binary>)  [0x114ef1040]
+                                        2194 ???  (in <unknown binary>)  [0x114ef1302]
+                                          2194 ???  (in <unknown binary>)  [0x1152ae0ac]
+                                            2194 ???  (in <unknown binary>)  [0x11594e32a]
+                                              2194 Unsafe_Park  (in libjvm.dylib) + 126  [0x10fb812f7]
+                                                2194 Parker::park(bool, long)  (in libjvm.dylib) + 495  [0x10fa87005]
+                                                  2194 _pthread_cond_wait  (in libsystem_pthread.dylib) + 712  [0x7fffe8f237fa]
+                                                    2194 __psynch_cvwait  (in libsystem_kernel.dylib) + 10  [0x7fffe8e37bf2]
+
+Total number in stack (recursive counted multiple, when >=5):
+        34       _pthread_body  (in libsystem_pthread.dylib) + 180  [0x7fffe8f2293b]
+        34       _pthread_start  (in libsystem_pthread.dylib) + 286  [0x7fffe8f22887]
+        34       thread_start  (in libsystem_pthread.dylib) + 13  [0x7fffe8f2208d]
+        33       ???  (in <unknown binary>)  [0x114ef1302]
+        28       __psynch_cvwait  (in libsystem_kernel.dylib) + 0  [0x7fffe8e37be8]
+        28       _pthread_cond_wait  (in libsystem_pthread.dylib) + 712  [0x7fffe8f237fa]
+        27       java_start(Thread*)  (in libjvm.dylib) + 246  [0x10fa8a5b2]
+        21       JavaThread::run()  (in libjvm.dylib) + 450  [0x10fb6c1fc]
+        21       JavaThread::thread_main_inner()  (in libjvm.dylib) + 155  [0x10fb6ab0f]
+        20       ???  (in <unknown binary>)  [0x114ef1040]
+        18       ???  (in <unknown binary>)  [0x114ef12bd]
+        15       ???  (in <unknown binary>)  [0x114ee97a7]
+        15       JavaCalls::call_helper(JavaValue*, methodHandle*, JavaCallArguments*, Thread*)  (in libjvm.dylib) + 1710  [0x10f8ed9d6]
+        15       JavaCalls::call_virtual(JavaValue*, Handle, KlassHandle, Symbol*, Symbol*, Thread*)  (in libjvm.dylib) + 74  [0x10f8ee310]
+        15       JavaCalls::call_virtual(JavaValue*, KlassHandle, Symbol*, Symbol*, JavaCallArguments*, Thread*)  (in libjvm.dylib) + 356  [0x10f8ee164]
+        15       thread_entry(JavaThread*, Thread*)  (in libjvm.dylib) + 124  [0x10f948a5d]
+        12       Monitor::IWait(Thread*, long)  (in libjvm.dylib) + 168  [0x10fa63d30]
+        10       ???  (in <unknown binary>)  [0x11594e32a]
+        10       ???  (in <unknown binary>)  [0x11596d534]
+        10       Parker::park(bool, long)  (in libjvm.dylib) + 495  [0x10fa87005]
+        10       Unsafe_Park  (in libjvm.dylib) + 126  [0x10fb812f7]
+        9       os::PlatformEvent::park()  (in libjvm.dylib) + 192  [0x10fa8634e]
+        7       ???  (in <unknown binary>)  [0x1152ae0ac]
+        7       Monitor::wait(bool, long, bool)  (in libjvm.dylib) + 375  [0x10fa63f99]
+        7       ParkCommon(ParkEvent*, long)  (in libjvm.dylib) + 42  [0x10fa6345a]
+        7       os::PlatformEvent::park(long)  (in libjvm.dylib) + 404  [0x10fa87238]
+        5       _$LT$alloc..boxed..Box$LT$F$GT$$u20$as$u20$core..ops..function..FnOnce$LT$A$GT$$GT$::call_once::h184cdfe19b856bb1  (in libflareagent.dylib) + 62  [0x12e58ad8e]
+        5       __rust_maybe_catch_panic  (in libflareagent.dylib) + 31  [0x12e5b8a6f]
+        5       std::sys::unix::thread::Thread::new::thread_start::he418bbb505b1b1b9  (in libflareagent.dylib) + 142  [0x12e5b785e]
+
+Sort by top of stack, same collapsed (when >= 5):
+        __psynch_cvwait  (in libsystem_kernel.dylib)        59261
+        __accept  (in libsystem_kernel.dylib)        6582
+        kevent  (in libsystem_kernel.dylib)        6579
+        __semwait_signal  (in libsystem_kernel.dylib)        6254
+        mach_msg_trap  (in libsystem_kernel.dylib)        2226
+        __workq_kernreturn  (in libsystem_kernel.dylib)        2194
+        semaphore_wait_trap  (in libsystem_kernel.dylib)        2194
+        __psynch_cvsignal  (in libsystem_kernel.dylib)        46
+        _pthread_cond_wait  (in libsystem_pthread.dylib)        14
+        cerror  (in libsystem_kernel.dylib)        14
+        cerror_nocancel  (in libsystem_kernel.dylib)        14
+        time::now::h59e7179ae279e53d  (in libflareagent.dylib)        10
+        __findenv_locked  (in libsystem_c.dylib)        7
+        pthread_mutex_lock  (in libsystem_pthread.dylib)        6
+        __commpage_gettimeofday  (in libsystem_kernel.dylib)        5
+        pthread_rwlock_rdlock  (in libsystem_pthread.dylib)        5
+
+Binary Images:
+       0x10eca4000 -        0x10ecb5fef +java (1.0 - 1.0) <31854BA9-249D-3F3B-BCD6-F9D741685950> /Library/Java/JavaVirtualMachines/jdk1.8.0_121.jdk/Contents/Home/bin/java
+       0x10ecf1000 -        0x10ed00ffb  libSimplifiedChineseConverter.dylib (70) <9DF419B1-9049-3FB1-B6BB-85267B8E3B06> /System/Library/CoreServices/Encodings/libSimplifiedChineseConverter.dylib
+       0x10ed67000 -        0x10ed6fff7 +libverify.dylib (1) <058C0FAF-B09A-3526-BEAA-3A06976C42E7> /Library/Java/JavaVirtualMachines/jdk1.8.0_121.jdk/Contents/Home/jre/lib/libverify.dylib
+       0x10ed75000 -        0x10ed99fe7 +libjava.dylib (1) <9B8A9ADA-290C-3333-9EE8-6812E0D069E3> /Library/Java/JavaVirtualMachines/jdk1.8.0_121.jdk/Contents/Home/jre/lib/libjava.dylib
+       0x10edb4000 -        0x10edb9fff +libzip.dylib (1) <42563F81-9DD6-3EE5-B220-158F57992BC7> /Library/Java/JavaVirtualMachines/jdk1.8.0_121.jdk/Contents/Home/jre/lib/libzip.dylib
+       0x10f600000 -        0x10fe0cfef +libjvm.dylib (1) <967949E9-10EC-3027-B0D4-4EF9DE1EDDCB> /Library/Java/JavaVirtualMachines/jdk1.8.0_121.jdk/Contents/Home/jre/lib/server/libjvm.dylib
+       0x113970000 -        0x113978fff  com.apple.java.JavaRuntimeSupport (15.0.1 - 15.0.1) <9D442202-F927-3CE9-BF97-F943B26133DF> /System/Library/Frameworks/JavaVM.framework/Frameworks/JavaRuntimeSupport.framework/JavaRuntimeSupport
+       0x11398a000 -        0x113992ffb  JavaNativeFoundation (74) <22D4871B-C2EA-357E-92F8-863696164F30> /System/Library/Frameworks/JavaVM.framework/Versions/A/Frameworks/JavaNativeFoundation.framework/Versions/A/JavaNativeFoundation
+       0x11399f000 -        0x1139a3fff  com.apple.JavaVM (15.0.1 - 15.0.1) <D1D597FB-B224-3690-AC4F-1675B081B3D1> /System/Library/Frameworks/JavaVM.framework/Versions/A/JavaVM
+       0x1139ac000 -        0x1139b0fff  JavaLaunching (42) <07D71BA3-AAF8-3778-98FE-6B20B7B7E74D> /System/Library/PrivateFrameworks/JavaLaunching.framework/Versions/A/JavaLaunching
+       0x113a03000 -        0x113a07fff +libmanagement.dylib (1) <C66E8918-AFC1-3040-B68D-DD7AAB4DE57C> /Library/Java/JavaVirtualMachines/jdk1.8.0_121.jdk/Contents/Home/jre/lib/libmanagement.dylib
+       0x113b56000 -        0x113b65ff7 +libnet.dylib (1) <CB2CDDEA-1646-300F-B34F-6BF2048E8D62> /Library/Java/JavaVirtualMachines/jdk1.8.0_121.jdk/Contents/Home/jre/lib/libnet.dylib
+       0x113b6d000 -        0x113b75fff +libnio.dylib (1) <62D68962-D280-3973-990E-48251E8A4EF6> /Library/Java/JavaVirtualMachines/jdk1.8.0_121.jdk/Contents/Home/jre/lib/libnio.dylib
+       0x114e5e000 -        0x114e9bdc7  dyld (0.0 - ???) <33DB4E37-BC29-37A4-92AB-30328E66A8FA> /usr/lib/dyld
+       0x12e3c5000 -        0x12e666fff +libflareagent.dylib (0) <9A727381-FD4E-3591-9823-1CDAA20B47EF> /Volumes/DATA2/projects/flare-profiler/target/flare-profiler/agent/lib/libflareagent.dylib
+    0x7fffcfa31000 -     0x7fffcfa31fff  com.apple.Accelerate (1.11 - Accelerate 1.11) <D6A08A72-7758-3CA8-813D-105F6E313E67> /System/Library/Frameworks/Accelerate.framework/Versions/A/Accelerate
+    0x7fffcfa4a000 -     0x7fffd008afe3  com.apple.vImage (8.1 - ???) <4C535C25-EF87-35BE-9BE8-D080A5C24084> /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vImage.framework/Versions/A/vImage
+    0x7fffd008b000 -     0x7fffd0252fef  libBLAS.dylib (1185.50.4) <7AF8DB9A-E33B-30EB-8767-87AFB951E231> /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBLAS.dylib
+    0x7fffd0253000 -     0x7fffd026afff  libBNNS.dylib (15) <26F32264-148E-35E5-A280-CA035CB3D6F0> /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBNNS.dylib
+    0x7fffd026b000 -     0x7fffd0676fff  libLAPACK.dylib (1185.50.4) <51B2BABA-F736-3663-885A-65A8991D3560> /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libLAPACK.dylib
+    0x7fffd0677000 -     0x7fffd068dfff  libLinearAlgebra.dylib (1185.50.4) <0EC25E70-05DC-3615-85B6-81721566CF1D> /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libLinearAlgebra.dylib
+    0x7fffd068e000 -     0x7fffd0694fff  libQuadrature.dylib (3) <EF56C8E6-DE22-3C69-B543-A8648F335FDD> /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libQuadrature.dylib
+    0x7fffd0695000 -     0x7fffd06a8ff7  libSparseBLAS.dylib (1185.50.4) <0BDCF6A7-0228-3719-81C7-B6EBC7911320> /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libSparseBLAS.dylib
+    0x7fffd06a9000 -     0x7fffd07f6ff7  libvDSP.dylib (600.60.1) <F46DF4CB-864D-3541-9913-60521FCBBF4A> /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libvDSP.dylib
+    0x7fffd07f7000 -     0x7fffd08aefe3  libvMisc.dylib (600.60.1) <F8770D18-FD5D-31C3-9FBA-D9E39B14247A> /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libvMisc.dylib
+    0x7fffd08af000 -     0x7fffd08affff  com.apple.Accelerate.vecLib (3.11 - vecLib 3.11) <A2FC8240-F62F-3A23-AB10-8CE6B56AF476> /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/vecLib
+    0x7fffd0b6e000 -     0x7fffd1947ff3  com.apple.AppKit (6.9 - 1504.84.100) <E39CD613-0104-3E26-B424-BE83CED656F9> /System/Library/Frameworks/AppKit.framework/Versions/C/AppKit
+    0x7fffd1959000 -     0x7fffd1959fff  com.apple.ApplicationServices (48 - 48) <36EB2785-BBD2-33F0-BB13-8C804D47110A> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/ApplicationServices
+    0x7fffd195a000 -     0x7fffd19c8ff7  com.apple.ApplicationServices.ATS (377 - 422.4) <78B556FF-28E6-3147-AE0D-8E0EC45EEE77> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/ATS.framework/Versions/A/ATS
+    0x7fffd1a62000 -     0x7fffd1b91fff  libFontParser.dylib (194.15) <FF329191-6339-363E-9D95-FFE9D55E7F60> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/ATS.framework/Versions/A/Resources/libFontParser.dylib
+    0x7fffd1b92000 -     0x7fffd1bdcff7  libFontRegistry.dylib (196.8) <5E5F95FD-F69B-3F1A-9592-C0AB8F5FF57C> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/ATS.framework/Versions/A/Resources/libFontRegistry.dylib
+    0x7fffd1cda000 -     0x7fffd1d84ff7  com.apple.ColorSync (4.12.0 - 502.2) <ACA4001E-A0E3-33F6-9CD6-EEC2AA15E322> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/ColorSync.framework/Versions/A/ColorSync
+    0x7fffd1d85000 -     0x7fffd1dd6fff  com.apple.HIServices (1.22 - 594) <EF8432A1-15C5-360C-9D14-19ADA43FCFDC> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/HIServices.framework/Versions/A/HIServices
+    0x7fffd1dd7000 -     0x7fffd1de6ff3  com.apple.LangAnalysis (1.7.0 - 1.7.0) <2CBE7F61-2056-3F96-99A1-0D527796AFA6> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/LangAnalysis.framework/Versions/A/LangAnalysis
+    0x7fffd1de7000 -     0x7fffd1e34fff  com.apple.print.framework.PrintCore (12 - 491) <5027FD58-F0EE-33E4-8577-934CA06CD2AF> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/PrintCore.framework/Versions/A/PrintCore
+    0x7fffd1e35000 -     0x7fffd1e70fff  com.apple.QD (3.12 - 313) <B339C41D-8CDF-3342-8414-F9717DCCADD4> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/QD.framework/Versions/A/QD
+    0x7fffd1e71000 -     0x7fffd1e7cfff  com.apple.speech.synthesis.framework (6.6.2 - 6.6.2) <7853EFF4-62B9-394E-B7B8-41A645656820> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/SpeechSynthesis.framework/Versions/A/SpeechSynthesis
+    0x7fffd1e7d000 -     0x7fffd2089ff7  com.apple.audio.toolbox.AudioToolbox (1.14 - 1.14) <1F4026C6-23C1-39E8-823D-72298FECF75C> /System/Library/Frameworks/AudioToolbox.framework/Versions/A/AudioToolbox
+    0x7fffd208a000 -     0x7fffd208afff  com.apple.audio.units.AudioUnit (1.14 - 1.14) <2CEE36AF-79E6-3B3E-B369-285E6C1886F7> /System/Library/Frameworks/AudioUnit.framework/Versions/A/AudioUnit
+    0x7fffd21f3000 -     0x7fffd25d0fff  com.apple.CFNetwork (811.11 - 811.11) <5E5A7D4D-BCBA-3995-8C13-4D01DE1FAB33> /System/Library/Frameworks/CFNetwork.framework/Versions/A/CFNetwork
+    0x7fffd25ea000 -     0x7fffd25eafff  com.apple.Carbon (154 - 157) <69F403C7-F0CB-34E6-89B0-235CF4978C17> /System/Library/Frameworks/Carbon.framework/Versions/A/Carbon
+    0x7fffd25eb000 -     0x7fffd25eefff  com.apple.CommonPanels (1.2.6 - 98) <BF04BB22-D54C-309E-9F5C-897D969CAF70> /System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/CommonPanels.framework/Versions/A/CommonPanels
+    0x7fffd25ef000 -     0x7fffd28f8fff  com.apple.HIToolbox (2.1.1 - 857.8) <25E0AC26-27FE-32E5-9226-F4D42B25ED30> /System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/HIToolbox.framework/Versions/A/HIToolbox
+    0x7fffd28f9000 -     0x7fffd28fcff7  com.apple.help (1.3.5 - 49) <B1A930E3-5907-3677-BACD-858EF68B172D> /System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/Help.framework/Versions/A/Help
+    0x7fffd28fd000 -     0x7fffd2902fff  com.apple.ImageCapture (9.0 - 9.0) <341252B4-E082-361A-B756-6A330259C741> /System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/ImageCapture.framework/Versions/A/ImageCapture
+    0x7fffd2903000 -     0x7fffd299aff3  com.apple.ink.framework (10.9 - 219) <1BD40B45-FD33-3177-A935-565EE5FC79D7> /System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/Ink.framework/Versions/A/Ink
+    0x7fffd299b000 -     0x7fffd29b5fff  com.apple.openscripting (1.7 - 172.1) <78F3256B-AF4C-324A-A591-ECA4443A469F> /System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/OpenScripting.framework/Versions/A/OpenScripting
+    0x7fffd29b6000 -     0x7fffd29b7ff3  com.apple.print.framework.Print (12 - 267) <E2F82F1F-DC27-3EF0-9F75-B354F701450A> /System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/Print.framework/Versions/A/Print
+    0x7fffd29b8000 -     0x7fffd29baff7  com.apple.securityhi (9.0 - 55006) <0DA7BABC-CE24-35FC-BF23-8EDF72D8C237> /System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/SecurityHI.framework/Versions/A/SecurityHI
+    0x7fffd29bb000 -     0x7fffd29c1ff7  com.apple.speech.recognition.framework (6.0.1 - 6.0.1) <082895DC-3AC7-3DEF-ADCA-5B018C19C9D3> /System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/SpeechRecognition.framework/Versions/A/SpeechRecognition
+    0x7fffd2aa2000 -     0x7fffd2aa2fff  com.apple.Cocoa (6.11 - 22) <85EDFBE1-75F0-369E-8CA8-C6A639B98FA6> /System/Library/Frameworks/Cocoa.framework/Versions/A/Cocoa
+    0x7fffd2bec000 -     0x7fffd2c79fff  com.apple.audio.CoreAudio (4.3.0 - 4.3.0) <78767F88-91D4-31CE-AAC6-1F9407F479BB> /System/Library/Frameworks/CoreAudio.framework/Versions/A/CoreAudio
+    0x7fffd2c7a000 -     0x7fffd2c8dfff  com.apple.CoreBluetooth (1.0 - 1) <BCB78777-76F0-3CC1-8443-9E61AEF7EF63> /System/Library/Frameworks/CoreBluetooth.framework/Versions/A/CoreBluetooth
+    0x7fffd2c8e000 -     0x7fffd2f8dff3  com.apple.CoreData (120 - 754.2) <0C9D9D78-758D-318F-9049-D42CC7944363> /System/Library/Frameworks/CoreData.framework/Versions/A/CoreData
+    0x7fffd2f8e000 -     0x7fffd303bff7  com.apple.CoreDisplay (1.0 - 1) <53D1EAFE-23A4-398D-BF52-E4299E670DB6> /System/Library/Frameworks/CoreDisplay.framework/Versions/A/CoreDisplay
+    0x7fffd303c000 -     0x7fffd34d2fff  com.apple.CoreFoundation (6.9 - 1350.10) <51CA5EC6-3FCD-30D1-88DE-7B20FE8AF9D1> /System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation
+    0x7fffd34d3000 -     0x7fffd3b76ff7  com.apple.CoreGraphics (2.0 - 1070.22.1) <4E85B7C8-282E-36AB-97C8-6188E793802F> /System/Library/Frameworks/CoreGraphics.framework/Versions/A/CoreGraphics
+    0x7fffd3b77000 -     0x7fffd3dbaffb  com.apple.CoreImage (12.4.0 - 451.4.9) <BE4303C9-C9D9-361D-AC94-DBE40EB6700E> /System/Library/Frameworks/CoreImage.framework/Versions/A/CoreImage
+    0x7fffd3f1f000 -     0x7fffd3f1ffff  com.apple.CoreServices (775.20 - 775.20) <22D3892B-719C-30B8-B84B-211CFE41AFA5> /System/Library/Frameworks/CoreServices.framework/Versions/A/CoreServices
+    0x7fffd3f20000 -     0x7fffd3f71fff  com.apple.AE (712.6 - 712.6) <9E9B4EC3-564D-3BA9-A9A4-1603E1F97F40> /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/AE.framework/Versions/A/AE
+    0x7fffd3f72000 -     0x7fffd424dff7  com.apple.CoreServices.CarbonCore (1159.8 - 1159.8) <2B661676-E4F2-3E6F-BD25-DB685FCCA06A> /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/CarbonCore.framework/Versions/A/CarbonCore
+    0x7fffd424e000 -     0x7fffd4281fff  com.apple.DictionaryServices (1.2 - 274) <D23866E2-F7C8-3984-A9D4-96552CCDE573> /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/DictionaryServices.framework/Versions/A/DictionaryServices
+    0x7fffd4282000 -     0x7fffd428aff3  com.apple.CoreServices.FSEvents (1230.50.1 - 1230.50.1) <2AD1B0E5-7214-37C4-8D11-A27C9CAC0F74> /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/FSEvents.framework/Versions/A/FSEvents
+    0x7fffd428b000 -     0x7fffd43f7ffb  com.apple.LaunchServices (775.20 - 775.20) <9106FF16-9587-313F-822C-2CD56204903E> /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/LaunchServices
+    0x7fffd43f8000 -     0x7fffd44a8ffb  com.apple.Metadata (10.7.0 - 1075.41) <FE2BC948-5014-3C50-9ED7-F9544B611363> /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/Metadata
+    0x7fffd44a9000 -     0x7fffd4508fff  com.apple.CoreServices.OSServices (775.20 - 775.20) <82D7E763-999D-31A0-AAE7-4F7A40105739> /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/OSServices.framework/Versions/A/OSServices
+    0x7fffd4509000 -     0x7fffd4579fff  com.apple.SearchKit (1.4.0 - 1.4.0) <7A6DDA2B-03F1-3137-BA9E-1CC211973E26> /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/SearchKit.framework/Versions/A/SearchKit
+    0x7fffd457a000 -     0x7fffd45bfff7  com.apple.coreservices.SharedFileList (38 - 38) <DA096678-93AB-3291-BDE2-482F1D544589> /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/SharedFileList.framework/Versions/A/SharedFileList
+    0x7fffd4648000 -     0x7fffd4795ffb  com.apple.CoreText (352.0 - 544.18) <B883809B-561B-31C5-949E-D2564B6F808A> /System/Library/Frameworks/CoreText.framework/Versions/A/CoreText
+    0x7fffd4796000 -     0x7fffd47cbff3  com.apple.CoreVideo (1.8 - 235.3) <AC11D5FB-C77B-34F5-B942-F698E84C229F> /System/Library/Frameworks/CoreVideo.framework/Versions/A/CoreVideo
+    0x7fffd47cc000 -     0x7fffd483dffb  com.apple.framework.CoreWLAN (11.0 - 1200.31) <7300F2B4-0976-37F3-95E9-4B3BC102ED01> /System/Library/Frameworks/CoreWLAN.framework/Versions/A/CoreWLAN
+    0x7fffd493b000 -     0x7fffd4940fff  com.apple.DiskArbitration (2.7 - 2.7) <F47E07A4-D69D-312A-82C8-A1EE3C7C0EAC> /System/Library/Frameworks/DiskArbitration.framework/Versions/A/DiskArbitration
+    0x7fffd4ad2000 -     0x7fffd4e7aff7  com.apple.Foundation (6.9 - 1349.93) <A3CF1205-DE81-37FE-A574-0D381DECF122> /System/Library/Frameworks/Foundation.framework/Versions/C/Foundation
+    0x7fffd4ea6000 -     0x7fffd4ed7fff  com.apple.GSS (4.0 - 2.0) <453B5C6D-08B0-3199-AFC8-C71BABD6B704> /System/Library/Frameworks/GSS.framework/Versions/A/GSS
+    0x7fffd4f97000 -     0x7fffd503aff7  com.apple.Bluetooth (5.0.5 - 5.0.5f7) <DC83B429-A8C1-34F1-9FD9-C9BB99156DBE> /System/Library/Frameworks/IOBluetooth.framework/Versions/A/IOBluetooth
+    0x7fffd503b000 -     0x7fffd50d1fff  com.apple.framework.IOKit (2.0.2 - 1324.60.8) <46DA8966-AC27-3F51-BBB2-359A229BB0F7> /System/Library/Frameworks/IOKit.framework/Versions/A/IOKit
+    0x7fffd50d2000 -     0x7fffd50d8ffb  com.apple.IOSurface (159.12 - 159.12) <E3D6FCED-F938-30A3-AD08-0998B674A492> /System/Library/Frameworks/IOSurface.framework/Versions/A/IOSurface
+    0x7fffd512b000 -     0x7fffd528eff7  com.apple.ImageIO.framework (3.3.0 - 1599.13.1) <465A44EB-7DD1-3854-8492-61FBC3CB2DA2> /System/Library/Frameworks/ImageIO.framework/Versions/A/ImageIO
+    0x7fffd528f000 -     0x7fffd5293fff  libGIF.dylib (1599.13.1) <8DB6B713-3412-3872-8E37-0A03092DC09A> /System/Library/Frameworks/ImageIO.framework/Versions/A/Resources/libGIF.dylib
+    0x7fffd5294000 -     0x7fffd5385ff7  libJP2.dylib (1599.13.1) <E561ECBC-A04A-363C-9A68-542309498EAC> /System/Library/Frameworks/ImageIO.framework/Versions/A/Resources/libJP2.dylib
+    0x7fffd5386000 -     0x7fffd53a9fff  libJPEG.dylib (1599.13.1) <7B700005-AEAC-3B84-95EA-37AC0C553DFE> /System/Library/Frameworks/ImageIO.framework/Versions/A/Resources/libJPEG.dylib
+    0x7fffd53aa000 -     0x7fffd53d0fff  libPng.dylib (1599.13.1) <6D012113-7FAC-3AE9-85DA-CB05D80DADD7> /System/Library/Frameworks/ImageIO.framework/Versions/A/Resources/libPng.dylib
+    0x7fffd53d1000 -     0x7fffd53d3ff3  libRadiance.dylib (1599.13.1) <4D1FD658-7F24-362F-9D39-6D80D91CB515> /System/Library/Frameworks/ImageIO.framework/Versions/A/Resources/libRadiance.dylib
+    0x7fffd53d4000 -     0x7fffd5422ffb  libTIFF.dylib (1599.13.1) <AF3F0E1B-BD50-39BD-926E-2A93E31A1F81> /System/Library/Frameworks/ImageIO.framework/Versions/A/Resources/libTIFF.dylib
+    0x7fffd618b000 -     0x7fffd61a4ff7  com.apple.Kerberos (3.0 - 1) <B9D242EB-E325-3A21-9812-C77CBBFB0D51> /System/Library/Frameworks/Kerberos.framework/Versions/A/Kerberos
+    0x7fffd6984000 -     0x7fffd69dffff  com.apple.Metal (87.18 - 87.18) <E3618B54-C728-34CA-9E8A-9BD33A295D31> /System/Library/Frameworks/Metal.framework/Versions/A/Metal
+    0x7fffd72c8000 -     0x7fffd72d0fff  com.apple.NetFS (6.0 - 4.0) <14A24D00-5673-330A-959D-87F72040DEFF> /System/Library/Frameworks/NetFS.framework/Versions/A/NetFS
+    0x7fffd7678000 -     0x7fffd76c6ff3  com.apple.opencl (2.8.6 - 2.8.6) <E7958F3E-F56C-35EC-87CD-6ADFC25D4512> /System/Library/Frameworks/OpenCL.framework/Versions/A/OpenCL
+    0x7fffd76c7000 -     0x7fffd76e0ffb  com.apple.CFOpenDirectory (10.12 - 194) <A64E9A01-3F6E-36EA-9C10-88C564A68C9D> /System/Library/Frameworks/OpenDirectory.framework/Versions/A/Frameworks/CFOpenDirectory.framework/Versions/A/CFOpenDirectory
+    0x7fffd76e1000 -     0x7fffd76ecff7  com.apple.OpenDirectory (10.12 - 194) <4298FFD0-B1A7-3064-AF5B-708B3FA38671> /System/Library/Frameworks/OpenDirectory.framework/Versions/A/OpenDirectory
+    0x7fffd76ed000 -     0x7fffd76effff  libCVMSPluginSupport.dylib (14.0.16) <25655EB3-7BF6-36EC-BD17-47F4DF499D7F> /System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libCVMSPluginSupport.dylib
+    0x7fffd76f0000 -     0x7fffd76f3ff7  libCoreFSCache.dylib (156.3) <687C4CC3-6537-344B-8BE1-5234C8CB2864> /System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libCoreFSCache.dylib
+    0x7fffd76f4000 -     0x7fffd76f8fff  libCoreVMClient.dylib (156.3) <E7AEFCBE-B6BF-3C7C-9A4E-E78CB04DB794> /System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libCoreVMClient.dylib
+    0x7fffd76f9000 -     0x7fffd7702ff7  libGFXShared.dylib (14.0.16) <679D8495-1C5F-3932-A452-050A21E0EEBB> /System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGFXShared.dylib
+    0x7fffd7703000 -     0x7fffd770efff  libGL.dylib (14.0.16) <0801F3B9-A525-32BB-9BC0-478947CE21D9> /System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib
+    0x7fffd770f000 -     0x7fffd774bff7  libGLImage.dylib (14.0.16) <FE39C57B-056C-3CBF-B653-A8F2005631C1> /System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGLImage.dylib
+    0x7fffd78c3000 -     0x7fffd7904ff7  libGLU.dylib (14.0.16) <B285EAD6-B3AA-3753-BB85-75864BD6E76C> /System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGLU.dylib
+    0x7fffd826c000 -     0x7fffd827afff  com.apple.opengl (14.0.16 - 14.0.16) <8D4CC067-4A70-34AE-945D-29407D780452> /System/Library/Frameworks/OpenGL.framework/Versions/A/OpenGL
+    0x7fffd8f9e000 -     0x7fffd919efff  com.apple.QuartzCore (1.11 - 453.41.2) <564FBF07-0072-3587-91BE-7B0EFD6FBC1D> /System/Library/Frameworks/QuartzCore.framework/Versions/A/QuartzCore
+    0x7fffd9709000 -     0x7fffd9a0bfff  com.apple.security (7.0 - 57740.60.30) <2DD7275B-40E5-3F8C-8258-8C73DD3EE438> /System/Library/Frameworks/Security.framework/Versions/A/Security
+    0x7fffd9a0c000 -     0x7fffd9a81fff  com.apple.securityfoundation (6.0 - 55132.50.7) <2AF6A217-45D3-30C2-86B6-F35AF827E698> /System/Library/Frameworks/SecurityFoundation.framework/Versions/A/SecurityFoundation
+    0x7fffd9aac000 -     0x7fffd9aafff3  com.apple.xpc.ServiceManagement (1.0 - 1) <F2AACDEF-7DCC-35B9-A6B6-119FF8D83DBB> /System/Library/Frameworks/ServiceManagement.framework/Versions/A/ServiceManagement
+    0x7fffd9e36000 -     0x7fffd9ea5ff7  com.apple.SystemConfiguration (1.14 - 1.14) <98E76341-BB2F-3DF4-9DD4-F4AC7648EF0F> /System/Library/Frameworks/SystemConfiguration.framework/Versions/A/SystemConfiguration
+    0x7fffdc728000 -     0x7fffdc74affb  com.apple.framework.Apple80211 (12.0 - 1200.47.1) <F362FADE-B6F5-32B5-84E8-C3CE7FE5F851> /System/Library/PrivateFrameworks/Apple80211.framework/Versions/A/Apple80211
+    0x7fffdc74b000 -     0x7fffdc75afeb  com.apple.AppleFSCompression (88.50.3 - 1.0) <478E8BFF-8BA2-375E-BE02-BA27F115C15A> /System/Library/PrivateFrameworks/AppleFSCompression.framework/Versions/A/AppleFSCompression
+    0x7fffdc850000 -     0x7fffdc8db97f  com.apple.AppleJPEG (1.0 - 1) <B9E9570D-04A4-34E4-B756-D200043B25B8> /System/Library/PrivateFrameworks/AppleJPEG.framework/Versions/A/AppleJPEG
+    0x7fffdcd0e000 -     0x7fffdcd8cff7  com.apple.backup.framework (1.8.6 - 1.8.6) <2D75451A-8818-3D72-8480-489DF77D708B> /System/Library/PrivateFrameworks/Backup.framework/Versions/A/Backup
+    0x7fffdda17000 -     0x7fffdda3eff3  com.apple.ChunkingLibrary (173 - 173) <FC2165F9-FC93-39C0-8323-C2F43A5E00A3> /System/Library/PrivateFrameworks/ChunkingLibrary.framework/Versions/A/ChunkingLibrary
+    0x7fffde363000 -     0x7fffde36cffb  com.apple.CommonAuth (4.0 - 2.0) <A71AD8F9-5CC8-3072-8A0B-F5427D3E8163> /System/Library/PrivateFrameworks/CommonAuth.framework/Versions/A/CommonAuth
+    0x7fffdeab5000 -     0x7fffdeac5fff  com.apple.CoreEmoji (1.0 - 40.3.3) <E9A28301-2D79-3A97-A046-028258A6ABE5> /System/Library/PrivateFrameworks/CoreEmoji.framework/Versions/A/CoreEmoji
+    0x7fffdf0c1000 -     0x7fffdf150ff7  com.apple.CoreSymbolication (62046) <2D4C3324-B647-3696-B92E-AAB1053EEB54> /System/Library/PrivateFrameworks/CoreSymbolication.framework/Versions/A/CoreSymbolication
+    0x7fffdf151000 -     0x7fffdf290fe7  com.apple.coreui (2.1 - 431.3) <8D0FA478-9B6C-3D6D-8ADF-8677BA0BF134> /System/Library/PrivateFrameworks/CoreUI.framework/Versions/A/CoreUI
+    0x7fffdf291000 -     0x7fffdf361ff3  com.apple.CoreUtils (5.1 - 510.31) <B6636BBF-D37E-360E-A3EE-61BDC1736EEA> /System/Library/PrivateFrameworks/CoreUtils.framework/Versions/A/CoreUtils
+    0x7fffdf3b1000 -     0x7fffdf416ff3  com.apple.framework.CoreWiFi (12.0 - 1200.31) <1B3FE242-8AEB-38BD-84A4-65DBC476FEEA> /System/Library/PrivateFrameworks/CoreWiFi.framework/Versions/A/CoreWiFi
+    0x7fffdf417000 -     0x7fffdf425ff7  com.apple.CrashReporterSupport (10.12 - 827) <802A9B81-E349-348B-90AB-10E40B654250> /System/Library/PrivateFrameworks/CrashReporterSupport.framework/Versions/A/CrashReporterSupport
+    0x7fffdf497000 -     0x7fffdf4a1ffb  com.apple.framework.DFRFoundation (1.0 - 104.25) <7CFF896C-EF22-3941-BB3D-F3615CE4C908> /System/Library/PrivateFrameworks/DFRFoundation.framework/Versions/A/DFRFoundation
+    0x7fffdf4a2000 -     0x7fffdf4a6ff3  com.apple.DSExternalDisplay (3.1 - 380) <4B5E3FF0-E8C3-38CC-BF72-418C928956AB> /System/Library/PrivateFrameworks/DSExternalDisplay.framework/Versions/A/DSExternalDisplay
+    0x7fffdf4dc000 -     0x7fffdf551ffb  com.apple.datadetectorscore (7.0 - 539.1) <D84B64BA-CD56-368E-A31A-AC47C3780D0B> /System/Library/PrivateFrameworks/DataDetectorsCore.framework/Versions/A/DataDetectorsCore
+    0x7fffdf58d000 -     0x7fffdf5ccfff  com.apple.DebugSymbols (137 - 137) <58A70B66-2628-3CFE-B103-2200D95FC5F7> /System/Library/PrivateFrameworks/DebugSymbols.framework/Versions/A/DebugSymbols
+    0x7fffdf5cd000 -     0x7fffdf6defff  com.apple.desktopservices (1.11.6 - 1.11.6) <225B3746-8626-34CD-8FA9-48A7C04ACCCF> /System/Library/PrivateFrameworks/DesktopServicesPriv.framework/Versions/A/DesktopServicesPriv
+    0x7fffdf9c6000 -     0x7fffdfdf7ff7  com.apple.vision.FaceCore (3.3.2 - 3.3.2) <9391D5A3-738C-3136-9D07-518CB43DBADA> /System/Library/PrivateFrameworks/FaceCore.framework/Versions/A/FaceCore
+    0x7fffe114e000 -     0x7fffe114efff  libmetal_timestamp.dylib (600.0.49.9) <E5EED927-1671-3390-BCBB-D76201D63C73> /System/Library/PrivateFrameworks/GPUCompiler.framework/libmetal_timestamp.dylib
+    0x7fffe141f000 -     0x7fffe143bfff  com.apple.GenerationalStorage (2.0 - 267.2) <22381303-B9A8-32D8-BDBF-871F0CDD81A5> /System/Library/PrivateFrameworks/GenerationalStorage.framework/Versions/A/GenerationalStorage
+    0x7fffe1b4c000 -     0x7fffe1bc2ff3  com.apple.Heimdal (4.0 - 2.0) <9E554667-2A6D-3A86-883A-50C8AF98D0C0> /System/Library/PrivateFrameworks/Heimdal.framework/Versions/A/Heimdal
+    0x7fffe21dd000 -     0x7fffe21e4ffb  com.apple.IOAccelerator (311.16.4 - 311.16.4) <F41EB563-1439-3745-BE98-4A4B6F45A7DF> /System/Library/PrivateFrameworks/IOAccelerator.framework/Versions/A/IOAccelerator
+    0x7fffe21e6000 -     0x7fffe21faff7  com.apple.IOPresentment (1.0 - 29.10) <30DF04EE-10E2-353F-845F-A97B87DF3207> /System/Library/PrivateFrameworks/IOPresentment.framework/Versions/A/IOPresentment
+    0x7fffe21fb000 -     0x7fffe221dfff  com.apple.IconServices (74.4 - 74.4) <218DDD05-35F4-3833-B98D-471ED0EBC031> /System/Library/PrivateFrameworks/IconServices.framework/Versions/A/IconServices
+    0x7fffe2304000 -     0x7fffe24bbfff  com.apple.LanguageModeling (1.0 - 123.2.5) <A8CA965F-0399-310D-91C3-B93DDDE9A442> /System/Library/PrivateFrameworks/LanguageModeling.framework/Versions/A/LanguageModeling
+    0x7fffe2ddc000 -     0x7fffe2e55ff7  com.apple.MetalPerformanceShaders.MetalPerformanceShaders (1.0 - 1) <C323FC94-FFA5-3EE6-B2AC-7E61EA92F304> /System/Library/PrivateFrameworks/MetalPerformanceShaders.framework/Versions/A/MetalPerformanceShaders
+    0x7fffe2ff2000 -     0x7fffe301aff7  com.apple.MultitouchSupport.framework (368.16 - 368.16) <F6EFB289-F4B1-36E7-88D4-D1C7B1630A23> /System/Library/PrivateFrameworks/MultitouchSupport.framework/Versions/A/MultitouchSupport
+    0x7fffe30cc000 -     0x7fffe30d7fff  com.apple.NetAuth (6.2 - 6.2) <E1D6BFF0-7F37-3866-9925-5DF40EB3A1F4> /System/Library/PrivateFrameworks/NetAuth.framework/Versions/A/NetAuth
+    0x7fffe39b0000 -     0x7fffe39f1ff3  com.apple.PerformanceAnalysis (1.148.3 - 148.3) <DE16079A-5267-372A-9435-E993EB41252A> /System/Library/PrivateFrameworks/PerformanceAnalysis.framework/Versions/A/PerformanceAnalysis
+    0x7fffe40d9000 -     0x7fffe40f3fff  com.apple.ProtocolBuffer (1 - 249.1) <A1F1B0F3-078F-378F-A9A9-0DEEA70E816A> /System/Library/PrivateFrameworks/ProtocolBuffer.framework/Versions/A/ProtocolBuffer
+    0x7fffe410c000 -     0x7fffe412fff3  com.apple.RemoteViewServices (2.0 - 124) <6B967FDA-6591-302C-BA0A-76C4856E584E> /System/Library/PrivateFrameworks/RemoteViewServices.framework/Versions/A/RemoteViewServices
+    0x7fffe4e8b000 -     0x7fffe4f18fff  com.apple.Sharing (696.2.67.1 - 696.2.67.1) <267A3C7C-BB70-3E92-B773-A3F9EDD12E84> /System/Library/PrivateFrameworks/Sharing.framework/Versions/A/Sharing
+    0x7fffe4f39000 -     0x7fffe51aeff7  com.apple.SkyLight (1.600.0 - 170.3.11.11) <4E51EFD7-519E-3170-B9BF-2DCD88BCF176> /System/Library/PrivateFrameworks/SkyLight.framework/Versions/A/SkyLight
+    0x7fffe538e000 -     0x7fffe539aff7  com.apple.SpeechRecognitionCore (3.3.2 - 3.3.2) <684BD1EA-8268-331C-A5A9-080EB375C658> /System/Library/PrivateFrameworks/SpeechRecognitionCore.framework/Versions/A/SpeechRecognitionCore
+    0x7fffe5a86000 -     0x7fffe5afafdf  com.apple.Symbolication (62048.1) <1A30ED19-7532-3F46-9DD3-9879A973D0CF> /System/Library/PrivateFrameworks/Symbolication.framework/Versions/A/Symbolication
+    0x7fffe5f39000 -     0x7fffe5f3fff7  com.apple.TCC (1.0 - 1) <911B534B-4AC7-34E4-935E-E42ECD008CBC> /System/Library/PrivateFrameworks/TCC.framework/Versions/A/TCC
+    0x7fffe5fcb000 -     0x7fffe6091ff7  com.apple.TextureIO (2.8 - 2.8) <3D61E533-4156-3B21-B7ED-CB823E680DFC> /System/Library/PrivateFrameworks/TextureIO.framework/Versions/A/TextureIO
+    0x7fffe6107000 -     0x7fffe6298ff3  com.apple.UIFoundation (1.0 - 490.8) <0342C3E6-AB89-3F0D-A9CE-5F2CD3587B75> /System/Library/PrivateFrameworks/UIFoundation.framework/Versions/A/UIFoundation
+    0x7fffe7349000 -     0x7fffe734bffb  com.apple.loginsupport (1.0 - 1) <F3140B97-12C3-35A7-9D3D-43DA2D13C113> /System/Library/PrivateFrameworks/login.framework/Versions/A/Frameworks/loginsupport.framework/Versions/A/loginsupport
+    0x7fffe73a0000 -     0x7fffe73bbff7  libCRFSuite.dylib (34) <F78B7F5F-0B4F-35C6-AA2F-84EE9CB22137> /usr/lib/libCRFSuite.dylib
+    0x7fffe73bc000 -     0x7fffe73c7fff  libChineseTokenizer.dylib (21) <0886E908-A825-36AF-B94B-2361FD8BC2A1> /usr/lib/libChineseTokenizer.dylib
+    0x7fffe7459000 -     0x7fffe745aff3  libDiagnosticMessagesClient.dylib (102) <84A04D24-0E60-3810-A8C0-90A65E2DF61A> /usr/lib/libDiagnosticMessagesClient.dylib
+    0x7fffe745b000 -     0x7fffe766efff  libFosl_dynamic.dylib (16.39) <E22A4243-D148-3C74-BA15-2D906A3D1F9E> /usr/lib/libFosl_dynamic.dylib
+    0x7fffe7692000 -     0x7fffe7692fff  libOpenScriptingUtil.dylib (172.1) <0F1BA407-97D1-36F6-882D-A355EAAD5E00> /usr/lib/libOpenScriptingUtil.dylib
+    0x7fffe7693000 -     0x7fffe7697ffb  libScreenReader.dylib (477.40.7) <F7305560-6CF0-3000-8301-72E04BEAA693> /usr/lib/libScreenReader.dylib
+    0x7fffe7698000 -     0x7fffe7699ffb  libSystem.B.dylib (1238.60.2) <58358A17-4318-3AD9-B18E-CC36502B9127> /usr/lib/libSystem.B.dylib
+    0x7fffe7705000 -     0x7fffe7730ff3  libarchive.2.dylib (41.70.2) <907D1FB1-9A65-33F5-AFC8-0B6E5AE9D83A> /usr/lib/libarchive.2.dylib
+    0x7fffe7731000 -     0x7fffe7826fef  libate.dylib (1.12.13) <DB9881C3-E24A-3984-91E0-77F6F13F795C> /usr/lib/libate.dylib
+    0x7fffe782a000 -     0x7fffe782aff3  libauto.dylib (187) <34388D0B-C539-3C1B-9408-2BC152162E43> /usr/lib/libauto.dylib
+    0x7fffe782b000 -     0x7fffe783bff3  libbsm.0.dylib (34) <20084796-B04D-3B35-A003-EA11459557A9> /usr/lib/libbsm.0.dylib
+    0x7fffe783c000 -     0x7fffe784aff7  libbz2.1.0.dylib (38) <ADFA329A-DCE7-356D-8F09-A3168DFC6610> /usr/lib/libbz2.1.0.dylib
+    0x7fffe784b000 -     0x7fffe78a1ff7  libc++.1.dylib (307.5) <0B43BB5D-E6EB-3464-8DE9-B41AC8ED9D1C> /usr/lib/libc++.1.dylib
+    0x7fffe78a2000 -     0x7fffe78cbff7  libc++abi.dylib (307.4) <BC271AD3-831B-362A-9DA7-E8C51F285FE4> /usr/lib/libc++abi.dylib
+    0x7fffe78cc000 -     0x7fffe78dcffb  libcmph.dylib (6) <2B5D405E-2D0B-3320-ABD6-622934C86ABE> /usr/lib/libcmph.dylib
+    0x7fffe78dd000 -     0x7fffe78f3ff7  libcompression.dylib (39) <BDAA8CC7-0BFC-36EC-9E75-58BDC15AC3B6> /usr/lib/libcompression.dylib
+    0x7fffe78f4000 -     0x7fffe78f4ff7  libcoretls.dylib (121.50.4) <64B1001E-10F6-3542-A3B2-C4B49F51817F> /usr/lib/libcoretls.dylib
+    0x7fffe78f5000 -     0x7fffe78f6ff3  libcoretls_cfhelpers.dylib (121.50.4) <1A10303E-5EB0-3C7C-9165-021FCDFD934D> /usr/lib/libcoretls_cfhelpers.dylib
+    0x7fffe7c32000 -     0x7fffe7c85ff7  libcups.2.dylib (450.4) <2DA65D4A-1428-3F74-869A-E16246DE88C7> /usr/lib/libcups.2.dylib
+    0x7fffe7d02000 -     0x7fffe7d02fff  libenergytrace.dylib (15) <A1B040A2-7977-3097-9ADF-34FF181EB970> /usr/lib/libenergytrace.dylib
+    0x7fffe7d12000 -     0x7fffe7d17ff7  libheimdal-asn1.dylib (498.50.12) <1AC5AB99-2E62-3B9C-ADE4-AE65CFCDA471> /usr/lib/libheimdal-asn1.dylib
+    0x7fffe7d18000 -     0x7fffe7e0aff7  libiconv.2.dylib (50) <42125B35-81D7-3FC4-9475-A26DBE10884D> /usr/lib/libiconv.2.dylib
+    0x7fffe7e0b000 -     0x7fffe8030ffb  libicucore.A.dylib (57168.0.1) <99D53A36-19F6-34F0-86AB-D8BD6C9BD3AD> /usr/lib/libicucore.A.dylib
+    0x7fffe8036000 -     0x7fffe8037fff  liblangid.dylib (126) <2085E7A7-9A34-3735-87F4-F174EF8EABF0> /usr/lib/liblangid.dylib
+    0x7fffe8038000 -     0x7fffe8051ffb  liblzma.5.dylib (10) <44BD0279-99DD-36B5-8A6E-C11432E2098D> /usr/lib/liblzma.5.dylib
+    0x7fffe8052000 -     0x7fffe8068ff7  libmarisa.dylib (5) <9030D214-5D0F-30CB-AC03-902C63909362> /usr/lib/libmarisa.dylib
+    0x7fffe8069000 -     0x7fffe8311ff7  libmecabra.dylib (744.8) <D429FCC9-42A4-38B3-8784-44024BC859EF> /usr/lib/libmecabra.dylib
+    0x7fffe8344000 -     0x7fffe83beff3  libnetwork.dylib (856.60.1) <191E99F5-4723-3180-8013-02AF2F9AE4B8> /usr/lib/libnetwork.dylib
+    0x7fffe83bf000 -     0x7fffe8794bc7  libobjc.A.dylib (709.1) <4DF3C25C-52C2-3F01-A3EF-0D9D53A73C1C> /usr/lib/libobjc.A.dylib
+    0x7fffe8797000 -     0x7fffe879bfff  libpam.2.dylib (21.30.1) <71EB0D88-DE84-3C8D-A2C5-58AA282BC5BC> /usr/lib/libpam.2.dylib
+    0x7fffe879c000 -     0x7fffe87cdfff  libpcap.A.dylib (67.60.2) <B2D36AD8-D5C8-3875-AC81-4787A15E44C2> /usr/lib/libpcap.A.dylib
+    0x7fffe87ea000 -     0x7fffe8806ffb  libresolv.9.dylib (64) <A244AE4C-00B0-396C-98FF-97FE4DB3DA30> /usr/lib/libresolv.9.dylib
+    0x7fffe8856000 -     0x7fffe899cfff  libsqlite3.dylib (254.8) <058036FD-6EF3-3F9C-BF9B-2CB7A57205D7> /usr/lib/libsqlite3.dylib
+    0x7fffe8a4c000 -     0x7fffe8a9cfff  libstdc++.6.dylib (104.1) <A980E08C-A511-3D19-9881-1D79B7CFF2BA> /usr/lib/libstdc++.6.dylib
+    0x7fffe8ae5000 -     0x7fffe8af2ff7  libxar.1.dylib (417.1) <78B14DC5-5256-3820-8259-117C5046BB9F> /usr/lib/libxar.1.dylib
+    0x7fffe8af3000 -     0x7fffe8be2ff3  libxml2.2.dylib (30.24) <D84C6B99-6D4C-3651-8086-387D631CBA37> /usr/lib/libxml2.2.dylib
+    0x7fffe8be3000 -     0x7fffe8c0cfff  libxslt.1.dylib (15.9.3) <F57ED43F-7912-3C99-8500-AB0EEE9FA178> /usr/lib/libxslt.1.dylib
+    0x7fffe8c0d000 -     0x7fffe8c1eff3  libz.1.dylib (67) <46E3FFA2-4328-327A-8D34-A03E20BFFB8E> /usr/lib/libz.1.dylib
+    0x7fffe8c2d000 -     0x7fffe8c31ff7  libcache.dylib (79) <093A4DAB-8385-3D47-A350-E20CB7CCF7BF> /usr/lib/system/libcache.dylib
+    0x7fffe8c32000 -     0x7fffe8c3cfff  libcommonCrypto.dylib (60092.50.5) <4C8A7FE1-C190-3015-A744-66F8220EAF6A> /usr/lib/system/libcommonCrypto.dylib
+    0x7fffe8c3d000 -     0x7fffe8c44fff  libcompiler_rt.dylib (62) <55D47421-772A-32AB-B529-1A46C2F43B4D> /usr/lib/system/libcompiler_rt.dylib
+    0x7fffe8c45000 -     0x7fffe8c4dfff  libcopyfile.dylib (138) <819BEA3C-DF11-3E3D-A1A1-5A51C5BF1961> /usr/lib/system/libcopyfile.dylib
+    0x7fffe8c4e000 -     0x7fffe8cd1fdb  libcorecrypto.dylib (442.50.22) <E36CE660-855A-3166-8B9C-645C514B2C52> /usr/lib/system/libcorecrypto.dylib
+    0x7fffe8cd2000 -     0x7fffe8d03fff  libdispatch.dylib (703.50.38) <54B02414-5908-3EF0-B4D2-230B7FEB1CF7> /usr/lib/system/libdispatch.dylib
+    0x7fffe8d04000 -     0x7fffe8d09ffb  libdyld.dylib (434) <4A0E66C1-4596-38E6-898E-BD2660478D3D> /usr/lib/system/libdyld.dylib
+    0x7fffe8d0a000 -     0x7fffe8d0affb  libkeymgr.dylib (28) <7AA011A9-DC21-3488-BF73-3B5B14D1FDD6> /usr/lib/system/libkeymgr.dylib
+    0x7fffe8d0b000 -     0x7fffe8d17fff  libkxld.dylib (3789.73.50) <E2CCB6DE-F92B-33CE-81A8-DDC42E62B62D> /usr/lib/system/libkxld.dylib
+    0x7fffe8d18000 -     0x7fffe8d18fff  liblaunch.dylib (972.70.5) <1F770D9B-3892-3BBB-9471-68DDDDB0F69A> /usr/lib/system/liblaunch.dylib
+    0x7fffe8d19000 -     0x7fffe8d1eff3  libmacho.dylib (898) <17D5D855-F6C3-3B04-B680-E9BF02EF8AED> /usr/lib/system/libmacho.dylib
+    0x7fffe8d1f000 -     0x7fffe8d21ff3  libquarantine.dylib (85.50.1) <12448CC2-378E-35F3-BE33-9DC395A5B970> /usr/lib/system/libquarantine.dylib
+    0x7fffe8d22000 -     0x7fffe8d23ffb  libremovefile.dylib (45) <38D4CB9C-10CD-30D3-8B7B-A515EC75FE85> /usr/lib/system/libremovefile.dylib
+    0x7fffe8d24000 -     0x7fffe8d3cff7  libsystem_asl.dylib (349.50.5) <096E4228-3B7C-30A6-8B13-EC909A64499A> /usr/lib/system/libsystem_asl.dylib
+    0x7fffe8d3d000 -     0x7fffe8d3dff7  libsystem_blocks.dylib (67) <10DC5404-73AB-35B3-A277-A8AFECB476EB> /usr/lib/system/libsystem_blocks.dylib
+    0x7fffe8d3e000 -     0x7fffe8dcbfef  libsystem_c.dylib (1158.50.2) <E5AE5244-7D0C-36AC-8BB6-C7AE7EA52A4B> /usr/lib/system/libsystem_c.dylib
+    0x7fffe8dcc000 -     0x7fffe8dcfffb  libsystem_configuration.dylib (888.60.3) <094DBBF4-276A-3A11-8AF3-72743CC338E6> /usr/lib/system/libsystem_configuration.dylib
+    0x7fffe8dd0000 -     0x7fffe8dd3fff  libsystem_coreservices.dylib (41.4) <7D26DE79-B424-3450-85E1-F7FAB32714AB> /usr/lib/system/libsystem_coreservices.dylib
+    0x7fffe8dd4000 -     0x7fffe8decfff  libsystem_coretls.dylib (121.50.4) <EC6FCF07-DCFB-3A03-9CC9-6DD3709974C6> /usr/lib/system/libsystem_coretls.dylib
+    0x7fffe8ded000 -     0x7fffe8df3fff  libsystem_dnssd.dylib (765.50.11) <B87F96B8-2694-3DB3-9923-1B4E2245C8BF> /usr/lib/system/libsystem_dnssd.dylib
+    0x7fffe8df4000 -     0x7fffe8e1dff7  libsystem_info.dylib (503.50.4) <611DB84C-BF70-3F92-8702-B9F28A900920> /usr/lib/system/libsystem_info.dylib
+    0x7fffe8e1e000 -     0x7fffe8e40ff7  libsystem_kernel.dylib (3789.73.50) <932ACBB6-9962-3839-AEE3-D8AA6BF1DD02> /usr/lib/system/libsystem_kernel.dylib
+    0x7fffe8e41000 -     0x7fffe8e88fe7  libsystem_m.dylib (3121.6) <86D499B5-BBDC-3D3B-8A4E-97AE8E6672A4> /usr/lib/system/libsystem_m.dylib
+    0x7fffe8e89000 -     0x7fffe8ea7ff7  libsystem_malloc.dylib (116.50.9) <82647590-DAEF-3499-8BF3-F1E3048861FE> /usr/lib/system/libsystem_malloc.dylib
+    0x7fffe8ea8000 -     0x7fffe8f01ffb  libsystem_network.dylib (856.60.1) <369D0221-56CA-3C3E-9EDE-94B41CAE77B7> /usr/lib/system/libsystem_network.dylib
+    0x7fffe8f02000 -     0x7fffe8f0bff3  libsystem_networkextension.dylib (563.60.2) <B021F2B3-8A75-3633-ABB0-FC012B8E9B0C> /usr/lib/system/libsystem_networkextension.dylib
+    0x7fffe8f0c000 -     0x7fffe8f15ff3  libsystem_notify.dylib (165.20.1) <B8160190-A069-3B3A-BDF6-2AA408221FAE> /usr/lib/system/libsystem_notify.dylib
+    0x7fffe8f16000 -     0x7fffe8f1efe7  libsystem_platform.dylib (126.50.8) <897462FD-B318-321B-A554-E61982630F7E> /usr/lib/system/libsystem_platform.dylib
+    0x7fffe8f1f000 -     0x7fffe8f29ff7  libsystem_pthread.dylib (218.60.3) <B8FB5E20-3295-39E2-B5EB-B464D1D4B104> /usr/lib/system/libsystem_pthread.dylib
+    0x7fffe8f2a000 -     0x7fffe8f2dff7  libsystem_sandbox.dylib (592.70.2) <19320A42-2E3B-361B-BBDA-2F5F2E87B100> /usr/lib/system/libsystem_sandbox.dylib
+    0x7fffe8f2e000 -     0x7fffe8f2fff3  libsystem_secinit.dylib (24.50.4) <F78B847B-3565-3E4B-98A6-F7AD40392E2D> /usr/lib/system/libsystem_secinit.dylib
+    0x7fffe8f30000 -     0x7fffe8f37ffb  libsystem_symptoms.dylib (532.50.48) <1C822669-BF39-3639-A00B-B9170A63F342> /usr/lib/system/libsystem_symptoms.dylib
+    0x7fffe8f38000 -     0x7fffe8f4bff7  libsystem_trace.dylib (518.70.1) <AC63A7FE-50D9-3A30-96E6-F6B7FF16E465> /usr/lib/system/libsystem_trace.dylib
+    0x7fffe8f4c000 -     0x7fffe8f51ffb  libunwind.dylib (35.3) <3D50D8A8-C460-334D-A519-2DA841102C6B> /usr/lib/system/libunwind.dylib
+    0x7fffe8f52000 -     0x7fffe8f7bff7  libxpc.dylib (972.70.5) <255AA6A1-26AA-33F6-BC11-3DCE12A0BC0F> /usr/lib/system/libxpc.dylib
+Sample analysis of process 1128 written to file /dev/stdout
