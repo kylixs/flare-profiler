@@ -77,6 +77,7 @@ save summary info failed: Too many open files (os error 24)
 
 
 Links:  
+[入门指南 Quick Start](doc/quick-start.md)
 [v0.1.0-alpha 版本介绍](https://github.com/kylixs/kylixs.github.io/blob/master/flare-profiler-v0.1.0-alpha-demo.md)
 
 Flare Profiler 开源交流QQ群： 837682428，欢迎加群一起探讨学习Java & Rust !  
