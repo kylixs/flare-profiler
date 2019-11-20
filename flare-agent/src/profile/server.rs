@@ -119,6 +119,7 @@ pub fn start_server() {
     // accept connections and process them, spawning a new thread for each one
     println!("Flare agent server listening on port 3333");
     set_server_running(true);
+    let mut last_client_stream: Option<TcpStream> = None;
     for stream in listener.incoming() {
         if !is_server_running() {
             println!("Flare agent server is not running, exiting");
@@ -126,7 +127,23 @@ pub fn start_server() {
         }
         match stream {
             Ok(stream) => {
+                if let Some(last_stream) = &last_client_stream {
+                    println!("Flare agent is already connected to collector, closing prev connection: {} ...", last_stream.peer_addr().unwrap());
+                    last_stream.shutdown(Shutdown::Both);
+                } else {
+                    println!("Flare agent is idle.")
+                }
                 println!("New connection: {}", stream.peer_addr().unwrap());
+
+                match stream.try_clone() {
+                    Ok(stream_copy) => {
+                        last_client_stream = Some(stream_copy);
+                    },
+                    Err(e) => {
+                        println!("Clone stream failed: {}", e);
+                    }
+                }
+
                 thread::spawn(move|| {
                     // connection succeeded
                     handle_client(stream)
@@ -154,8 +171,8 @@ fn handle_client(mut stream: TcpStream) {
 
             true
         },
-        Err(_) => {
-            println!("An error occurred, terminating connection with {}", stream.peer_addr().unwrap());
+        Err(e) => {
+            println!("An error occurred, terminating connection with {}, error: {}", stream.peer_addr().unwrap(), e);
             stream.shutdown(Shutdown::Both).unwrap();
             false
         }
