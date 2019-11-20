@@ -37,6 +37,10 @@ cp -r $PROJECT_PATH/assets/* $DIST_DIR/
 echo "build flare-server .."
 cd $PROJECT_PATH/flare-server
 cargo build $CARGO_OPTS --release
+if [[ $? != 0 ]];then
+   echo "build flare server failed."
+   exit 1
+fi
 
 #copy flare-server files
 BIN_FILE=""

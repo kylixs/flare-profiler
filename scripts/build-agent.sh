@@ -37,6 +37,10 @@ cp -r $PROJECT_PATH/assets/agent/* $DIST_DIR/
 echo "build flare-agent lib .."
 cd $PROJECT_PATH/flare-agent
 cargo build  $CARGO_OPTS --release
+if [[ $? != 0 ]];then
+   echo "build flare agent failed."
+   exit 1
+fi
 
 #copy agent lib file
 AGENT_LIB_FILE=""
