@@ -56,6 +56,12 @@ input.input-field {
 .message {
     color: #DD0000;
     /*color: #409eff;*/
+    display: inline-block;
+    position: absolute;
+    float: left;
+    left: 400px;
+    top: 50px;
+    z-index: 1010;
 }
 #layout td {
     vertical-align: top;
@@ -157,7 +163,7 @@ input.input-field {
     border: 0px;
 }
 
-.version {
+.version_text {
     display: inline-block;
     position: absolute;
     float: right;

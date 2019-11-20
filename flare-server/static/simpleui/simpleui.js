@@ -627,12 +627,16 @@ var profiler = {
                 // }
                 break;
             case "open_sample":
-                profiler.list_sessions();
-                profiler.activeTab(profiler.tabs.dashboard);
+                if (success) {
+                    profiler.list_sessions();
+                    profiler.activeTab(profiler.tabs.dashboard);
+                }
                 break;
             case "connect_agent":
-                profiler.list_sessions();
-                profiler.activeTab(profiler.tabs.dashboard);
+                if (success) {
+                    profiler.list_sessions();
+                    profiler.activeTab(profiler.tabs.dashboard);
+                }
                 break;
             case "close_session":
             case "close_all_session":
