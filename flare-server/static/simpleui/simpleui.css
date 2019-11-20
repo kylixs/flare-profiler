@@ -59,7 +59,7 @@ input.input-field {
     display: inline-block;
     position: absolute;
     float: left;
-    left: 400px;
+    left: 480px;
     top: 50px;
     z-index: 1010;
 }
