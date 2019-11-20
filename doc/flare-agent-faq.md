@@ -33,6 +33,16 @@ Exception in thread "main" com.sun.tools.attach.AttachNotSupportedException: Una
 
 ```
 
-#### 2. 在Windows上注入以服务运行的Java/Tomcat进程失败
-TODO
+#### 2. 在Windows上注入以服务运行的Java/Tomcat进程失败  
+使用注入服务的脚本  
+```
+  cd flare-profiler/agent/bin
+  start-agent-as-service.bat <pid>
+```
+停止Agent执行下面的脚本   
+```
+  cd flare-profiler/agent/bin
+  stop-agent-as-service.bat <pid>
+```
+
 
