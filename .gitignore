@@ -77,4 +77,6 @@ typings/
 # next.js build output
 .next
 
+#macOS DS file
+.DS_Store
 flare-ui-test
