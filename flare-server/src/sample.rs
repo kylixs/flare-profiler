@@ -110,6 +110,7 @@ pub struct SampleCollector {
     //self ref
     this_ref: Option<Arc<Mutex<SampleCollector>>>,
     connected: bool,
+    disconnected: bool,
     agent_addr: String,
     agent_stream: Option<TcpStream>,
     readonly: bool,
@@ -178,6 +179,7 @@ impl SampleCollector {
             sample_stacktrace_map: HashMap::new(),
             sample_method_idx_file: None,
             connected: false,
+            disconnected: false,
             agent_addr: "".to_string(),
             agent_stream: None,
             method_cache: HashMap::new(),
@@ -189,11 +191,15 @@ impl SampleCollector {
     }
 
     pub fn close(&mut self) {
-        if self.running {
-            self.running = false;
-            //release self ref 必须释放自引用，否则不会释放此对象，打开的文件句柄也不会自动关闭
-            self.this_ref = None;
-        }
+//        if self.running {
+//        }
+        self.running = false;
+        //release self ref 必须释放自引用，否则不会释放此对象，打开的文件句柄也不会自动关闭
+        self.this_ref = None;
+    }
+
+    pub fn is_disconnected(&self) -> bool {
+        self.disconnected
     }
 
     //加载取样数据
@@ -355,6 +361,7 @@ impl SampleCollector {
         match TcpStream::connect(&self.agent_addr) {
             Ok(mut stream) => {
                 println!("Successfully connected to flare agent at: {:?}", self.agent_addr);
+                self.connected = true;
                 Ok(stream)
             }
             Err(e) => {
@@ -371,7 +378,6 @@ impl SampleCollector {
         let size = stream.write(cmd.as_slice()).unwrap();
         println!("start subscribe events, awaiting reply: {}", cmdValue.to_encoded_string()?);
 
-
         if let Some(this_ref) = &self.this_ref {
             let this = this_ref.clone();
             std::thread::spawn(move ||{
@@ -386,9 +392,15 @@ impl SampleCollector {
                     }
                 }{}
                 println!("subscribe events is stopped.");
+                this.lock().unwrap().on_disconnected();
             });
         }
         Ok(true)
+    }
+
+    fn on_disconnected(&mut self) {
+        self.running = false;
+        self.disconnected = true;
     }
 
     fn on_sample_data(&mut self, sample_data: resp::Value) -> bool {

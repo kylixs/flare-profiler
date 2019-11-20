@@ -72,12 +72,16 @@ impl Profiler {
 
     pub fn connect_agent(&mut self, agent_addr: &str) -> io::Result<String> {
         println!("connecting to agent: {}", agent_addr);
-        let mut collector = SampleCollector::new(agent_addr)?;
         let instance_id = agent_addr.to_string();
+        let value = self.sample_session_map.get(&instance_id);
+        if value.is_some() {
+            println!("already connected to agent: {}", agent_addr);
+            return Ok(instance_id);
+        }
 
+        let mut collector = SampleCollector::new(agent_addr)?;
         collector.lock().unwrap().subscribe_events()?;
-        println!("connect agent successful");
-
+        println!("connect agent: {} successful", agent_addr);
         self.sample_session_map.insert(instance_id.clone(), collector);
         Ok(instance_id)
     }
@@ -112,9 +116,21 @@ impl Profiler {
     }
 
     fn get_sample_collector(&mut self, session_id: &str) -> io::Result<Arc<Mutex<SampleCollector>>> {
-        if let Some(collector) = self.sample_session_map.get(session_id) {
-            Ok(collector.clone())
+        let collector = if let Some(_collector) = self.sample_session_map.get(session_id) {
+            Some(_collector.clone())
         }else {
+            None
+        };
+
+        if let Some(_collector) = collector {
+            if _collector.lock().unwrap().is_disconnected() {
+                println!("sample session is disconnected: {}, removing it", session_id);
+                self.sample_session_map.remove(session_id);
+                Err(io::Error::new(ErrorKind::NotFound, "sample session is disconnected"))
+            }else {
+                Ok(_collector)
+            }
+        } else {
             Err(io::Error::new(ErrorKind::NotFound, "sample session not found"))
         }
     }
