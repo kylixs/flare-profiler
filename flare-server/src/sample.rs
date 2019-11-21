@@ -713,8 +713,10 @@ impl SampleCollector {
             return Err(new_error(ErrorKind::NotFound, "thread cpu time file not found"));
         }
         println!("thread: {}, convert time to step cost:{}, steps:{}", thread_id, sw.lap(), end_step - start_step);
+        let last_time = *end_time - ts_file_begin_time;
 
         //TODO 可能单次读取的数据比较多，导致内存消耗太大
+        //TODO fix range
         let mut thread_data_vec = vec![];
         let mut last_thread_data: Option<ThreadData> = None;
         self.sample_stacktrace_map.get_mut(&thread_id).unwrap_or(&mut None).as_mut().map(|idx_file| {
@@ -733,9 +735,12 @@ impl SampleCollector {
         //last method call
         if let Some(mut last_call) = last_thread_data {
             // how long of last method call duration?
-            last_call.self_duration = *end_time - ts_file_begin_time - last_call.sample_time;
-            //last_call.self_duration = 2;
-            thread_data_vec.push(last_call);
+            if last_time > last_call.sample_time {
+                last_call.self_duration = last_time - last_call.sample_time;
+                thread_data_vec.push(last_call);
+            }else {
+                //last sample time is out of range, drop it
+            }
         }
         println!("thread: {}, load stacktrace cost:{}, count:{}, step: {} - {}", thread_id, sw.lap(), thread_data_vec.len(), start_step, end_step);
 
