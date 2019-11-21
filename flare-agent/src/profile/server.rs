@@ -123,42 +123,14 @@ pub fn start_server() {
     for stream in listener.incoming() {
         if !is_server_running() {
             println!("Flare agent server is not running, exiting");
+            close_connection(&mut last_client_stream);
             break;
         }
         match stream {
             Ok(stream) => {
-                //close prev connectiopn
-                if let Some(last_stream) = &last_client_stream {
-                    let mut peer_addr = "??".to_string();
-                    match last_stream.peer_addr() {
-                        Err(e) => {
-                            println!("Get prev connection  peer_addr failed: {}", e);
-                        },
-                        Ok(addr) => {
-                            println!("Flare agent is already connected to collector: {} ...", addr);
-                            peer_addr = addr.to_string();
-                        }
-                    }
-                    //check prev connection error
-                    match last_stream.take_error() {
-                        Ok(x) => {
-                            if let Some(e) = x {
-                                println!("Prev connection is error: {}", e);
-                            }else {
-                                println!("Closing prev connection: {} ...", peer_addr);
-                                last_stream.shutdown(Shutdown::Both);
-                            }
-                        },
-                        Err(e) => {
-                            println!("Get prev connection status failed: {}", e);
-                        }
-                    }
-                } else {
-                    println!("Flare agent is idle.")
-                }
-                last_client_stream = None;
-                println!("New connection: {}", stream.peer_addr().unwrap());
+                close_connection(&mut last_client_stream);
 
+                println!("New connection: {}", stream.peer_addr().unwrap());
                 //save last connection
                 match stream.try_clone() {
                     Ok(stream_copy) => {
@@ -169,7 +141,7 @@ pub fn start_server() {
                     }
                 }
 
-                thread::spawn(move|| {
+                thread::spawn(move || {
                     // connection succeeded
                     handle_client(stream)
                 });
@@ -184,6 +156,39 @@ pub fn start_server() {
     drop(listener);
     drop(guard);
     println!("Flare agent server is shutdown.");
+}
+
+fn close_connection(last_client_stream: &mut Option<TcpStream>) -> () {
+    //close prev connectiopn
+    if let Some(last_stream) = last_client_stream {
+        let mut peer_addr = "??".to_string();
+        match last_stream.peer_addr() {
+            Err(e) => {
+                println!("Get prev connection  peer_addr failed: {}", e);
+            },
+            Ok(addr) => {
+                println!("Flare agent is already connected to collector: {} ...", addr);
+                peer_addr = addr.to_string();
+            }
+        }
+        //check prev connection error
+        match last_stream.take_error() {
+            Ok(x) => {
+                if let Some(e) = x {
+                    println!("Prev connection is error: {}", e);
+                } else {
+                    println!("Closing prev connection: {} ...", peer_addr);
+                    last_stream.shutdown(Shutdown::Both);
+                }
+            },
+            Err(e) => {
+                println!("Get prev connection status failed: {}", e);
+            }
+        }
+    } else {
+        println!("Flare agent is idle.")
+    }
+    *last_client_stream = None;
 }
 
 fn handle_client(mut stream: TcpStream) {
