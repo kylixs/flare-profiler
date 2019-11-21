@@ -7,20 +7,11 @@ ACTION="$2"
 TARGET_PID="$3"
 
 if [[ "$USER_ACCOUNT" == "" ]];then
-    echo "usage: run-agent-as-user.sh <username> <start/stop> <pid>"
+    echo "usage: $0 <username> <pid>"
     exit 1
 fi
 
-ACTION_SCRIPT=""
-if [[ "$ACTION" == "start" ]];then
-    ACTION_SCRIPT="start-trace-agent.sh"
-elif [[ "$ACTION" == "stop" ]];then
-    ACTION_SCRIPT="stop-trace-agent.sh"
-else
-    echo "usage: run-agent-as-user.sh <username> <start/stop> <pid>"
-    exit 1
-fi
-
+ACTION_SCRIPT="start-trace-agent.sh"
 
 if [[ "$TARGET_PID" == ""  ]];then
     echo "TARGET_PID is required"
