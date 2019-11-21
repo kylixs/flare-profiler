@@ -246,7 +246,7 @@ impl Profiler {
 //            return Err(new_error(ErrorKind::Other, &format!("create flame graph failed: {}", e)));
 //        }
 
-        let stack_tree = collector.lock().unwrap().get_d3_flame_graph_stacks(thread_id, start_time, end_time)?;
+        let stack_tree = collector.lock().unwrap().get_sequenced_call_tree(thread_id, start_time, end_time)?;
         let mut frames = vec![];
         let mut time = stack_tree.duration as usize;
         let mut delta_max = 0;
@@ -287,7 +287,7 @@ impl Profiler {
 
     pub fn create_d3_flame_graph_stacks(&mut self, session_id: &str, thread_id: i64, start_time: &mut i64, end_time: &mut i64, stats_type_str: &str) -> io::Result<Box<tree::TreeNode>> {
         let collector = self.get_sample_collector(session_id)?;
-        let result = collector.lock().unwrap().get_d3_flame_graph_stacks(thread_id, start_time, end_time);
+        let result = collector.lock().unwrap().get_sequenced_call_tree(thread_id, start_time, end_time);
         result
     }
 

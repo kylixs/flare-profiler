@@ -698,7 +698,8 @@ impl SampleCollector {
         Ok(collapsed_stacks)
     }
 
-    pub fn get_d3_flame_graph_stacks(&mut self, thread_id: i64, start_time: &mut i64, end_time: &mut i64) -> io::Result<Box<tree::TreeNode>> {
+    //获取顺序排列（时间顺序）的方法调用树
+    pub fn get_sequenced_call_tree(&mut self, thread_id: i64, start_time: &mut i64, end_time: &mut i64) -> io::Result<Box<tree::TreeNode>> {
         let mut start_step = 0;
         let mut end_step = 0;
         let mut sw = Stopwatch::start_new();
@@ -713,26 +714,28 @@ impl SampleCollector {
 
         //TODO 可能单次读取的数据比较多，导致内存消耗太大
         let mut thread_data_vec = vec![];
+        let mut last_thread_data: Option<ThreadData> = None;
         self.sample_stacktrace_map.get_mut(&thread_id).unwrap_or(&mut None).as_mut().map(|idx_file| {
             idx_file.get_range_value(&TupleValue::uint32(start_step), &TupleValue::uint32(end_step), |bytes| {
                 //parse stack data
                 if let Ok(mut thread_data) = serde_json::from_slice::<ThreadData>(bytes.as_slice()) {
-                    thread_data_vec.push(thread_data);
+                    if last_thread_data.is_some() {
+                        let mut last_call = last_thread_data.take().unwrap();
+                        last_call.self_duration = thread_data.sample_time - last_call.sample_time;
+                        thread_data_vec.push(last_call);
+                    }
+                    last_thread_data = Some(thread_data);
                 }
             });
         });
+        //last method call
+        if let Some(mut last_call) = last_thread_data {
+            // how long of last method call duration?
+            last_call.self_duration = *end_time - last_call.sample_time;
+            thread_data_vec.push(last_call);
+        }
         println!("thread: {}, load stacktrace cost:{}, count:{}, step: {} - {}", thread_id, sw.lap(), thread_data_vec.len(), start_step, end_step);
 
-        let mut next_sample_time = 0;
-        for thread_data in thread_data_vec.iter_mut().rev() {
-            if next_sample_time != 0 {
-                thread_data.self_duration = next_sample_time - thread_data.sample_time;
-            } else {
-                //guest last duration
-                thread_data.self_duration = 2;
-            }
-            next_sample_time = thread_data.sample_time;
-        }
         thread_data_vec.first_mut().map(|thread_data|{
             *start_time = thread_data.sample_time;
         });
@@ -740,6 +743,7 @@ impl SampleCollector {
             *end_time = thread_data.sample_time + thread_data.duration;
         });
 
+        //merge build
         self.build_ordinal_tree(&thread_data_vec, *start_time, *end_time)
     }
 
