@@ -122,8 +122,7 @@ pub fn start_server() {
     let mut last_client_stream: Option<TcpStream> = None;
     for stream in listener.incoming() {
         if !is_server_running() {
-            println!("Flare agent server is not running, exiting");
-            close_connection(&mut last_client_stream);
+            println!("Flare agent server is stopping, exiting");
             break;
         }
         match stream {
@@ -152,6 +151,9 @@ pub fn start_server() {
             }
         }
     }
+    //close last connection
+    close_connection(&mut last_client_stream);
+
     // close the socket server
     drop(listener);
     drop(guard);
