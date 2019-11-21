@@ -61,7 +61,13 @@ cp $AGENT_LIB_FILE $DIST_DIR/lib/
 
 #build flare-attacher
 ATTACHER_DIR="$PROJECT_PATH/flare-attacher"
-cd $ATTACHER_DIR
-mvn package
+if [[ ! -f $ATTACHER_DIR/target/flare-attacher-jar-with-dependencies.jar ]];then
+    cd $ATTACHER_DIR
+    mvn package
+    if [[ $? != 0 ]];then
+       echo "build flare attacher failed."
+       exit 1
+    fi
+fi
 echo "copy flare-attacher lib .."
 cp $ATTACHER_DIR/target/flare-attacher-jar-with-dependencies.jar $DIST_DIR/lib/
