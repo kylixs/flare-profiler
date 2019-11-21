@@ -704,7 +704,9 @@ impl SampleCollector {
         let mut end_step = 0;
         let mut sw = Stopwatch::start_new();
         sw.start();
+        let mut ts_file_begin_time = 0;
         if let Some(ts_file) = self.sample_cpu_ts_map.get(&thread_id).unwrap_or(&None) {
+            ts_file_begin_time = ts_file.get_begin_time();
             start_step = ts_file.time_to_step(*start_time);
             end_step = ts_file.time_to_step(*end_time);
         } else {
@@ -731,7 +733,8 @@ impl SampleCollector {
         //last method call
         if let Some(mut last_call) = last_thread_data {
             // how long of last method call duration?
-            last_call.self_duration = *end_time - last_call.sample_time;
+            last_call.self_duration = *end_time - ts_file_begin_time - last_call.sample_time;
+            //last_call.self_duration = 2;
             thread_data_vec.push(last_call);
         }
         println!("thread: {}, load stacktrace cost:{}, count:{}, step: {} - {}", thread_id, sw.lap(), thread_data_vec.len(), start_step, end_step);
