@@ -3,7 +3,7 @@ use std::collections::*;
 //use call_tree::{TreeArena, NodeId};
 use std::collections::hash_map::Entry;
 use time::Duration;
-use std::net::{TcpStream, ToSocketAddrs};
+use std::net::{TcpStream, ToSocketAddrs, Shutdown};
 use resp::Value;
 use std::io::{Write, Read, BufReader, Error, ErrorKind};
 use std::str::from_utf8;
@@ -196,6 +196,16 @@ impl SampleCollector {
         self.running = false;
         //release self ref 必须释放自引用，否则不会释放此对象，打开的文件句柄也不会自动关闭
         self.this_ref = None;
+        //close agent connection
+        if let Some(stream) = &self.agent_stream {
+            let mut peer_addr = "??".to_string();
+            if let Ok(addr) = stream.peer_addr() {
+                peer_addr = addr.to_string();
+            }
+            println!("closing agent connection: {} ..", peer_addr);
+            stream.shutdown(Shutdown::Both);
+        }
+        self.agent_stream = None;
     }
 
     pub fn is_disconnected(&self) -> bool {
@@ -379,6 +389,7 @@ impl SampleCollector {
         println!("start subscribe events, awaiting reply: {}", cmdValue.to_encoded_string()?);
 
         if let Some(this_ref) = &self.this_ref {
+            self.agent_stream = Some(stream.try_clone()?);
             let this = this_ref.clone();
             std::thread::spawn(move ||{
                 let mut decoder = resp::Decoder::with_buf_bulk(BufReader::new(stream));
