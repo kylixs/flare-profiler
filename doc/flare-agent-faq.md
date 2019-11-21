@@ -21,17 +21,24 @@ Exception in thread "main" com.sun.tools.attach.AttachNotSupportedException: Una
 	at com.kylixs.jvmti.attacher.AgentAttacher.main(AgentAttacher.java:72)
 ```
 解决办法：  
-(a) su - <user> 切换到Java进程相同用户身份，再执行脚本，但可能出现该用户禁止登录的问题  
-(b) 使用/usr/bin/su指定执行用户身份
+(a) 使用封装好的run-agent-as-user.sh脚本：
+```
+>cd /pathflare-profiler/agent/
+>./bin/start-agent-as-user.sh <username> 15110
+
+```
+(b) su - <user> 切换到Java进程相同用户身份，再执行脚本，但可能出现该用户禁止登录的问题  
+(c) 使用/usr/bin/su指定执行用户身份
 ```
 /usr/bin/su - <username>  -s /bin/sh -c "/path/flare-profiler/agent/bin/start-trace-agent.sh 15110 & "
 ```
-(c) 使用封装好的run-agent-as-user.sh脚本：
+
+停止flare agent执行下面的脚本：
 ```
 >cd /pathflare-profiler/agent/
->./bin/run-agent-as-user.sh <username> start 15110
-
+>./bin/stop-agent-as-user.sh <username> 15110
 ```
+
 
 #### 2. 在Windows上注入以服务运行的Java/Tomcat进程失败  
 使用注入服务的脚本  
