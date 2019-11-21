@@ -3,8 +3,7 @@
 PROJECT_PATH="$(cd "$(dirname $0)/.."; pwd -P )"
 
 USER_ACCOUNT="$1"
-ACTION="$2"
-TARGET_PID="$3"
+TARGET_PID="$2"
 
 if [[ "$USER_ACCOUNT" == "" ]];then
     echo "usage: $0 <username> <pid>"
