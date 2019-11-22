@@ -285,7 +285,7 @@ impl Profiler {
         }
     }
 
-    pub fn create_d3_flame_graph_stacks(&mut self, session_id: &str, thread_id: i64, start_time: &mut i64, end_time: &mut i64, stats_type_str: &str) -> io::Result<Box<tree::TreeNode>> {
+    pub fn get_sequenced_call_tree(&mut self, session_id: &str, thread_id: i64, start_time: &mut i64, end_time: &mut i64, stats_type_str: &str) -> io::Result<Box<tree::TreeNode>> {
         let collector = self.get_sample_collector(session_id)?;
         let result = collector.lock().unwrap().get_sequenced_call_tree(thread_id, start_time, end_time);
         result
@@ -431,11 +431,11 @@ impl Profiler {
             "call_tree" => {
                 self.handle_call_tree_request(sender, cmd, options)?;
             }
+            "sequenced_call_tree" => {
+                self.handle_sequenced_call_tree_request(sender, cmd, options)?;
+            }
             "flame_graph" => {
                 self.handle_flame_graph_request(sender, cmd, options)?;
-            }
-            "d3_flame_graph" => {
-                self.handle_d3_flame_graph_request(sender, cmd, options)?;
             }
             _ => {
                 println!("unknown cmd: {}, request: {}", cmd, json_str);
@@ -617,7 +617,7 @@ impl Profiler {
         Ok(())
     }
 
-    fn handle_d3_flame_graph_request(&mut self, sender: &mut Writer<std::net::TcpStream>, cmd: &str, options: &serde_json::Map<String, serde_json::Value>) -> io::Result<()> {
+    fn handle_sequenced_call_tree_request(&mut self, sender: &mut Writer<std::net::TcpStream>, cmd: &str, options: &serde_json::Map<String, serde_json::Value>) -> io::Result<()> {
         let session_id = get_option_as_str_required(options, "session_id")?;
         let thread_id = get_option_as_int(options, "thread_id", -1);
         let start_time = get_option_as_int(options, "start_time", -1);
@@ -630,18 +630,18 @@ impl Profiler {
         }
         let mut new_start_time = start_time;
         let mut new_end_time = end_time;
-        let stacks = self.create_d3_flame_graph_stacks(session_id, thread_id, &mut new_start_time, &mut new_end_time, stats_type)?;
+        let stacks = self.get_sequenced_call_tree(session_id, thread_id, &mut new_start_time, &mut new_end_time, stats_type)?;
         let result = json!({
                 "session_id": session_id,
                 "thread_id": thread_id,
                 "start_time": new_start_time,
                 "end_time": new_end_time,
                 "stats_type": stats_type,
-                "d3_flame_graph_stacks": stacks
+                "sequenced_call_tree_data": stacks
             });
         let message = wrap_response(&cmd, &result);
         sender.send_message(&message);
-        println!("handle_d3_flame_graph_request total cost: {}ms", sw.elapsed_ms());
+        println!("handle_sequenced_call_tree_request total cost: {}ms", sw.elapsed_ms());
 
         Ok(())
     }

@@ -490,7 +490,7 @@ var profiler = {
     },
     update_d3_flame_graph(thread_id, start_time, end_time) {
         var request = {
-            "cmd": "d3_flame_graph",
+            "cmd": "sequenced_call_tree",
             "options": {
                 "session_id": profiler.data.session_id,
                 "thread_id": thread_id,
@@ -655,13 +655,13 @@ var profiler = {
                 profiler.set_zoom_time_range(json.data.start_time, json.data.end_time);
                 //profiler.data.flame_graph_svg="data:image/svg+xml;utf8,"+json.data.flame_graph_data.replace(/<\?xml.*?\>.*\<!DOCTYPE.*\<svg/, "<svg");
                 break;
-            case "d3_flame_graph":
-                let stack = json.data.d3_flame_graph_stacks;
-                if(profiler.show_d3_flame_graph){
+            case "sequenced_call_tree":
+                let stack = json.data.sequenced_call_tree_data;
+                if(profiler.show_chrome_flame_chart){
+                    get_chrome_flame_chart().set_flame_chart_data(stack);
+                } else if(profiler.show_d3_flame_graph){
                     process_d3_flamegraph_stack(stack)
                     set_d3_flamegraph_data(stack);
-                } else if(profiler.show_chrome_flame_chart){
-                    get_chrome_flame_chart().set_flame_chart_data(stack);
                 }
                 break;
             default:

@@ -752,13 +752,13 @@ impl SampleCollector {
         });
 
         //merge build
-        self.build_ordinal_tree(&thread_data_vec, *start_time, *end_time)
+        self.build_sequenced_tree(&thread_data_vec, *start_time, *end_time)
     }
 
     //火焰图的顺序树
     //每一层与最后一个节点相同时进行合并，不同时append新节点
     //处理前后半个采样间隔的问题
-    pub fn build_ordinal_tree(&mut self, thread_data_vec: &Vec<ThreadData>, range_start_time: i64, range_end_time: i64) -> io::Result<Box<tree::TreeNode>> {
+    pub fn build_sequenced_tree(&mut self, thread_data_vec: &Vec<ThreadData>, range_start_time: i64, range_end_time: i64) -> io::Result<Box<tree::TreeNode>> {
         let mut root = Box::new(tree::TreeNode::new(0, "root"));
 
         for thread_data in thread_data_vec {
