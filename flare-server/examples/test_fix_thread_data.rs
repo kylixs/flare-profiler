@@ -26,7 +26,7 @@ fn main() -> io::Result<()> {
                 let idx_path = &path_str[0..path_str.len()-5];
                 let mut tuple_file = TupleIndexedFile::new_reader(idx_path)?;
                 if tuple_file.amount > 0 {
-                    println!("fidx file: {}, amount: {}, data: {:?}", path_str, tuple_file.amount, tuple_file.get_data(0,3));
+                    println!("fidx file: {}, amount: {}, data: {:?}", path_str, tuple_file.amount, tuple_file.get_index_pairs(0,3));
                     println!("try fix fidx file ...");
                     let mut idx_file = TupleIndexedFile::new_writer(idx_path, tuple_file.index_type)?;
                     //针对旧版索引文件头部损坏的修复
@@ -41,7 +41,7 @@ fn main() -> io::Result<()> {
 
                     //after fix
                     let tuple_file = TupleIndexedFile::new_reader(idx_path)?;
-                    println!("after fixed fidx file: {}, amount: {}, data: {:?}", path_str, tuple_file.amount, tuple_file.get_data(0,3));
+                    println!("after fixed fidx file: {}, amount: {}, data: {:?}", path_str, tuple_file.amount, tuple_file.get_index_pairs(0,3));
 
                 }
             }

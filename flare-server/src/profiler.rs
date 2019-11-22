@@ -299,6 +299,22 @@ impl Profiler {
         }
     }
 
+    fn list_methods_by_filter(&self, session_id: &str, method_name_filter: &str) -> io::Result<Vec<MethodInfo>> {
+        if let Some(collector) = self.sample_session_map.get(session_id) {
+            Ok(collector.lock().unwrap().list_methods_by_filter(method_name_filter)?)
+        }else {
+            Err(io::Error::new(ErrorKind::NotFound, "sample session not found"))
+        }
+    }
+
+    fn search_slow_method_calls(&self, session_id: &str, method_ids: &[i64]) -> io::Result<Vec<MethodCall>> {
+        if let Some(collector) = self.sample_session_map.get(session_id) {
+            Ok(collector.lock().unwrap().search_slow_method_calls(method_ids)?)
+        }else {
+            Err(io::Error::new(ErrorKind::NotFound, "sample session not found"))
+        }
+    }
+
     fn start_http_server(&mut self) {
         thread::spawn(|| {
             SimpleHttpServer::start_server();
@@ -436,6 +452,12 @@ impl Profiler {
             }
             "flame_graph" => {
                 self.handle_flame_graph_request(sender, cmd, options)?;
+            }
+            "list_methods_by_filter" => {
+                self.handle_list_methods_by_filter_request(sender, cmd, options)?;
+            }
+            "search_slow_method_calls" => {
+                self.handle_search_slow_method_calls_request(sender, cmd, options)?;
             }
             _ => {
                 println!("unknown cmd: {}, request: {}", cmd, json_str);
@@ -642,6 +664,54 @@ impl Profiler {
         let message = wrap_response(&cmd, &result);
         sender.send_message(&message);
         println!("handle_sequenced_call_tree_request total cost: {}ms", sw.elapsed_ms());
+
+        Ok(())
+    }
+
+    fn handle_list_methods_by_filter_request(&mut self, sender: &mut Writer<std::net::TcpStream>, cmd: &str, options: &serde_json::Map<String, serde_json::Value>) -> io::Result<()> {
+        let mut sw = Stopwatch::start_new();
+        let session_id = get_option_as_str_required(options, "session_id")?;
+        let method_name_filter = get_option_as_str(options, "method_name_filter", "");
+
+        let method_info_vec = self.list_methods_by_filter(session_id, method_name_filter)?;
+        let filter_method_size = method_info_vec.len();
+        println!("filter method size: {}", filter_method_size);
+        let mut method_infos: &[MethodInfo] = &method_info_vec;
+        if method_infos.len() > 30 {
+            method_infos = &method_info_vec[0..30];
+        }
+        let result = json!({
+                "session_id": session_id,
+                "method_name_filter": method_name_filter,
+                "total_method_size": filter_method_size,
+                "method_infos": method_infos
+            });
+        let message = wrap_response(&cmd, &result);
+        sender.send_message(&message);
+        println!("handle_list_methods_by_filter_request total cost: {}ms", sw.elapsed_ms());
+        Ok(())
+    }
+
+    fn handle_search_slow_method_calls_request(&mut self, sender: &mut Writer<std::net::TcpStream>, cmd: &str, options: &serde_json::Map<String, serde_json::Value>) -> io::Result<()> {
+        let mut sw = Stopwatch::start_new();
+        let session_id = get_option_as_str_required(options, "session_id")?;
+        let method_ids = get_option_as_int_array(options, "method_ids")?;
+        let min_duration = get_option_as_int(options, "min_duration", 100);
+        let max_duration = get_option_as_int(options, "max_duration", -1);
+//        if max_duration == -1 {
+//            max_duration = u32::max_value() as i64;
+//        }
+
+        //let method_calls : Vec<String> = vec![];
+        let method_calls = self.search_slow_method_calls(session_id, &method_ids)?;
+        let result = json!({
+            "session_id": session_id,
+            "method_ids": method_ids,
+            "method_calls": method_calls
+        });
+        let message = wrap_response(&cmd, &result);
+        sender.send_message(&message);
+        println!("handle_search_slow_method_calls_request total cost: {}ms", sw.elapsed_ms());
 
         Ok(())
     }

@@ -82,12 +82,32 @@ input.input-field {
     cursor: pointer;
     padding-bottom: 6px;
 }
+.method-list-content {
+    height: 160px;
+    overflow: auto;
+    list-style:none;
+    margin:4px;
+    padding:4px;
+    border: #c7ddef 1px solid;
+}
 .selected {
     background-color: #c2e7b0;
 }
 .title {
     margin-top: 0px;
     margin-bottom: 10px;
+}
+.method_tag{
+    margin: 4px;
+}
+.short_input {
+    width: 180px;
+}
+.long_input {
+    width: 250px;
+}
+.row_div {
+    margin: 5px 0;
 }
 .echarts_bar {
     height: 30px;

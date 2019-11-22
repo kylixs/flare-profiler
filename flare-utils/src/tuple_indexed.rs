@@ -441,19 +441,38 @@ impl TupleIndexedFile {
         } else {
             return Err(io::Error::new(ErrorKind::NotFound, "index not found"));
         }
-        let (buf, offset) = self.read_bulk_data(bulk_offset)?;
+        let mut extra_file = self.get_extra_file()?;
+        let (buf, offset) = TupleIndexedFile::read_bulk_data(&mut extra_file, bulk_offset)?;
         Ok(buf)
 
     }
 
-    fn read_bulk_data(&mut self, bulk_offset: u32) -> Result<(Vec<u8>,u32), Error> {
-        let mut extra_file = self.get_extra_file()?;
+    fn read_bulk_data(extra_file: &mut File, bulk_offset: u32) -> Result<(Vec<u8>,u32), Error> {
         extra_file.seek(SeekFrom::Start(bulk_offset as u64));
         let bytes_to_read = extra_file.read_u16::<FileEndian>()? as usize;
         let mut buf = vec![0u8; bytes_to_read];
         extra_file.read_exact(&mut buf)?;
         let new_offset = extra_file.seek(SeekFrom::Current(0)).unwrap();
         Ok((buf, new_offset as u32))
+    }
+
+    fn read_range_bulk_data(&mut self, start_offset: u32, end_offset: u32) -> Result<Vec<Vec<u8>>, Error> {
+        let mut result = Vec::with_capacity(1024);
+        let mut extra_file = self.get_extra_file()?;
+        let mut read_pos = start_offset;
+        extra_file.seek(SeekFrom::Start(start_offset as u64));
+        //buf 24K
+        let mut reader = BufReader::with_capacity(24576, extra_file);
+        while read_pos <= end_offset {
+            let bytes_to_read = reader.read_u16::<FileEndian>()? as usize;
+            //let mut buf = vec![0u8; bytes_to_read];
+            let mut buf = Vec::with_capacity(bytes_to_read);
+            reader.read_exact(&mut buf)?;
+            result.push(buf);
+            read_pos += 2;
+            read_pos += bytes_to_read as u32;
+        }
+        Ok(result)
     }
 
     pub fn get_range_value<F>(&mut self, start_index: &TupleValue, end_index: &TupleValue, mut handler: F) -> io::Result<()>
@@ -474,8 +493,10 @@ impl TupleIndexedFile {
 
         if found {
             let mut offset = start_offset;
+
+            let mut extra_file = self.get_extra_file()?;
             loop {
-                let (buf, next_offset) = self.read_bulk_data(offset)?;
+                let (buf, next_offset) = TupleIndexedFile::read_bulk_data(&mut extra_file, offset)?;
                 handler(buf);
                 offset = next_offset;
                 if offset > end_offset {
@@ -488,6 +509,16 @@ impl TupleIndexedFile {
         }
     }
 
+    pub fn get_all_entries(&mut self) -> io::Result<Vec<(i64, Vec<u8>)>> {
+        let mut result = Vec::with_capacity(self.index_map.len());
+        let mut extra_file = self.get_extra_file()?;
+        for (k, v) in self.index_map.iter() {
+            //println!("entry: {:?} => {:?}", k, v);
+            result.push((k.as_int(), TupleIndexedFile::read_bulk_data(&mut extra_file, v.as_int() as u32)?.0));
+        }
+        Ok(result)
+    }
+
     fn search_index(&mut self, start_index: &TupleValue) -> &TupleValue {
         match self.index_vec.binary_search(start_index) {
             Ok(index) => &self.index_vec[index],
@@ -498,7 +529,7 @@ impl TupleIndexedFile {
         }
     }
 
-    pub fn get_data(&self, start: usize, end: usize) -> Vec<(i64, i64)> {
+    pub fn get_index_pairs(&self, start: usize, end: usize) -> Vec<(i64, i64)> {
         let mut result = vec![];
         for (i, idx) in self.index_vec.iter().enumerate() {
             if i < start {
@@ -511,6 +542,7 @@ impl TupleIndexedFile {
         }
         result
     }
+
 }
 
 impl Drop for TupleIndexedFile {

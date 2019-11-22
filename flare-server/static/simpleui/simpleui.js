@@ -52,7 +52,11 @@ var default_uistate = function () {
         last_loading_thread_cpu_time: 0,
         load_dashboard: false,
         unit_time_ms: 0,
-        cpu_charts: {}
+        cpu_charts: {},
+        search_methods: [],
+        min_method_duration: "100",
+        max_method_duration: "",
+        show_filter_methods: true
     };
 }
 let chartIdPrefix = "thread_cpu_chart_";
@@ -65,6 +69,7 @@ var profiler = {
     socket: null,
     sample_dir: null,
     dashboard_timer: null,
+    list_method_timer: null,
     show_history_samples: false,
     show_message: false,
     show_sessions: false,
@@ -100,6 +105,7 @@ var profiler = {
         history_samples: [],
         sample_sessions: [],
         thread_cpu_time_map: {},
+        method_infos: [],
         session_id: "",
         type: "",
         call_tree_data: [{
@@ -363,6 +369,70 @@ var profiler = {
             }
         };
         this.socket.send(JSON.stringify(request));
+    },
+    list_methods_by_filter: function (method_name_filter) {
+        profiler.uistate.show_filter_methods = true;
+        if(profiler.list_method_timer != null){
+            clearTimeout(profiler.list_method_timer);
+            profiler.list_method_timer = null;
+        }
+        //filter delay 500ms
+        profiler.list_method_timer = setTimeout(function () {
+            var request = {
+                "cmd": "list_methods_by_filter",
+                "options": {
+                    "session_id": profiler.data.session_id,
+                    "method_name_filter": method_name_filter.trim()
+                }
+            };
+            profiler.socket.send(JSON.stringify(request));
+        }, 200);
+    },
+    add_search_method(method_info){
+        if (profiler.uistate.search_methods.indexOf(method_info) == -1 ) {
+            profiler.uistate.search_methods.push(method_info);
+        }
+    },
+    remove_search_method(method_info) {
+        let search_methods = profiler.uistate.search_methods;
+        search_methods.splice(search_methods.indexOf(method_info), 1);
+    },
+    clear_search_methods(){
+        profiler.uistate.search_methods = [];
+    },
+    search_slow_methods(){
+        profiler.uistate.show_filter_methods = false;
+        let method_ids = [];
+        for ( var m of profiler.uistate.search_methods){
+            method_ids.push(m.method_id);
+        }
+        //parse duration
+        var min_method_duration = profiler.uistate.min_method_duration.trim();
+        if(min_method_duration == ""){
+            min_method_duration = 100;
+        }else {
+            min_method_duration = parseInt(min_method_duration);
+        }
+        profiler.uistate.min_method_duration = min_method_duration;
+
+        var max_method_duration = profiler.uistate.max_method_duration.trim();
+        if(max_method_duration == ""){
+            max_method_duration = -1;
+        }else {
+            max_method_duration = parseInt(max_method_duration);
+            profiler.uistate.max_method_duration = max_method_duration;
+        }
+
+        var request = {
+            "cmd": "search_slow_method_calls",
+            "options": {
+                "session_id": profiler.data.session_id,
+                "method_ids": method_ids,
+                "min_duration": min_method_duration,
+                "max_duration": max_method_duration,
+            }
+        };
+        profiler.socket.send(JSON.stringify(request));
     },
     active_session:function (session_id, type) {
         this.clear_session();
@@ -664,6 +734,9 @@ var profiler = {
                     set_d3_flamegraph_data(stack);
                 }
                 break;
+            case "list_methods_by_filter":
+
+                break;
             default:
                 console.log("unknown message: ", json);
                 break;
@@ -762,6 +835,7 @@ var app = new Vue({
     data: {
         message: '',
         treeFilterText: '',
+        methodFilterText: '',
         treeProps: {
             children: 'children',
             label: 'label'
@@ -774,7 +848,10 @@ var app = new Vue({
     watch: {
         treeFilterText(val) {
             this.$refs.tree.filter(val);
-        }
+        },
+        // methodFilterText(val) {
+        //     profiler.list_methods_by_filter(val);
+        // }
     },
     methods: {
         filterNode(value, data) {

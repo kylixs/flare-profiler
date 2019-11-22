@@ -61,13 +61,25 @@ fn default_sample_count() -> i64 {
     1
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize)]
 pub struct MethodInfo {
     pub method_id: i64,
     pub full_name: String,
+
+    #[serde(skip_serializing)]
     pub hits_count: u32
 //    pub source_file: String,
 //    pub line_num: u16
+}
+
+#[derive(Clone, Serialize)]
+pub struct MethodCall {
+    pub method_id: i64,
+    pub full_name: String,
+    pub thread_id: JavaLong,
+    pub thread_name: String,
+    pub start_time: i64,
+    pub duration: i64,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -135,6 +147,8 @@ pub struct SampleCollector {
     sample_stacktrace_map: HashMap<JavaLong, Option<TupleIndexedFile>>,
     sample_method_idx_file: Option<TupleIndexedFile>,
     method_cache: HashMap<JavaMethod, Option<MethodInfo>>,
+    method_entries: Vec<MethodInfo>,
+    method_entry_cache_time: i64
 //    tree_arena: TreeArena
 }
 
@@ -184,6 +198,8 @@ impl SampleCollector {
             agent_stream: None,
             method_cache: HashMap::new(),
 //            tree_arena: TreeArena::new()
+            method_entries: vec![],
+            method_entry_cache_time: 0
         }));
         //self ref for threads
         collector.lock().unwrap().this_ref = Some(collector.clone());
@@ -935,6 +951,47 @@ impl SampleCollector {
             }
             return None;
         })
+    }
+
+    pub fn list_methods_by_filter(&mut self, method_name_filter: &str) -> io::Result<Vec<MethodInfo>> {
+        let mut method_infos = vec![];
+        if let Some(method_idx_file) = &mut self.sample_method_idx_file {
+
+            //TODO cache method infos
+            let now = Local::now().timestamp_millis();
+            if now - self.method_entry_cache_time > 10000 || self.method_entries.is_empty() {
+                println!("get all method entries ...");
+                let entries = method_idx_file.get_all_entries()?;
+                for (method,bytes) in &entries {
+                    let method_name;
+                    unsafe {
+                        method_name = std::str::from_utf8_unchecked(&bytes);
+                    }
+                    self.method_entries.push(MethodInfo {
+                        method_id: *method,
+                        full_name: method_name.to_string(),
+                        hits_count: 0
+                    });
+                }
+                self.method_entry_cache_time = now;
+            }
+            for method_info in &self.method_entries {
+                let method_name = &method_info.full_name;
+                if method_name.contains(method_name_filter) {
+                    method_infos.push(method_info.clone());
+                }
+            }
+            let t2 = Local::now().timestamp_millis();
+            println!("filter method cost: {}", (t2-now));
+        }
+        Ok(method_infos)
+    }
+
+    //search slow method calls
+    pub  fn search_slow_method_calls(&self, method_ids: &[i64]) -> io::Result<Vec<MethodCall>> {
+        let mut method_calls = vec![];
+        //TODO
+        Ok(method_calls)
     }
 
 //    pub fn write_all_call_trees(&self, writer: &mut std::io::Write, compact: bool) {

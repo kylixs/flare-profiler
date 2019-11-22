@@ -174,6 +174,50 @@
 						</div>
 					</el-tab-pane>
 
+					<el-tab-pane label="Slow Call" name="top_slow_method" class="work-content">
+						<div id="top_slow_div">
+							<h4 class="title">Top Slow Method</h4>
+							<div>
+								过滤方法：
+								<el-input class="long_input" size="mini" placeholder="输入关键字进行过滤"
+										  v-model="methodFilterText"  @keyup.native="profiler.list_methods_by_filter(methodFilterText)">
+								</el-input>
+								<div v-show="profiler.uistate.show_filter_methods">
+									<p class="list-title">Methods: (total {{profiler.data.total_method_size}})</p>
+									<ul class="method-list-content">
+										<li class="list-item" v-for="method_info in profiler.data.method_infos" @click='profiler.add_search_method(method_info)' >{{method_info.full_name}}</li>
+									</ul>
+								</div>
+
+							</div>
+
+							<div >已选择的方法：
+								<el-tag
+										class="method_tag"
+										v-for="method_info in profiler.uistate.search_methods"
+										:key="method_info.full_name"
+										closable
+										@close="profiler.remove_search_method(method_info)"
+										size="small">
+									{{method_info.full_name}}
+								</el-tag>
+								<el-button type="danger" size="mini" plain @click='profiler.clear_search_methods()' >Clear All</el-button>
+							</div>
+
+							<div class="row_div">
+								执行时间(ms)：
+								<el-input class="short_input" size="mini" placeholder="最小执行时间" v-model="profiler.uistate.min_method_duration"> </el-input> -
+								<el-input class="short_input" size="mini" placeholder="最大执行时间" v-model="profiler.uistate.max_method_duration"> </el-input>
+								&nbsp;
+								<el-button type="primary" size="mini" plain @click='profiler.search_slow_methods()' >Search</el-button>
+
+							</div>
+							<div>
+								上面选定方法最慢的调用记录：
+
+							</div>
+						</div>
+					</el-tab-pane>
 				</el-tabs>
 			</template>
 		</div>
