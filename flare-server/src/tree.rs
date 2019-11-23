@@ -10,7 +10,9 @@ use sample::ThreadData;
 pub struct TreeNode {
     pub parent: Option<Box<TreeNode>>,
     pub children: Vec<Box<TreeNode>>,
+    //method_id
     pub id: i64,
+    //method full_name
     pub label: String,
     pub calls: i64,
     pub cpu: i64,

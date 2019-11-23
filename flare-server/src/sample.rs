@@ -80,6 +80,8 @@ pub struct MethodCall {
     pub thread_name: String,
     pub start_time: i64,
     pub duration: i64,
+    pub calls: i64,
+    pub cpu: i64,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -148,7 +150,8 @@ pub struct SampleCollector {
     sample_method_idx_file: Option<TupleIndexedFile>,
     method_cache: HashMap<JavaMethod, Option<MethodInfo>>,
     method_entries: Vec<MethodInfo>,
-    method_entry_cache_time: i64
+    method_entry_cache_time: i64,
+    method_info_update_time: i64,
 //    tree_arena: TreeArena
 }
 
@@ -199,7 +202,8 @@ impl SampleCollector {
             method_cache: HashMap::new(),
 //            tree_arena: TreeArena::new()
             method_entries: vec![],
-            method_entry_cache_time: 0
+            method_entry_cache_time: 0,
+            method_info_update_time: 0
         }));
         //self ref for threads
         collector.lock().unwrap().this_ref = Some(collector.clone());
@@ -292,7 +296,8 @@ impl SampleCollector {
         let method_idx_path = format!("{}/method_info", sample_data_dir);
         let mut method_idx_file = TupleIndexedFile::new_writer(&method_idx_path, ValueType::INT64)?;
         self.sample_method_idx_file = Some(method_idx_file);
-
+        let now = Local::now().timestamp_millis();
+        self.method_info_update_time = now;
         //load threads
 //        let paths = std::fs::read_dir("sample_data_dir")?;
 //        for path in paths {
@@ -334,6 +339,8 @@ impl SampleCollector {
             self.record_start_time = sample_time;
             self.sample_data_dir = sample_data_dir;
             self.sample_method_idx_file = Some(method_idx_file);
+            let now = Local::now().timestamp_millis();
+            self.method_info_update_time = now;
             self.sample_cpu_ts_map.clear();
             self.sample_stacktrace_map.clear();
             self.sample_cpu_ts_cache.clear();
@@ -578,6 +585,8 @@ impl SampleCollector {
     fn save_method_info(&mut self, method_id: i64, method_name: &String) {
         if let Some(idx) = self.sample_method_idx_file.as_mut() {
             idx.add_value(TupleValue::int64(method_id), method_name.as_bytes());
+            let now = Local::now().timestamp_millis();
+            self.method_info_update_time = now;
         }
     }
 
@@ -804,7 +813,7 @@ impl SampleCollector {
                         parent: None,
                         children: vec![],
                         depth: child_depth,
-                        id: 0,
+                        id: *method,
                         label: method_name.to_string(),
                         calls: 1,
                         cpu: thread_data.self_cpu_time,
@@ -959,7 +968,7 @@ impl SampleCollector {
 
             //TODO cache method infos
             let now = Local::now().timestamp_millis();
-            if now - self.method_entry_cache_time > 10000 || self.method_entries.is_empty() {
+            if self.method_info_update_time > self.method_entry_cache_time || self.method_entries.is_empty() {
                 println!("get all method entries ...");
                 let entries = method_idx_file.get_all_entries()?;
                 for (method,bytes) in &entries {
@@ -988,10 +997,46 @@ impl SampleCollector {
     }
 
     //search slow method calls
-    pub  fn search_slow_method_calls(&self, method_ids: &[i64]) -> io::Result<Vec<MethodCall>> {
+    pub  fn search_slow_method_calls(&mut self, thread_id: i64, method_ids: &[i64], min_duration: i64, max_duration: i64) -> io::Result<Vec<MethodCall>> {
         let mut method_calls = vec![];
-        //TODO
+
+        let mut start_time = self.record_start_time;
+        let mut end_time = self.last_record_time;
+        let mut thread_name = "".to_owned();
+        if let Some(thread) = self.threads.get(&thread_id) {
+            thread_name = thread.name.clone();
+        }
+        let call_tree = self.get_sequenced_call_tree(thread_id, &mut start_time, &mut end_time)?;
+
+        self.search_call_tree(&mut method_calls,  &call_tree, thread_id, &thread_name, method_ids, min_duration, max_duration);
+
         Ok(method_calls)
+    }
+
+    fn search_call_tree(&self, result: &mut Vec<MethodCall>, node: &Box<tree::TreeNode>, thread_id: i64, thread_name: &str, method_ids: &[i64], min_duration: i64, max_duration: i64) {
+        //TODO search
+        if node.duration >= min_duration {
+            if method_ids.contains(&node.id) && (max_duration <=0 || node.duration < max_duration) {
+                result.push(MethodCall {
+                    method_id: node.id,
+                    full_name: node.label.clone(),
+                    thread_id,
+                    thread_name: thread_name.to_string(),
+                    start_time: node.start_time,
+                    duration: node.duration,
+                    calls: node.calls,
+                    cpu: node.cpu,
+                })
+            } else {
+                for child in &node.children {
+                    self.search_call_tree(result, child, thread_id, thread_name, method_ids, min_duration, max_duration);
+                }
+            }
+        }
+    }
+
+    pub fn get_threads(&self) -> io::Result<Vec<ThreadData>> {
+        Ok(self.threads.iter().map(|(_, thread)| thread.clone() ).collect())
     }
 
 //    pub fn write_all_call_trees(&self, writer: &mut std::io::Write, compact: bool) {

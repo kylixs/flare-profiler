@@ -102,7 +102,7 @@ pub fn get_option_as_str<'a>(options: &'a serde_json::Map<String, serde_json::Va
     match options.get(key) {
         Some(val) => {
             match val.as_str() {
-                Some(s) => s,
+                Some(s) => s.trim(),
                 None => default_value
             }
         },

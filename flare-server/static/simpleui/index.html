@@ -174,16 +174,33 @@
 						</div>
 					</el-tab-pane>
 
-					<el-tab-pane label="Slow Call" name="top_slow_method" class="work-content">
+					<el-tab-pane label="Method Analysis" name="top_slow_method" class="work-content">
 						<div id="top_slow_div">
-							<h4 class="title">Top Slow Method</h4>
+							<h4 class="title">Method Analysis</h4>
 							<div>
-								过滤方法：
-								<el-input class="long_input" size="mini" placeholder="输入关键字进行过滤"
+								选择方法:
+								<el-input class="long_input" size="mini" placeholder="输入方法名进行过滤"
 										  v-model="methodFilterText"  @keyup.native="profiler.list_methods_by_filter(methodFilterText)">
 								</el-input>
+								(total {{profiler.data.total_method_size}}) &nbsp;
+								<el-dropdown @command="select_filter_method">
+									<span class="el-dropdown-link">
+										Methods<i class="el-icon-arrow-down el-icon--right"></i>
+									</span>
+									<el-dropdown-menu slot="dropdown">
+										<el-dropdown-item command="HttpServlet.service" >Servlet</el-dropdown-item>
+										<el-dropdown-item command="doDispatch" >SpringMVC</el-dropdown-item>
+										<el-dropdown-item command="executeQuery" >MySQL</el-dropdown-item>
+										<el-dropdown-item command="RedisTemplate.execute" >Redis</el-dropdown-item>
+										<el-dropdown-item command="execute" >execute</el-dropdown-item>
+										<el-dropdown-item command="commit" >commit</el-dropdown-item>
+									</el-dropdown-menu>
+								</el-dropdown> &nbsp;
+
+								<el-button type="primary" size="mini" plain @click='profiler.add_all_filter_methods()' >Add all</el-button> &nbsp;
+								<el-button type="danger" size="mini" plain @click='profiler.clear_search_methods()' >Clear</el-button> &nbsp;
+
 								<div v-show="profiler.uistate.show_filter_methods">
-									<p class="list-title">Methods: (total {{profiler.data.total_method_size}})</p>
 									<ul class="method-list-content">
 										<li class="list-item" v-for="method_info in profiler.data.method_infos" @click='profiler.add_search_method(method_info)' >{{method_info.full_name}}</li>
 									</ul>
@@ -191,7 +208,7 @@
 
 							</div>
 
-							<div >已选择的方法：
+							<div class="selected_methods_div">查找的方法集合:
 								<el-tag
 										class="method_tag"
 										v-for="method_info in profiler.uistate.search_methods"
@@ -201,20 +218,27 @@
 										size="small">
 									{{method_info.full_name}}
 								</el-tag>
-								<el-button type="danger" size="mini" plain @click='profiler.clear_search_methods()' >Clear All</el-button>
 							</div>
 
 							<div class="row_div">
-								执行时间(ms)：
+								方法执行时间(ms)：
 								<el-input class="short_input" size="mini" placeholder="最小执行时间" v-model="profiler.uistate.min_method_duration"> </el-input> -
 								<el-input class="short_input" size="mini" placeholder="最大执行时间" v-model="profiler.uistate.max_method_duration"> </el-input>
-								&nbsp;
-								<el-button type="primary" size="mini" plain @click='profiler.search_slow_methods()' >Search</el-button>
-
+							</div>
+							<div class="row_div">
+								过滤线程：<el-input class="long_input" size="mini" placeholder="输入线程名称进行过滤" v-model="profiler.uistate.thread_name_filter"> </el-input>
 							</div>
 							<div>
-								上面选定方法最慢的调用记录：
-
+								<p class="list-title"> 上面选定方法最慢的调用记录： (total {{profiler.uistate.slow_method_calls.length}}) &nbsp;
+									<el-button type="primary" size="mini" plain @click='profiler.search_slow_methods()' >Search</el-button> &nbsp;
+									<el-button type="warning" size="mini" plain @click='profiler.stop_search_slow_methods()' >Stop</el-button> &nbsp;&nbsp;
+									<el-button type="primary" size="mini" plain @click='profiler.sort_slow_method_calls()' >Sort</el-button> &nbsp;
+									<span class="search_method_message" :class="{error_message: profiler.uistate.search_method_error == true}" >{{profiler.uistate.search_method_message}}</span>
+								</p>
+								<ul class="slow-calls-list-content">
+									<li class="list-item" v-for="method_call in profiler.uistate.slow_method_calls" @click='profiler.jump_to_method_call(method_call)'
+									>{{method_call.full_name}} - (duration:{{method_call.duration}}, calls:{{method_call.calls}}) - [#{{method_call.thread_id}}] {{method_call.thread_name}} </li>
+								</ul>
 							</div>
 						</div>
 					</el-tab-pane>

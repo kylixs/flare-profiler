@@ -1,5 +1,5 @@
 
-
+//填充数据，使得不同线程的时间坐标系(X)范围相同比例相同（不同线程的开始时间、结束时间不同，自由显示则比例不一致）
 function fill_ts_data(thread_ts_data, thread_start_time, thread_end_time, start_time, end_time, unit_time_ms) {
     let fill_steps_before = (thread_start_time - start_time)/unit_time_ms;
     let fill_steps_after = (end_time - thread_end_time)/unit_time_ms;
@@ -48,15 +48,20 @@ Number.constrain = function(num, min, max) {
 
 var default_uistate = function () {
     return {
-        load_thread_cpu_time: false,
         last_loading_thread_cpu_time: 0,
-        load_dashboard: false,
+        is_loaded_dashboard: false,
         unit_time_ms: 0,
         cpu_charts: {},
+        thread_name_filter: "",
         search_methods: [],
         min_method_duration: "100",
         max_method_duration: "",
-        show_filter_methods: true
+        show_filter_methods: true,
+        slow_method_calls: [],
+        //等待打开的方法调用，等待ts数据加载完毕后再打开
+        jumping_method_call: null,
+        search_method_message: "",
+        search_method_error: false,
     };
 }
 let chartIdPrefix = "thread_cpu_chart_";
@@ -183,7 +188,7 @@ var profiler = {
         if (profiler.data.session_id == ""){
             return;
         }
-        let should_update_dashboard = (force || !profiler.uistate.load_dashboard || profiler.data.type == "attach");
+        let should_update_dashboard = (force || !profiler.uistate.is_loaded_dashboard || profiler.data.type == "attach");
         switch (profiler.data.activeTab) {
             case profiler.tabs.threads:
                 //case profiler.tabs.call_graph: //暂时不刷新火焰图页面的线程CPU图，因为数据变化导致选择的范围改变
@@ -215,10 +220,10 @@ var profiler = {
                 "session_id": profiler.data.session_id
             }
         }));
-        this.uistate.load_dashboard=true;
+        this.uistate.is_loaded_dashboard=true;
     },
     update_cpu_time(){
-        if (!profiler.uistate.load_dashboard){
+        if (!profiler.uistate.is_loaded_dashboard){
             return;
         }
 
@@ -269,7 +274,9 @@ var profiler = {
             return;
         }
 
-
+        profiler.load_cpu_time(thread_ids);
+    },
+    load_cpu_time(thread_ids){
         var graph_width = 900;
         var sample_interval = profiler.data.sample_info.sample_interval;
         var start_time = profiler.data.sample_info.record_start_time;
@@ -303,7 +310,6 @@ var profiler = {
         };
         console.log("send request: "+JSON.stringify(request));
         this.socket.send(JSON.stringify(request));
-        this.uistate.load_thread_cpu_time = true;
         // console.log("update_cpu_time: ", request);
     },
     on_scroll_thread_cpu_charts(){
@@ -376,6 +382,9 @@ var profiler = {
             clearTimeout(profiler.list_method_timer);
             profiler.list_method_timer = null;
         }
+        if (method_name_filter.trim() == ""){
+            return;
+        }
         //filter delay 500ms
         profiler.list_method_timer = setTimeout(function () {
             var request = {
@@ -388,10 +397,18 @@ var profiler = {
             profiler.socket.send(JSON.stringify(request));
         }, 200);
     },
-    add_search_method(method_info){
-        if (profiler.uistate.search_methods.indexOf(method_info) == -1 ) {
-            profiler.uistate.search_methods.push(method_info);
+    add_all_filter_methods(){
+        for( var m of profiler.data.method_infos){
+            profiler.add_search_method(m);
         }
+    },
+    add_search_method(method_info){
+        for( var m of profiler.uistate.search_methods) {
+            if (m.method_id == method_info.method_id){
+                return;
+            }
+        }
+        profiler.uistate.search_methods.push(method_info);
     },
     remove_search_method(method_info) {
         let search_methods = profiler.uistate.search_methods;
@@ -400,12 +417,26 @@ var profiler = {
     clear_search_methods(){
         profiler.uistate.search_methods = [];
     },
+    clear_search_message(){
+        profiler.uistate.search_method_message = "";
+        profiler.uistate.search_method_error = false;
+    },
+    set_search_message(msg, error) {
+        profiler.uistate.search_method_message = msg;
+        profiler.uistate.search_method_error = error;
+    },
     search_slow_methods(){
-        profiler.uistate.show_filter_methods = false;
         let method_ids = [];
         for ( var m of profiler.uistate.search_methods){
             method_ids.push(m.method_id);
         }
+        if (method_ids.length == 0){
+            profiler.set_search_message("Please specify searching methods!", true);
+            profiler.uistate.show_filter_methods = true;
+            return;
+        }
+        profiler.uistate.show_filter_methods = false;
+
         //parse duration
         var min_method_duration = profiler.uistate.min_method_duration.trim();
         if(min_method_duration == ""){
@@ -413,16 +444,19 @@ var profiler = {
         }else {
             min_method_duration = parseInt(min_method_duration);
         }
-        profiler.uistate.min_method_duration = min_method_duration;
+        profiler.uistate.min_method_duration = ""+min_method_duration;
 
         var max_method_duration = profiler.uistate.max_method_duration.trim();
         if(max_method_duration == ""){
             max_method_duration = -1;
         }else {
             max_method_duration = parseInt(max_method_duration);
-            profiler.uistate.max_method_duration = max_method_duration;
+            profiler.uistate.max_method_duration = ""+max_method_duration;
         }
+        let thread_name_filter = profiler.uistate.thread_name_filter || "";
+        profiler.set_search_message("Searching method calls ...");
 
+        profiler.uistate.slow_method_calls = [];
         var request = {
             "cmd": "search_slow_method_calls",
             "options": {
@@ -430,15 +464,89 @@ var profiler = {
                 "method_ids": method_ids,
                 "min_duration": min_method_duration,
                 "max_duration": max_method_duration,
+                "max_size": 3000,
+                "thread_name_filter": thread_name_filter
             }
         };
         profiler.socket.send(JSON.stringify(request));
+    },
+    on_slow_method_calls(data){
+        //update search message
+        profiler.uistate.search_method_error = data.search_error;
+        if (data.search_message){
+            profiler.uistate.search_method_message = data.search_message;
+        }else {
+            if(data.search_finished){
+                profiler.uistate.search_method_message = "Search finished."
+            }else if (data.search_progress){
+                profiler.uistate.search_method_message = "Search progress: "+data.search_progress+"%"
+            }else {
+                profiler.uistate.search_method_message = "";
+            }
+        }
+
+        //merge array method_calls
+        //Array.prototype.push.apply(profiler.uistate.slow_method_calls, method_calls);
+        if (data.slow_method_calls){
+            for (var call of data.slow_method_calls) {
+                profiler.uistate.slow_method_calls.push(call);
+            }
+        }
+    },
+    sort_slow_method_calls(){
+        profiler.uistate.slow_method_calls.sort(function (a, b) {
+            if (a.duration < b.duration){
+                return 1;
+            }else if(a.duration > b.duration) {
+                return -1;
+            }
+            return 0;
+        })
+    },
+    jump_to_method_call(method_call){
+        method_call = method_call || profiler.uistate.jumping_method_call;
+        let chartElemId = chartIdPrefix + method_call.thread_id;
+        let myChart = profiler.uistate.cpu_charts[chartElemId];
+        //load chart data as required
+        if (!myChart){
+            //TODO load thread cpu chart
+            profiler.uistate.jumping_method_call = method_call;
+            profiler.load_cpu_time([method_call.thread_id]);
+        } else {
+            profiler.uistate.jumping_method_call = null;
+
+            let thread = myChart.thread;
+            let ts_data = myChart.ts_data;
+            let unit_time_ms = thread.unit_time_ms;
+            let thread_start_time = thread.start_time;
+
+            var sess_start_time = profiler.data.sample_info.record_start_time;
+            var sess_end_time = profiler.data.sample_info.last_record_time;
+            let total_time = sess_end_time - sess_start_time;
+
+            //设置显示范围
+            let start_time = thread_start_time + method_call.start_time;
+            let end_time = start_time + method_call.duration;
+            start_time -= 500;
+            end_time += 500;
+            //let start_time = sess_start_time + rangeStart*unit_time_ms;
+            //let end_time = sess_start_time + rangeEnd*unit_time_ms;
+            let rangeStart = (start_time-sess_start_time)/unit_time_ms;
+            let rangeEnd = (end_time-sess_start_time)/unit_time_ms;
+            let rangeTotal = total_time/unit_time_ms;
+            let start_percent = 100*rangeStart/rangeTotal;
+            let end_percent = 100*rangeEnd/rangeTotal;
+
+            console.log("jump_to_method_call: thread:",thread.id, ", index:", rangeStart,"-", rangeEnd,", time:", start_time,"-", end_time );
+            profiler.update_call_graph_thread_cpu_data(thread.id, start_time, end_time, ts_data, unit_time_ms, sess_start_time, start_percent, end_percent);
+        }
     },
     active_session:function (session_id, type) {
         this.clear_session();
         profiler.data.session_id = session_id;
         profiler.data.type = type;
         this.activeTab(this.tabs.dashboard);
+        this.update_dashboard();
     },
     clear_session: function () {
         for (let [key, value] of Object.entries(this.uistate.cpu_charts)) {
@@ -471,6 +579,8 @@ var profiler = {
                 myChart = create_echarts_bar(chartElemId, ts_data);
                 profiler.uistate.cpu_charts[chartElemId] = myChart;
             }
+            myChart.ts_data = ts_data;
+            myChart.thread = thread;
 
             myChart.on('datazoom', function (evt) {
                 var axis = myChart.getModel().option.xAxis[0];
@@ -483,8 +593,16 @@ var profiler = {
                 profiler.update_call_graph_thread_cpu_data(thread.id, start_time, end_time, ts_data, unit_time_ms, sess_start_time, evt.start, evt.end);
             });
             profiler.data.thread_cpu_time_map[thread.id] = thread;
+
+            //continue open method call
+            let jumping_method_call = profiler.uistate.jumping_method_call;
+            if(jumping_method_call && jumping_method_call.thread_id == thread.id){
+                profiler.jump_to_method_call();
+            }
+
         }
         profiler.uistate.last_loading_thread_cpu_time = new Date().getTime();
+
     },
     update_call_graph_thread_cpu_data(thread_id, start_time, end_time, ts_data, unit_time_ms, sess_start_time, start, end) {
         //active 'Call Graph' tab
@@ -692,19 +810,18 @@ var profiler = {
         switch (json.cmd) {
             case "dashboard":
                 //profiler.on_dashboard_result(json.data);
-                // if (!profiler.uistate.load_thread_cpu_time) {
-                //     profiler.update_cpu_time();
-                // }
                 break;
             case "open_sample":
                 if (success) {
                     profiler.list_sessions();
+                    profiler.update_dashboard();
                     profiler.activeTab(profiler.tabs.dashboard);
                 }
                 break;
             case "connect_agent":
                 if (success) {
                     profiler.list_sessions();
+                    profiler.update_dashboard();
                     profiler.activeTab(profiler.tabs.dashboard);
                 }
                 break;
@@ -735,7 +852,9 @@ var profiler = {
                 }
                 break;
             case "list_methods_by_filter":
-
+                break;
+            case "search_slow_method_calls":
+                profiler.on_slow_method_calls(json.data);
                 break;
             default:
                 console.log("unknown message: ", json);
@@ -869,6 +988,10 @@ var app = new Vue({
             } else if(tab.name == profiler.tabs.dashboard){
                 profiler.update_dashboard();
             }
+        },
+        select_filter_method(method){
+            this._data.methodFilterText = method;
+            profiler.list_methods_by_filter(method);
         }
     },
     filters: {

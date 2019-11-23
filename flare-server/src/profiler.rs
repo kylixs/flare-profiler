@@ -307,9 +307,9 @@ impl Profiler {
         }
     }
 
-    fn search_slow_method_calls(&self, session_id: &str, method_ids: &[i64]) -> io::Result<Vec<MethodCall>> {
+    fn search_slow_method_calls(&self, session_id: &str, thread_id: i64, method_ids: &[i64], min_duration: i64, max_duration: i64) -> io::Result<Vec<MethodCall>> {
         if let Some(collector) = self.sample_session_map.get(session_id) {
-            Ok(collector.lock().unwrap().search_slow_method_calls(method_ids)?)
+            Ok(collector.lock().unwrap().search_slow_method_calls(thread_id, method_ids, min_duration, max_duration)?)
         }else {
             Err(io::Error::new(ErrorKind::NotFound, "sample session not found"))
         }
@@ -698,21 +698,70 @@ impl Profiler {
         let method_ids = get_option_as_int_array(options, "method_ids")?;
         let min_duration = get_option_as_int(options, "min_duration", 100);
         let max_duration = get_option_as_int(options, "max_duration", -1);
-//        if max_duration == -1 {
-//            max_duration = u32::max_value() as i64;
-//        }
+        let max_size = get_option_as_int(options, "max_size", 2000) as usize;
+        let thread_name_filter = get_option_as_str(options, "thread_name_filter", "");
 
         //let method_calls : Vec<String> = vec![];
-        let method_calls = self.search_slow_method_calls(session_id, &method_ids)?;
-        let result = json!({
-            "session_id": session_id,
-            "method_ids": method_ids,
-            "method_calls": method_calls
-        });
-        let message = wrap_response(&cmd, &result);
-        sender.send_message(&message);
-        println!("handle_search_slow_method_calls_request total cost: {}ms", sw.elapsed_ms());
+        let mut search_error = false;
+        if let Some(collector) = self.sample_session_map.get(session_id) {
+            let mut total = 0;
+            let threads = collector.lock().unwrap().get_threads()?;
+            let thread_size = threads.len();
+            //search every thread
+            for (i,thread) in threads.iter().enumerate() {
+                sw.lap();
 
+                //filter thread by name
+                if !thread_name_filter.is_empty() && !thread.name.contains(thread_name_filter) {
+                    continue;
+                }
+
+                let method_calls = collector.lock().unwrap().search_slow_method_calls(thread.id, &method_ids, min_duration, max_duration)?;
+                let search_cost = sw.lap();
+                if method_calls.is_empty() {
+                    println!("slow method calls not found, thread: {}, search cost: {}ms", thread.id, search_cost);
+                    continue;
+                }
+                total += method_calls.len();
+                let search_progress = 100*i/thread_size;
+                let result = json!({
+                    "session_id": session_id,
+                    "method_ids": method_ids,
+                    "search_progress": search_progress,
+                    "search_finished": false,
+                    "slow_method_calls": method_calls
+                });
+                sender.send_message(&wrap_response(&cmd, &result));
+                println!("found slow method calls: {}, thread: {}, search cost: {}ms, send cost: {}ms", method_calls.len(), thread.id,  search_cost, sw.lap());
+
+                if total >= max_size {
+                    search_error = true;
+                    println!("too many slow method calls: {}, search progress: {}/{} ({}%), abort searching!", total, i, thread_size, search_progress);
+                    let result = json!({
+                        "session_id": session_id,
+                        "method_ids": method_ids,
+                        "search_finished": false,
+                        "search_error": search_error,
+                        "search_message": format!("too many slow method calls: {}, search aborted!", total)
+                    });
+                    sender.send_message(&wrap_response(&cmd, &result));
+                    break;
+                }
+            }
+        }else {
+            return Err(io::Error::new(ErrorKind::NotFound, "sample session not found"));
+        }
+
+        if !search_error {
+            let result = json!({
+                        "session_id": session_id,
+                        "method_ids": method_ids,
+                        "search_progress": 100,
+                        "search_finished": true,
+                    });
+            sender.send_message(&wrap_response(&cmd, &result));
+        }
+        println!("handle_search_slow_method_calls_request total cost: {}ms", sw.elapsed_ms());
         Ok(())
     }
 
