@@ -707,6 +707,7 @@ impl Profiler {
             let mut total = 0;
             let threads = collector.lock().unwrap().get_threads()?;
             let thread_size = threads.len();
+            let mut search_progress = 0;
             //search every thread
             for (i,thread) in threads.iter().enumerate() {
                 sw.lap();
@@ -716,23 +717,29 @@ impl Profiler {
                     continue;
                 }
 
-                let method_calls = collector.lock().unwrap().search_slow_method_calls(thread.id, &method_ids, min_duration, max_duration)?;
-                let search_cost = sw.lap();
-                if method_calls.is_empty() {
-                    println!("slow method calls not found, thread: {}, search cost: {}ms", thread.id, search_cost);
-                    continue;
+                match collector.lock().unwrap().search_slow_method_calls(thread.id, &method_ids, min_duration, max_duration) {
+                    Ok(method_calls ) => {
+                        let search_cost = sw.lap();
+                        if method_calls.is_empty() {
+                            println!("slow method calls not found, thread: {}, search cost: {}ms", thread.id, search_cost);
+                            continue;
+                        }
+                        total += method_calls.len();
+                        search_progress = 100*i/thread_size;
+                        let result = json!({
+                            "session_id": session_id,
+                            "method_ids": method_ids,
+                            "search_progress": search_progress,
+                            "search_finished": false,
+                            "slow_method_calls": method_calls
+                        });
+                        sender.send_message(&wrap_response(&cmd, &result));
+                        println!("found slow method calls: {}, thread: {}, search cost: {}ms, send cost: {}ms", method_calls.len(), thread.id,  search_cost, sw.lap());
+                    }
+                    Err(e) => {
+                        println!("found slow method calls failed, thread: {}, error: {}", thread.id, e);
+                    }
                 }
-                total += method_calls.len();
-                let search_progress = 100*i/thread_size;
-                let result = json!({
-                    "session_id": session_id,
-                    "method_ids": method_ids,
-                    "search_progress": search_progress,
-                    "search_finished": false,
-                    "slow_method_calls": method_calls
-                });
-                sender.send_message(&wrap_response(&cmd, &result));
-                println!("found slow method calls: {}, thread: {}, search cost: {}ms, send cost: {}ms", method_calls.len(), thread.id,  search_cost, sw.lap());
 
                 if total >= max_size {
                     search_error = true;
