@@ -57,7 +57,7 @@ var default_uistate = function () {
         min_method_duration: "100",
         max_method_duration: "",
         show_filter_methods: true,
-        slow_method_calls: [],
+        method_call_groups: [],
         //等待打开的方法调用，等待ts数据加载完毕后再打开
         jumping_method_call: null,
         search_method_message: "",
@@ -456,7 +456,7 @@ var profiler = {
         let thread_name_filter = profiler.uistate.thread_name_filter || "";
         profiler.set_search_message("Searching method calls ...");
 
-        profiler.uistate.slow_method_calls = [];
+        profiler.uistate.method_call_groups = [];
         var request = {
             "cmd": "search_slow_method_calls",
             "options": {
@@ -487,21 +487,24 @@ var profiler = {
 
         //merge array method_calls
         //Array.prototype.push.apply(profiler.uistate.slow_method_calls, method_calls);
-        if (data.slow_method_calls){
-            for (var call of data.slow_method_calls) {
-                profiler.uistate.slow_method_calls.push(call);
+        if (data.method_call_groups){
+            for (var group of data.method_call_groups) {
+                group.method_calls.sort(function (a, b) {
+                    if (a.duration < b.duration){
+                        return 1;
+                    }else if(a.duration > b.duration) {
+                        return -1;
+                    }
+                    return 0;
+                });
+                profiler.uistate.method_call_groups.push(group);
             }
         }
     },
     sort_slow_method_calls(){
-        profiler.uistate.slow_method_calls.sort(function (a, b) {
-            if (a.duration < b.duration){
-                return 1;
-            }else if(a.duration > b.duration) {
-                return -1;
-            }
-            return 0;
-        })
+        // profiler.uistate.method_call_groups.sort(function (a, b) {
+        //
+        // });
     },
     jump_to_method_call(method_call){
         method_call = method_call || profiler.uistate.jumping_method_call;

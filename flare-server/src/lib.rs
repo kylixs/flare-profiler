@@ -36,6 +36,6 @@ mod call_tree;
 mod http_server;
 pub mod utils;
 pub mod sample_encoder;
-
+mod method_analysis;
 
 

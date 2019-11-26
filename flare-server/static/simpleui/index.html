@@ -229,16 +229,31 @@
 								过滤线程：<el-input class="long_input" size="mini" placeholder="输入线程名称进行过滤" v-model="profiler.uistate.thread_name_filter"> </el-input>
 							</div>
 							<div>
-								<p class="list-title"> 上面选定方法最慢的调用记录： (total {{profiler.uistate.slow_method_calls.length}}) &nbsp;
-									<el-button type="primary" size="mini" plain @click='profiler.search_slow_methods()' >Search</el-button> &nbsp;
+								<p class="list-title"> 上面选定方法最慢的调用记录： (total
+                                    {{profiler.uistate.method_call_groups.length}}) &nbsp;
+                                    <el-button type="primary" size="mini" plain @click='profiler.search_slow_methods()' >Search</el-button> &nbsp;
 									<el-button type="warning" size="mini" plain @click='profiler.stop_search_slow_methods()' >Stop</el-button> &nbsp;&nbsp;
 									<el-button type="primary" size="mini" plain @click='profiler.sort_slow_method_calls()' >Sort</el-button> &nbsp;
 									<span class="search_method_message" :class="{error_message: profiler.uistate.search_method_error == true}" >{{profiler.uistate.search_method_message}}</span>
 								</p>
-								<ul class="slow-calls-list-content">
-									<li class="list-item" v-for="method_call in profiler.uistate.slow_method_calls" @click='profiler.jump_to_method_call(method_call)'
-									>{{method_call.full_name}} - (duration:{{method_call.duration}}, calls:{{method_call.calls}}) - [#{{method_call.thread_id}}] {{method_call.thread_name}} </li>
-								</ul>
+                                <el-collapse v-model="activeNames">
+                                    <el-collapse-item v-for="call_group in  profiler.uistate.method_call_groups" :name="'call_group_'+call_group.group_id">
+                                        <template slot="title">
+                                            Group #{{call_group.group_id}} - method_calls: {{call_group.method_calls.length}} &nbsp;
+                                            <el-popover placement="right" trigger="hover">
+                                                <ul class="call-stack-list-content">
+                                                    <li v-for="call in call_group.call_stack">{{call.full_name}}</li>
+                                                </ul>
+                                                <el-button size="mini" slot="reference" >View CallStack</el-button>
+                                            </el-popover>
+
+                                        </template>
+                                        <ul class="slow-calls-list-content">
+                                            <li class="list-item" v-for="method_call in call_group.method_calls" @click='profiler.jump_to_method_call(method_call)'
+                                            >{{method_call.full_name}} - (duration:{{method_call.duration}}, calls:{{method_call.calls}}) - [#{{method_call.thread_id}}] {{method_call.thread_name}} </li>
+                                        </ul>
+                                    </el-collapse-item>
+                                </el-collapse>
 							</div>
 						</div>
 					</el-tab-pane>

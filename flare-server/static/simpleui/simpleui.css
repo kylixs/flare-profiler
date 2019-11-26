@@ -92,12 +92,17 @@ input.input-field {
 }
 .slow-calls-list-content {
     /*height: 250px;*/
-    height: 50vh;
+    /*height: 50vh;*/
     overflow: auto;
     list-style:none;
     margin:4px;
     padding:4px;
     border: #c7ddef 1px solid;
+}
+.call-stack-list-content {
+    list-style:none;
+    overflow: auto;
+    max-height: 85vh;
 }
 .search_method_message {
     margin:4px;

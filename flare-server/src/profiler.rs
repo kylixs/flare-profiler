@@ -24,6 +24,7 @@ use inferno::flamegraph::color::BackgroundColor;
 use ::{tree, utils};
 use inferno::flamegraph::merge::{TimedFrame, Frame};
 use super::http_server::*;
+use method_analysis::*;
 
 type JsonValue = serde_json::Value;
 
@@ -307,7 +308,7 @@ impl Profiler {
         }
     }
 
-    fn search_slow_method_calls(&self, session_id: &str, thread_id: i64, method_ids: &[i64], min_duration: i64, max_duration: i64) -> io::Result<Vec<MethodCall>> {
+    fn search_slow_method_calls(&self, session_id: &str, thread_id: i64, method_ids: &[i64], min_duration: i64, max_duration: i64) -> io::Result<Vec<Box<MethodCall>>> {
         if let Some(collector) = self.sample_session_map.get(session_id) {
             Ok(collector.lock().unwrap().search_slow_method_calls(thread_id, method_ids, min_duration, max_duration)?)
         }else {
@@ -703,11 +704,13 @@ impl Profiler {
 
         //let method_calls : Vec<String> = vec![];
         let mut search_error = false;
+        let mut search_error_msg = "".to_string();
         if let Some(collector) = self.sample_session_map.get(session_id) {
             let mut total = 0;
             let threads = collector.lock().unwrap().get_threads()?;
             let thread_size = threads.len();
             let mut search_progress = 0;
+            let mut method_analysis = MethodAnalysis::new();
             //search every thread
             for (i,thread) in threads.iter().enumerate() {
                 sw.lap();
@@ -721,20 +724,27 @@ impl Profiler {
                     Ok(method_calls ) => {
                         let search_cost = sw.lap();
                         if method_calls.is_empty() {
-                            println!("slow method calls not found, thread: {}, search cost: {}ms", thread.id, search_cost);
+                            //println!("slow method calls not found, thread: {}, search cost: {}ms", thread.id, search_cost);
                             continue;
                         }
                         total += method_calls.len();
-                        search_progress = 100*i/thread_size;
-                        let result = json!({
-                            "session_id": session_id,
-                            "method_ids": method_ids,
-                            "search_progress": search_progress,
-                            "search_finished": false,
-                            "slow_method_calls": method_calls
-                        });
-                        sender.send_message(&wrap_response(&cmd, &result));
+                        let new_search_progress = 100*i/thread_size;
                         println!("found slow method calls: {}, thread: {}, search cost: {}ms, send cost: {}ms", method_calls.len(), thread.id,  search_cost, sw.lap());
+                        if new_search_progress > search_progress {
+                            search_progress = new_search_progress;
+                            let result = json!({
+                                "session_id": session_id,
+                                "method_ids": method_ids,
+                                "search_progress": search_progress,
+                                "search_finished": false,
+                            });
+                            sender.send_message(&wrap_response(&cmd, &result));
+                            println!("search progress: {}%", search_progress);
+                        }
+
+                        for method_call in method_calls {
+                            method_analysis.add_method_call(method_call);
+                        }
                     }
                     Err(e) => {
                         println!("found slow method calls failed, thread: {}, error: {}", thread.id, e);
@@ -743,32 +753,40 @@ impl Profiler {
 
                 if total >= max_size {
                     search_error = true;
+                    search_error_msg = format!("too many slow method calls: {}, search aborted!", total);
                     println!("too many slow method calls: {}, search progress: {}/{} ({}%), abort searching!", total, i, thread_size, search_progress);
-                    let result = json!({
-                        "session_id": session_id,
-                        "method_ids": method_ids,
-                        "search_finished": false,
-                        "search_error": search_error,
-                        "search_message": format!("too many slow method calls: {}, search aborted!", total)
-                    });
-                    sender.send_message(&wrap_response(&cmd, &result));
                     break;
                 }
             }
+
+            //fill call method name
+            for method_group in &mut method_analysis.call_groups {
+                for call in &mut method_group.call_stack {
+                    match collector.lock().unwrap().get_method_info(call.method_id) {
+                        Some(val) => {
+                            call.full_name = val.full_name.clone();
+                        },
+                        None => {
+                            call.full_name = call.method_id.to_string();
+                        }
+                    }
+                }
+            }
+
+            let result = json!({
+                "session_id": session_id,
+                "method_ids": method_ids,
+                "method_call_groups": method_analysis.get_method_groups(),
+                "search_progress": search_progress,
+                "search_finished": !search_error,
+                "search_error": search_error,
+                "search_message": search_error_msg
+            });
+            sender.send_message(&wrap_response(&cmd, &result));
+            println!("handle_search_slow_method_calls_request total cost: {}ms", sw.elapsed_ms());
         }else {
             return Err(io::Error::new(ErrorKind::NotFound, "sample session not found"));
         }
-
-        if !search_error {
-            let result = json!({
-                        "session_id": session_id,
-                        "method_ids": method_ids,
-                        "search_progress": 100,
-                        "search_finished": true,
-                    });
-            sender.send_message(&wrap_response(&cmd, &result));
-        }
-        println!("handle_search_slow_method_calls_request total cost: {}ms", sw.elapsed_ms());
         Ok(())
     }
 

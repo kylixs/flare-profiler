@@ -82,6 +82,9 @@ pub struct MethodCall {
     pub duration: i64,
     pub calls: i64,
     pub cpu: i64,
+    pub samples: i64,
+    //#[serde(skip_serializing)]
+    pub primary_stacks: Vec<i64>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -942,7 +945,7 @@ impl SampleCollector {
         }
     }
 
-    fn get_method_info(&mut self, method: JavaMethod) -> &Option<MethodInfo> {
+    pub fn get_method_info(&mut self, method: JavaMethod) -> &Option<MethodInfo> {
         let method_idx_file = self.sample_method_idx_file.as_mut();
         self.method_cache.entry(method).or_insert_with(|| {
             if let Some(method_idx) = method_idx_file {
@@ -997,7 +1000,7 @@ impl SampleCollector {
     }
 
     //search slow method calls
-    pub  fn search_slow_method_calls(&mut self, thread_id: i64, method_ids: &[i64], min_duration: i64, max_duration: i64) -> io::Result<Vec<MethodCall>> {
+    pub  fn search_slow_method_calls(&mut self, thread_id: i64, method_ids: &[i64], min_duration: i64, max_duration: i64) -> io::Result<Vec<Box<MethodCall>>> {
         let mut method_calls = vec![];
 
         let mut start_time = self.record_start_time;
@@ -1013,24 +1016,44 @@ impl SampleCollector {
         Ok(method_calls)
     }
 
-    fn search_call_tree(&self, result: &mut Vec<MethodCall>, node: &Box<tree::TreeNode>, thread_id: i64, thread_name: &str, method_ids: &[i64], min_duration: i64, max_duration: i64) {
+    fn search_call_tree(&self, result: &mut Vec<Box<MethodCall>>, node: &Box<tree::TreeNode>, thread_id: i64, thread_name: &str, method_ids: &[i64], min_duration: i64, max_duration: i64) {
         //TODO search
         if node.duration >= min_duration {
             if method_ids.contains(&node.id) && (max_duration <=0 || node.duration < max_duration) {
-                result.push(MethodCall {
-                    method_id: node.id,
-                    full_name: node.label.clone(),
-                    thread_id,
-                    thread_name: thread_name.to_string(),
-                    start_time: node.start_time,
-                    duration: node.duration,
-                    calls: node.calls,
-                    cpu: node.cpu,
-                })
+                result.push(self.create_method_call(node, thread_id, thread_name));
             } else {
                 for child in &node.children {
                     self.search_call_tree(result, child, thread_id, thread_name, method_ids, min_duration, max_duration);
                 }
+            }
+        }
+    }
+
+    fn create_method_call(&self, node: &Box<tree::TreeNode>, thread_id: JavaLong, thread_name: &str) -> Box<MethodCall> {
+
+        let mut primary_stacks = vec![];
+        self.search_primary_stacks(node, &mut primary_stacks, node.duration/2);
+
+        Box::new(MethodCall {
+            method_id: node.id,
+            full_name: node.label.clone(),
+            thread_id,
+            thread_name: thread_name.to_string(),
+            start_time: node.start_time,
+            duration: node.duration,
+            calls: node.calls,
+            cpu: node.cpu,
+            samples: 0,
+            primary_stacks,
+        })
+    }
+
+    //提取调用树子树中超过指定duration的方法id集合
+    fn search_primary_stacks(&self, node: &Box<tree::TreeNode>, primary_stacks: &mut Vec<i64>, duration: i64) {
+        if node.duration >= duration {
+            primary_stacks.push(node.id);
+            for child in &node.children {
+                self.search_primary_stacks(child, primary_stacks, duration);
             }
         }
     }
