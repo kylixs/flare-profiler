@@ -76,7 +76,7 @@ if %srv_interact%==0  set flare_args=%flare_args% --no-interact
 if %ignoreTools%==1 set flare_args=%flare_args% --ignore-tools
 if %flare_service%==1 (
 	REM run xxx.bat
-	start /wait %basedir%\stop-trace-agent.bat %pid% %flare_args%
+	start /wait %basedir%\stop-agent.bat %pid% %flare_args%
 	exit 0
 	
 	REM DEBUG run args

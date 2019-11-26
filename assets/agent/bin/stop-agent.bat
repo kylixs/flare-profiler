@@ -7,7 +7,7 @@ set AGENT_OPTIONS=trace=off
 
 set TARGET_PID=%1
 if "%TARGET_PID%" == "" (
-    echo "usage: stop-trace-agent.bat <pid>"
+    echo "usage: stop-agent.bat <pid>"
     exit /b 1
 )
 

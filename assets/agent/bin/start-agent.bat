@@ -52,7 +52,7 @@ goto end
 
 
 :usage
-echo Usage: start-trace-agent.bat ^<pid^> ^[options^]
+echo Usage: start-agent.bat ^<pid^> ^[options^]
 echo Options:
 echo      -interval ^<sample interval^>    # sample interval(ms), default value is 5
 echo      -address  ^<agent address^>      # agent bind address, default value is 0.0.0.0:3333

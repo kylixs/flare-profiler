@@ -5,7 +5,7 @@ echo "PROJECT_PATH:$PROJECT_PATH"
 
 TARGET_PID="$1"
 if [[ "$TARGET_PID" -eq "" ]];then
-    echo "usage: stop-trace-agent.sh <pid>"
+    echo "usage: stop-agent.sh <pid>"
     exit 1
 fi
 

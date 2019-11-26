@@ -10,7 +10,7 @@ if [[ "$USER_ACCOUNT" == "" ]];then
     exit 1
 fi
 
-ACTION_SCRIPT="stop-trace-agent.sh"
+ACTION_SCRIPT="stop-agent.sh"
 
 if [[ "$TARGET_PID" == ""  ]];then
     echo "TARGET_PID is required"
