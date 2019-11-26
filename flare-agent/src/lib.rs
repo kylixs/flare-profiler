@@ -17,7 +17,6 @@ extern crate resp;
 extern crate timer;
 extern crate chrono;
 
-
 pub mod agent;
 pub mod bytecode;
 pub mod capabilities;
@@ -90,12 +89,12 @@ fn is_trace_running() -> bool {
     unsafe { TRACE_RUNNING }
 }
 
-fn start_trace(sample_interval: u64) {
+fn start_trace(sample_interval: u64, bind_host: &str, bind_port: u16) {
     unsafe {
         TRACE_RUNNING = true;
     }
     static_context().set_trace_enable(true);
-    SAMPLER.lock().unwrap().set_options(sample_interval);
+    SAMPLER.lock().unwrap().set_options(sample_interval, bind_host, bind_port);
     SAMPLER.lock().unwrap().start();
 }
 
@@ -304,9 +303,11 @@ pub extern fn Agent_OnLoad(vm: JavaVMPtr, options: MutString, reserved: VoidPtr)
         interval = str.parse().unwrap();
     }
 
+    let (bind_host,bind_port) = parse_address(&options);
+
     let mut agent = Agent::new(vm);
     init_agent(&mut agent);
-    start_trace(interval);
+    start_trace(interval, &bind_host, bind_port);
 
     return 0;
 }
@@ -344,6 +345,8 @@ pub extern fn Agent_OnAttach(vm: JavaVMPtr, options: MutString, reserved: VoidPt
 //                println!("caps: {}", caps);
 //                jvmti.get_all_stacktraces();
 
+    let (bind_host,bind_port) = parse_address(&options);
+
     if let Some(val) = options.custom_args.get("trace") {
         match val.as_ref() {
             "on" => {
@@ -353,16 +356,23 @@ pub extern fn Agent_OnAttach(vm: JavaVMPtr, options: MutString, reserved: VoidPt
                     return 0;
                 }
 
-                let mut interval = 20;
-                if let Some(str) = options.custom_args.get("interval") {
-                    interval = str.parse().unwrap();
+                let mut interval = 5;
+                if let Some(interval_str) = options.custom_args.get("interval") {
+                    match interval_str.parse() {
+                        Ok(int_val) => {
+                            interval = int_val;
+                        },
+                        Err(e) => {
+                            println!("parse sample interval failed, value: {}, error: {}", interval_str, e);
+                        }
+                    }
                 }
 
                 let vm_ptr = vm as usize;
                 //TODO how to pass vm or agent to thread safely?
                 let handle = std::thread::spawn( move||{
                     println!("Trace agent is running ...");
-                    start_trace(interval);
+                    start_trace(interval, &bind_host, bind_port);
                     let vm = vm_ptr as JavaVMPtr;
                     println!("create agent ..");
                     let mut agent = Agent::new_attach(vm, "Flare-Profiler");
@@ -416,6 +426,30 @@ pub extern fn Agent_OnAttach(vm: JavaVMPtr, options: MutString, reserved: VoidPt
     }
 
     return 0;
+}
+
+fn parse_address(options: &Options) -> (String, u16) {
+    let mut bind_host = "0.0.0.0";
+    let mut bind_port = 3333;
+    if let Some(bind_addr) = options.custom_args.get("address") {
+        let addrs:Vec<&str> =  bind_addr.split(':').collect();
+        let mut port_str = "3333";
+        if addrs.len() == 2 {
+            bind_host = addrs[0];
+            port_str = addrs[1];
+        } else if (addrs.len() == 1){
+            port_str = addrs[0];
+        }
+        match port_str.parse() {
+            Ok(int_val) => {
+                bind_port = int_val;
+            },
+            Err(e) => {
+                println!("parse agent port failed, value: {}, error: {}", port_str, e);
+            }
+        }
+    }
+    (bind_host.to_string(), bind_port)
 }
 
 fn get_stack_traces(jvmenv: &Box<Environment>, thread_info_map: &mut HashMap<JavaLong, ThreadInfo>, update_cpu_time: bool) -> Result<Vec<JavaStackTrace>, NativeError> {

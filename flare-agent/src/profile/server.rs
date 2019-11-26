@@ -39,9 +39,11 @@ impl SampleServer {
         }
     }
 
-    pub fn set_options(&mut self, sender: mpsc::Sender<resp::Value>, receiver: mpsc::Receiver<resp::Value>, start_time: i64, sample_interval: u64) {
+    pub fn set_options(&mut self, sender: mpsc::Sender<resp::Value>, receiver: mpsc::Receiver<resp::Value>, start_time: i64, sample_interval: u64, bind_host: &str, bind_port: u16) {
         self.start_time = start_time;
         self.sample_interval = sample_interval;
+        self.bind_host = bind_host.to_string();
+        self.bind_port = bind_port;
         self.sender = Some(sender);
         self.receiver = Some(receiver);
     }
@@ -72,6 +74,18 @@ impl SampleServer {
             }
         }
         None
+    }
+
+    pub fn get_bind_addr(&self) -> String {
+        format!("{}:{}", self.bind_host, self.bind_port)
+    }
+
+    pub fn get_bind_port(&self) -> u16 {
+        self.bind_port
+    }
+
+    pub fn get_bind_host(&self) -> String {
+        self.bind_host.to_string()
     }
 }
 
@@ -104,7 +118,21 @@ pub fn is_server_running() -> bool {
 pub fn stop_server() {
     set_server_running(false);
     //make a new connection force tcp listener exit accept() blocking
-    TcpStream::connect("localhost:3333");
+    let bind_port = SAMPLE_SERVER.lock().unwrap().get_bind_port();
+    let bind_host = SAMPLE_SERVER.lock().unwrap().get_bind_host();
+    let mut host = if bind_host == "0.0.0.0" {
+        "127.0.0.1".to_string()
+    } else {
+        bind_host
+    };
+    match TcpStream::connect(format!("{}:{}",  host, bind_port)) {
+        Ok(_) => {
+            println!("send notify to agent server ok");
+        },
+        Err(e) => {
+            println!("send notify to agent server failed: {}", e)
+        }
+    }
 }
 
 pub fn start_server() {
@@ -115,9 +143,10 @@ pub fn start_server() {
         })
     };
 
-    let listener = TcpListener::bind("0.0.0.0:3333").unwrap();
+    let bind_addr = SAMPLE_SERVER.lock().unwrap().get_bind_addr();
+    let listener = TcpListener::bind(&bind_addr).unwrap();
     // accept connections and process them, spawning a new thread for each one
-    println!("Flare agent server listening on port 3333");
+    println!("Flare agent server listening on {}", bind_addr);
     set_server_running(true);
     let mut last_client_stream: Option<TcpStream> = None;
     for stream in listener.incoming() {

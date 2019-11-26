@@ -121,6 +121,8 @@ pub struct Sampler {
     method_cache: HashMap<usize, MethodData>,
     running: bool,
     sample_interval: u64,
+    bind_host: String,
+    bind_port: u16,
     start_time: i64,
     last_sample_time: i64,
     threads_map: HashMap<JavaLong, ThreadData>,
@@ -141,6 +143,8 @@ impl Sampler {
             method_cache: HashMap::new(),
             running: false,
             sample_interval: 0,
+            bind_host: "0.0.0.0".to_string(),
+            bind_port: 3333,
             start_time:0,
             last_sample_time:0,
             sender: None,
@@ -160,7 +164,7 @@ impl Sampler {
             self.receiver = Some(rx0);
             self.sender = Some(tx1);
 
-            get_server().lock().unwrap().set_options(tx0, rx1, self.start_time, self.sample_interval);
+            get_server().lock().unwrap().set_options(tx0, rx1, self.start_time, self.sample_interval, &self.bind_host, self.bind_port);
             //running server in new thread
             std::thread::spawn( move || {
                 start_server();
@@ -179,8 +183,10 @@ impl Sampler {
         self.running
     }
 
-    pub fn set_options(&mut self, sample_interval: u64) {
+    pub fn set_options(&mut self, sample_interval: u64, bind_host: &str, bind_port: u16) {
         self.sample_interval = sample_interval;
+        self.bind_host = bind_host.to_string();
+        self.bind_port = bind_port;
     }
 
     pub fn get_sample_interval(&self) -> u64 {

@@ -8,7 +8,7 @@ REM set FLARE_JAVA_HOME=C:\Program Files\Java\jdk1.8.0_131
 set basedir=%~dp0
 set filename=%~nx0
 set srv_name=FlareAgent
-set agent_port=3333
+set address=3333
 set interval=5
 
 REM parse extend args
@@ -44,8 +44,18 @@ if not %1/==/ (
 )
 
 REM rename option name '-' to '_'
-if not "%agent-port%"=="" set agent_port=%agent-port%
 REM if not "%interval%"=="" set interval=%interval%
+
+REM parse agent port from address
+set agent_port=3333
+set _myvar="%address%"
+:FORLOOP
+For /F "tokens=1* delims=:" %%A IN (%_myvar%) DO (
+    set agent_port=%%A
+    set _myvar="%%B"
+    if NOT "%_myvar%"=="" goto FORLOOP
+)
+echo agent_port: %agent_port%
 
 
 REM Setup JAVA_HOME
@@ -71,7 +81,7 @@ if %ignoreTools% == 1 (
 set JAVACMD="%JAVA_HOME%\bin\java"
 
 REM Runas Service, don't call 'echo' before 'start xxx.bat'
-set flare_args=-agent-port %agent_port% 
+set flare_args=-address %address%
 if %srv_interact%==0  set flare_args=%flare_args% --no-interact
 if %ignoreTools%==1 set flare_args=%flare_args% --ignore-tools
 if %flare_service%==1 (
@@ -113,7 +123,7 @@ exit /b 0
 
 :find_port
 REM check whether flare agent port is already listening
-netstat -nao |findstr LIST |findstr :%agent_port%
+netstat -nao |findstr LISTEN |findstr :%address%
 IF %ERRORLEVEL% EQU 0 (
 	echo Flare agent already running, just connect to it!
 	goto :attachSuccess
@@ -140,7 +150,7 @@ echo Target process pid is %pid%
 
 :prepare_srv
 REM check agent_port port
-netstat -nao |findstr LIST |findstr :%agent_port%
+netstat -nao |findstr LISTEN |findstr :%agent_port%
 IF %ERRORLEVEL% EQU 0 (
 	echo Flare agent already running, just connect to it!
 	goto :attachSuccess
@@ -156,7 +166,7 @@ echo Preparing flare agent service and injecting flare agent to process: %pid% .
 
 REM encode java path, avoid space in service args: ' ' -> '@'
 set srv_java_home=-java-home %JAVA_HOME: =@%
-set srv_args=-pid %pid% -interval %interval% -agent-port %agent_port% %srv_java_home% 
+set srv_args=-pid %pid% -interval %interval% -address %address% %srv_java_home%
 if %srv_interact%==1 (
 	REM start as interact service
 	sc start UI0Detect
@@ -190,7 +200,7 @@ set count=0
 
 :waitfor_loop
 echo checking
-netstat -nao |findstr LIST |findstr :%agent_port%
+netstat -nao |findstr LISTEN |findstr :%agent_port%
 IF %ERRORLEVEL% NEQ 0 (
     set /a count+=1
     if %count% geq 8 (
@@ -218,14 +228,14 @@ echo Options:
 echo   -pid java_pid      : Attach by java process pid
 echo   -port java_port    : Attach by java process listen port
 echo   -interval sample_interval_ms   : Change flare agent sample interval ms(default: 5) 
-@rem echo   -agent-port port   : Change flare agent port 
+echo   -address agent_address   : Change flare agent bind address (default: 0.0.0.0:3333)
 echo   --interact         : Enable windows service interactive UI, useful for debug
 echo   --remove           : Remove FlareAgent windows service
 echo   --ignore-tools     : Ignore checking JAVA_HOME\lib\tools.jar for jdk 9/10/11
 echo(
 echo Example:
 echo   %filename% 2351 
-@rem echo   %filename% 2351 -agent-port 2000
+echo   %filename% 2351 -address 5555
 echo   %filename% -pid 2351 --interact 
 echo   %filename% -port 8080 --interact 
 echo   %filename% --remove  #remove service
