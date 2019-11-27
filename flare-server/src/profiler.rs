@@ -678,9 +678,9 @@ impl Profiler {
         let filter_method_size = method_info_vec.len();
         println!("filter method size: {}", filter_method_size);
         let mut method_infos: &[MethodInfo] = &method_info_vec;
-        if method_infos.len() > 30 {
-            method_infos = &method_info_vec[0..30];
-        }
+//        if method_infos.len() > 30 {
+//            method_infos = &method_info_vec[0..30];
+//        }
         let result = json!({
                 "session_id": session_id,
                 "method_name_filter": method_name_filter,
@@ -734,9 +734,10 @@ impl Profiler {
                             search_progress = new_search_progress;
                             let result = json!({
                                 "session_id": session_id,
-                                "method_ids": method_ids,
+                                //"method_ids": method_ids,
                                 "search_progress": search_progress,
                                 "search_finished": false,
+                                "search_message": format!("searching {}", thread.name)
                             });
                             sender.send_message(&wrap_response(&cmd, &result));
                             println!("search progress: {}%", search_progress);
