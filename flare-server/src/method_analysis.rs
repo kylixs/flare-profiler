@@ -28,6 +28,8 @@ pub struct MethodCallGroup {
     //公共调用栈的方法id 集合，用于快速比较
     #[serde(skip_serializing)]
     pub call_stack_ids: HashSet<i64>,
+    #[serde(skip_serializing)]
+    primary_stacks: Vec<i64>,
 }
 
 pub struct MethodAnalysis {
@@ -47,19 +49,28 @@ impl MethodAnalysis {
     }
 
     pub fn add_method_call(&mut self, method_call: Box<MethodCall>) {
-        //找到最高相似度的分组
-        let (mut max_match_count, mut match_group) = (0, None);
+//        //找到最高相似度的分组
+//        let (mut max_match_count, mut match_group) = (0, None);
+//        for group in &mut self.call_groups {
+//            let match_count = get_match_count(&method_call.primary_stacks, &group.call_stack_ids);
+//            if match_count > max_match_count {
+//                max_match_count = match_count;
+//                match_group = Some(group);
+//            }
+//        }
+//        //如果找到满足要求的分组，合并之
+//        //TODO 要分别计算两个分组的相似度，避免某个方法是其中一个子集时也合并到一起的情况
+//        let min_similarity = 0.9;
+//        if max_match_count >= (method_call.primary_stacks.len() as f64 * min_similarity) as u64 {
+//            if let Some(group) = match_group {
+//                group.method_calls.push(method_call);
+//                return;
+//            }
+//        }
+
+        //合并相同特征栈的方法调用为一组
         for group in &mut self.call_groups {
-            let match_count = get_match_count(&method_call.primary_stacks, &group.call_stack_ids);
-            if match_count > max_match_count {
-                max_match_count = match_count;
-                match_group = Some(group);
-            }
-        }
-        //如果找到满足要求的分组，合并之
-        let min_similarity = 0.9;
-        if max_match_count >= (method_call.primary_stacks.len() as f64 * min_similarity) as u64 {
-            if let Some(group) = match_group {
+            if group.primary_stacks.eq(&method_call.primary_stacks) {
                 group.method_calls.push(method_call);
                 return;
             }
@@ -77,6 +88,7 @@ impl MethodAnalysis {
                 features: vec![]
             })
         }
+        let primary_stacks = method_call.primary_stacks.clone();
 
         self.group_id_seq += 1;
         let mut match_group = MethodCallGroup {
@@ -84,7 +96,8 @@ impl MethodAnalysis {
             method_calls: vec![method_call],
             features: vec![],
             call_stack,
-            call_stack_ids
+            call_stack_ids,
+            primary_stacks,
         };
         self.call_groups.push(match_group);
     }

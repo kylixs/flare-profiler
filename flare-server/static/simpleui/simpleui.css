@@ -104,6 +104,10 @@ input.input-field {
     overflow: auto;
     max-height: 85vh;
 }
+.method_groups_div{
+    max-height: 85vh;
+    overflow: auto;
+}
 .search_method_message {
     margin:4px;
     /*background-color: #f0f9eb;*/

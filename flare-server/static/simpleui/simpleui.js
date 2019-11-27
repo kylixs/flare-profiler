@@ -473,16 +473,15 @@ var profiler = {
     on_slow_method_calls(data){
         //update search message
         profiler.uistate.search_method_error = data.search_error;
-        if (data.search_message){
+        if(data.search_finished){
+            profiler.uistate.search_method_message = "Search finished."
+        }else if (data.search_progress){
+            profiler.uistate.search_method_message = "Search progress: "+data.search_progress+"% ";
+            // profiler.uistate.search_method_message += (data.search_message?(", "+data.search_message):"");
+        }else if(data.search_error){
             profiler.uistate.search_method_message = data.search_message;
         }else {
-            if(data.search_finished){
-                profiler.uistate.search_method_message = "Search finished."
-            }else if (data.search_progress){
-                profiler.uistate.search_method_message = "Search progress: "+data.search_progress+"%"
-            }else {
-                profiler.uistate.search_method_message = "";
-            }
+            profiler.uistate.search_method_message = "";
         }
 
         //merge array method_calls
@@ -497,14 +496,43 @@ var profiler = {
                     }
                     return 0;
                 });
+
+                try {
+                    group.first_method_name = group.call_stack[0].full_name;
+                }catch (e) {
+                }
+
+                let max=null,min=null,avg,total=0;
+                for (var method_call of group.method_calls) {
+                    if (!max){
+                        max = min = method_call.duration;
+                    } else {
+                        if (max < method_call.duration){
+                            max = method_call.duration;
+                        } else if(min > method_call.duration){
+                            min = method_call.duration;
+                        }
+                    }
+
+                    total += method_call.duration;
+                }
+                avg = Math.round(total / group.method_calls.length);
+                group.max_duration = max;
+                group.min_duration = min;
+                group.avg_duration = avg;
+
                 profiler.uistate.method_call_groups.push(group);
             }
+
+            profiler.uistate.method_call_groups.sort(function (a, b) {
+                if ( a.method_calls.length < b.method_calls.length){
+                    return 1;
+                } else if ( a.method_calls.length > b.method_calls.length) {
+                    return -1;
+                }
+                return 0;
+            });
         }
-    },
-    sort_slow_method_calls(){
-        // profiler.uistate.method_call_groups.sort(function (a, b) {
-        //
-        // });
     },
     jump_to_method_call(method_call){
         method_call = method_call || profiler.uistate.jumping_method_call;
