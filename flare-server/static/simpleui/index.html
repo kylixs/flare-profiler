@@ -176,7 +176,7 @@
 
 					<el-tab-pane label="Method Analysis" name="top_slow_method" class="work-content">
 						<div id="top_slow_div">
-							<h4 class="title">Method Analysis</h4>
+<!--							<h4 class="title">Method Analysis</h4>-->
 							<div>
 								选择方法:
 								<el-input class="long_input" size="mini" placeholder="输入方法名进行过滤"
@@ -242,12 +242,10 @@
 							<div class="row_div">
 								方法执行时间(ms)：
 								<el-input class="short_input" size="mini" placeholder="最小执行时间" v-model="profiler.uistate.min_method_duration"> </el-input> -
-								<el-input class="short_input" size="mini" placeholder="最大执行时间" v-model="profiler.uistate.max_method_duration"> </el-input>
+								<el-input class="short_input" size="mini" placeholder="最大执行时间" v-model="profiler.uistate.max_method_duration"> </el-input> &nbsp;&nbsp;
+                                过滤线程：<el-input class="long_input" size="mini" placeholder="输入线程名称进行过滤" v-model="profiler.uistate.thread_name_filter"> </el-input>
 							</div>
-							<div class="row_div">
-								过滤线程：<el-input class="long_input" size="mini" placeholder="输入线程名称进行过滤" v-model="profiler.uistate.thread_name_filter"> </el-input>
-							</div>
-							<div class="method_groups_div">
+							<div >
 								<p class="list-title"> 上面选定方法最慢的调用记录： (total
                                     {{profiler.uistate.method_call_groups.length}}) &nbsp;
                                     <el-button type="primary" size="mini" plain @click='profiler.search_slow_methods()' >Search</el-button> &nbsp;&nbsp;
@@ -262,15 +260,28 @@
 									</el-dropdown> &nbsp;
 									<span class="search_method_message" :class="{error_message: profiler.uistate.search_method_error == true}" >{{profiler.uistate.search_method_message}}</span>
 								</p>
-                                <el-collapse>
+                                <el-collapse class="method_groups_div">
                                     <el-collapse-item v-for="call_group in  profiler.uistate.method_call_groups" :name="'call_group_'+call_group.group_id" >
                                         <template slot="title">
-											Group #{{call_group.group_id}} - method_calls: {{call_group.method_calls.length}} - max: {{call_group.max_duration}}, avg: {{call_group.avg_duration}}, min: {{call_group.min_duration}} - {{call_group.first_method_name}}&nbsp;
+											#{{call_group.group_id}} - calls: {{call_group.method_calls.length}} - max: {{call_group.max_duration}}, avg: {{call_group.avg_duration}}, min: {{call_group.min_duration}} &nbsp;
+                                            <span class="group_first_method" :title="call_group.first_method_name">{{call_group.first_method_name}}</span> &nbsp;
+                                            <span class="feat_tag" :class="'feat_'+feat.style" v-for="feat in call_group.features">
+                                                <el-tag size="mini" v-if="feat.tag!==false">{{feat.name}}</el-tag>
+                                            </span>
                                             <el-popover placement="right" trigger="hover">
+                                                <!-- call stack -->
+                                                <!-- :title="'features: '+methodAnalysis.format_features(call.features)"-->
                                                 <ul class="call-stack-list-content">
-                                                    <li v-for="call in call_group.call_stack" >{{call.full_name}}</li>
+                                                    <li v-for="(call,index) in call_group.call_stack" >
+                                                        <span>[{{call.duration}}ms, {{Math.round(100*call.duration/call_group.duration)}}%]</span>
+                                                        <span class="call_stack_name call_stack" :class="'feat_'+call.feature_style">{{call.full_name}}</span>&nbsp;
+                                                        <span class="call_stack_tag_space">&nbsp;&nbsp;</span>
+                                                        <span class="call_stack call_stack_tag" :class="'feat_'+call.feature_style" v-if="call.features.length > 0">
+                                                            <el-tag class="feat_tag" size="mini" >{{call.features[0].name}}</el-tag>
+                                                        </span>&nbsp;
+                                                    </li>
                                                 </ul>
-                                                <el-button size="mini" slot="reference" >View CallStack</el-button>
+                                                <el-button size="mini" slot="reference" icon="el-icon-chat-line-square"></el-button>
                                             </el-popover> &nbsp; &nbsp;
 											<el-button type="danger" size="mini" icon="el-icon-delete" plain @click.prevent.stop='add_excluded_method2(call_group.first_method_name)'></el-button> &nbsp;&nbsp;
                                         </template>
@@ -328,6 +339,7 @@
 		<!-- d3-flamegraph -->
 <!--		<script type="text/javascript" src="d3-flame-graph/d3-flamegraph.min.js"></script>-->
 <!--		<script type="text/javascript" src="d3-flamegraph.js"></script>-->
+        <script src="method-analysis.js" ></script>
         <script src="simpleui.js" ></script>
 
 	</body>

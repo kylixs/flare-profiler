@@ -85,6 +85,7 @@ pub struct MethodCall {
     pub samples: i64,
     //#[serde(skip_serializing)]
     pub primary_stacks: Vec<i64>,
+    pub durations: Vec<i64>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -1032,7 +1033,8 @@ impl SampleCollector {
     fn create_method_call(&self, node: &Box<tree::TreeNode>, thread_id: JavaLong, thread_name: &str) -> Box<MethodCall> {
 
         let mut primary_stacks = vec![];
-        self.search_primary_stacks(node, &mut primary_stacks, node.duration/2);
+        let mut durations  = vec![];
+        self.search_primary_stacks(node, &mut primary_stacks, &mut durations, node.duration/2);
 
         Box::new(MethodCall {
             method_id: node.id,
@@ -1045,15 +1047,17 @@ impl SampleCollector {
             cpu: node.cpu,
             samples: 0,
             primary_stacks,
+            durations,
         })
     }
 
     //提取调用树子树中超过指定duration的方法id集合
-    fn search_primary_stacks(&self, node: &Box<tree::TreeNode>, primary_stacks: &mut Vec<i64>, duration: i64) {
-        if node.duration >= duration {
+    fn search_primary_stacks(&self, node: &Box<tree::TreeNode>, primary_stacks: &mut Vec<i64>, durations: &mut Vec<i64>, min_duration: i64) {
+        if node.duration >= min_duration {
             primary_stacks.push(node.id);
+            durations.push(node.duration);
             for child in &node.children {
-                self.search_primary_stacks(child, primary_stacks, duration);
+                self.search_primary_stacks(child, primary_stacks, durations, min_duration);
             }
         }
     }

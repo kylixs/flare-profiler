@@ -55,7 +55,7 @@ var default_uistate = function () {
         thread_name_filter: "",
         search_methods: [],
         excluded_methods: [],
-        min_method_duration: "100",
+        min_method_duration: "1000",
         max_method_duration: "",
         show_filter_methods: true,
         method_call_groups: [],
@@ -482,7 +482,7 @@ var profiler = {
         //parse duration
         var min_method_duration = profiler.uistate.min_method_duration.trim();
         if(min_method_duration == ""){
-            min_method_duration = 100;
+            min_method_duration = 1000;
         }else {
             min_method_duration = parseInt(min_method_duration);
         }
@@ -527,53 +527,13 @@ var profiler = {
         }
 
         //merge array method_calls
-        //Array.prototype.push.apply(profiler.uistate.slow_method_calls, method_calls);
         if (data.method_call_groups){
             for (var group of data.method_call_groups) {
-                group.method_calls.sort(function (a, b) {
-                    if (a.duration < b.duration){
-                        return 1;
-                    }else if(a.duration > b.duration) {
-                        return -1;
-                    }
-                    return 0;
-                });
-
-                try {
-                    group.first_method_name = group.call_stack[0].full_name;
-                }catch (e) {
-                }
-
-                let max=null,min=null,avg,total=0;
-                for (var method_call of group.method_calls) {
-                    if (!max){
-                        max = min = method_call.duration;
-                    } else {
-                        if (max < method_call.duration){
-                            max = method_call.duration;
-                        } else if(min > method_call.duration){
-                            min = method_call.duration;
-                        }
-                    }
-
-                    total += method_call.duration;
-                }
-                avg = Math.round(total / group.method_calls.length);
-                group.max_duration = max;
-                group.min_duration = min;
-                group.avg_duration = avg;
-
+                methodAnalysis.process_call_group(group);
                 profiler.uistate.method_call_groups.push(group);
             }
 
-            profiler.uistate.method_call_groups.sort(function (a, b) {
-                if ( a.method_calls.length < b.method_calls.length){
-                    return 1;
-                } else if ( a.method_calls.length > b.method_calls.length) {
-                    return -1;
-                }
-                return 0;
-            });
+            profiler.sort_slow_method_calls('duration');
         }
     },
     jump_to_method_call(method_call){
@@ -624,7 +584,7 @@ var profiler = {
                 }
                 return 0;
             });
-        } else {
+        } else if (command == 'calls') {
             profiler.uistate.method_call_groups.sort(function (a, b) {
                 if ( a.method_calls.length < b.method_calls.length){
                     return 1;
@@ -1058,7 +1018,8 @@ var app = new Vue({
             children: 'children',
             label: 'label'
         },
-        profiler: profiler
+        profiler: profiler,
+        methodAnalysis: methodAnalysis,
     },
     // components() {
     // 	"d3-flamegraph"

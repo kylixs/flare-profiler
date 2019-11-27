@@ -100,18 +100,104 @@ input.input-field {
     border: #c7ddef 1px solid;
 }
 .call-stack-list-content {
+    cursor: default;
     list-style:none;
     overflow: auto;
     max-height: 85vh;
+    position: relative;
 }
+.call-stack-list-content li:hover {
+    color: #1a73e8 !important;
+}
+.call-stack-list-content .call_stack_name:hover {
+    color: #1a73e8 !important;
+}
+.call-stack-list-content .el-tag:hover {
+    color: #1a73e8 !important;
+}
+
 .method_groups_div{
-    max-height: 85vh;
+    max-height: 60vh;
     overflow: auto;
 }
 .search_method_message {
     margin:4px;
     /*background-color: #f0f9eb;*/
     /*color: #1a73e8;*/
+}
+.group_first_method{
+    text-overflow: ellipsis;
+    max-width: 500px;
+    overflow: hidden;
+    margin-right: 5px;
+}
+.feat_main > .el-tag{
+    background-color: #ecf5ff;
+    color: #409eff;
+    border-color: #d9ecff;
+}
+.feat_gray > .el-tag{
+    background-color: #f4f4f5;
+    border-color: #e9e9eb;
+    color: #909399;
+}
+.feat_db > .el-tag{
+    background-color: #f0f9eb;
+    border-color: #e1f3d8;
+    color: #67c23a;
+}
+.feat_rpc > .el-tag{
+    background-color: #fdf6ec;
+    border-color: #faecd8;
+    color: #e6a23c;
+}
+.feat_severe > .el-tag{
+    background-color: #fef0f0;
+    border-color: #fde2e2;
+    color: #f56c6c;
+}
+
+.call-stack-list-content .feat_main {
+    background-color: #ecf5ff;
+    color: #409eff;
+    border-color: #d9ecff;
+}
+
+.call-stack-list-content .feat_gray  {
+    background-color: #f4f4f5;
+    border-color: #e9e9eb;
+    color: #909399;
+}
+.call-stack-list-content .feat_db {
+    background-color: #f0f9eb;
+    border-color: #e1f3d8;
+    color: #67c23a;
+}
+.call-stack-list-content .feat_rpc {
+    background-color: #fdf6ec;
+    border-color: #faecd8;
+    color: #e6a23c;
+}
+.call-stack-list-content .feat_severe {
+    background-color: #fef0f0;
+    border-color: #fde2e2;
+    color: #f56c6c;
+}
+
+.call_stack_name {
+    margin-right: 60px;
+}
+.call_stack_tag{
+    float: right;
+    right: 10px;
+    position: absolute;
+}
+.call_stack_tag_space {
+    width: 50px;
+}
+
+.feat_tag{
+    margin-right: 4px;
 }
 .error_message {
     background-color: #fef0f0;

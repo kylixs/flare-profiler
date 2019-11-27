@@ -726,14 +726,9 @@ impl Profiler {
                 match collector.lock().unwrap().search_slow_method_calls(thread.id, &method_ids, min_duration, max_duration) {
                     Ok(method_calls ) => {
                         let search_cost = sw.lap();
-                        if method_calls.is_empty() {
-                            //println!("slow method calls not found, thread: {}, search cost: {}ms", thread.id, search_cost);
-                            continue;
-                        }
-                        total += method_calls.len();
+                        //send progress
                         let new_search_progress = 100*i/thread_size;
-                        println!("found slow method calls: {}, thread: {}, search cost: {}ms, send cost: {}ms", method_calls.len(), thread.id,  search_cost, sw.lap());
-                        if new_search_progress > search_progress {
+                        if new_search_progress - search_progress > 5 {
                             search_progress = new_search_progress;
                             let result = json!({
                                 "session_id": session_id,
@@ -745,6 +740,13 @@ impl Profiler {
                             sender.send_message(&wrap_response(&cmd, &result));
                             println!("search progress: {}%", search_progress);
                         }
+
+                        if method_calls.is_empty() {
+                            //println!("slow method calls not found, thread: {}, search cost: {}ms", thread.id, search_cost);
+                            continue;
+                        }
+                        total += method_calls.len();
+                        println!("found slow method calls: {}, thread: {}, search cost: {}ms, send cost: {}ms", method_calls.len(), thread.id,  search_cost, sw.lap());
 
                         for method_call in method_calls {
                             method_analysis.add_method_call(method_call);
