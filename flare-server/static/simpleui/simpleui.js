@@ -54,10 +54,12 @@ var default_uistate = function () {
         cpu_charts: {},
         thread_name_filter: "",
         search_methods: [],
+        excluded_methods: [],
         min_method_duration: "100",
         max_method_duration: "",
         show_filter_methods: true,
         method_call_groups: [],
+        current_hover_group: null,
         //等待打开的方法调用，等待ts数据加载完毕后再打开
         jumping_method_call: null,
         search_method_message: "",
@@ -99,6 +101,9 @@ var profiler = {
         threads: 'threads',
         call_graph: 'call_graph',
         call_tree: 'call_tree',
+    },
+    keys: {
+        excluded_methods: "flare-profiler.excluded-methods",
     },
     uistate: default_uistate(),
     data: {
@@ -162,6 +167,8 @@ var profiler = {
             profiler.onmessage(json);
         };
         this.socket = socket;
+
+        profiler.load_excluded_methods();
 
         //注册滚动事件
         // document.getElementById('cpu_time_content').addEventListener('scroll', function(e) {
@@ -404,6 +411,10 @@ var profiler = {
     },
     add_search_method(method_info){
         for( var m of profiler.uistate.search_methods) {
+            //filter_excluded_methods
+            // if (profiler.uistate.excluded_methods.indexOf(m.full_name)!=-1){
+            //     return;
+            // }
             if (m.method_id == method_info.method_id){
                 return;
             }
@@ -421,6 +432,34 @@ var profiler = {
         profiler.uistate.search_method_message = "";
         profiler.uistate.search_method_error = false;
     },
+    add_excluded_method(method_name){
+        method_name = method_name.trim();
+        if(method_name.length == 0){
+            return;
+        }
+        if (profiler.uistate.excluded_methods.indexOf(method_name) == -1 ){
+            profiler.uistate.excluded_methods.push(method_name);
+        }
+        profiler.save_excluded_methods();
+    },
+    remove_excluded_method(method_name){
+        profiler.uistate.excluded_methods.splice(profiler.uistate.excluded_methods.indexOf(method_name), 1);
+        profiler.save_excluded_methods();
+    },
+    clear_excluded_methods(){
+        profiler.uistate.excluded_methods = [];
+        profiler.save_excluded_methods();
+    },
+    save_excluded_methods(){
+        localStorage.setItem(profiler.keys.excluded_methods, JSON.stringify(profiler.uistate.excluded_methods));
+    },
+    load_excluded_methods(){
+        let str = localStorage.getItem(profiler.keys.excluded_methods);
+        if (str != null){
+            console.log("load excluded-methods: ", str);
+            profiler.uistate.excluded_methods = JSON.parse(str);
+        }
+    },
     set_search_message(msg, error) {
         profiler.uistate.search_method_message = msg;
         profiler.uistate.search_method_error = error;
@@ -428,7 +467,10 @@ var profiler = {
     search_slow_methods(){
         let method_ids = [];
         for ( var m of profiler.uistate.search_methods){
-            method_ids.push(m.method_id);
+            //filter_excluded_methods
+            if (profiler.uistate.excluded_methods.indexOf(m.full_name)==-1){
+                method_ids.push(m.method_id);
+            }
         }
         if (method_ids.length == 0){
             profiler.set_search_message("Please specify searching methods!", true);
@@ -572,6 +614,28 @@ var profiler = {
             profiler.update_call_graph_thread_cpu_data(thread.id, start_time, end_time, ts_data, unit_time_ms, sess_start_time, start_percent, end_percent);
         }
     },
+    sort_slow_method_calls(command){
+        if (command == 'duration'){
+            profiler.uistate.method_call_groups.sort(function (a, b) {
+                if ( a.max_duration < b.max_duration){
+                    return 1;
+                } else if ( a.max_duration > b.max_duration) {
+                    return -1;
+                }
+                return 0;
+            });
+        } else {
+            profiler.uistate.method_call_groups.sort(function (a, b) {
+                if ( a.method_calls.length < b.method_calls.length){
+                    return 1;
+                } else if ( a.method_calls.length > b.method_calls.length) {
+                    return -1;
+                }
+                return 0;
+            });
+        }
+
+    },
     active_session:function (session_id, type) {
         this.clear_session();
         profiler.data.session_id = session_id;
@@ -590,6 +654,8 @@ var profiler = {
         this.data.sample_info = {};
         this.data.thread_cpu_time_map = {};
         this.uistate = default_uistate();
+
+        this.load_excluded_methods();
     },
     on_cpu_time_result(data){
         var sess_start_time = profiler.data.sample_info.record_start_time;
@@ -986,6 +1052,8 @@ var app = new Vue({
         message: '',
         treeFilterText: '',
         methodFilterText: '',
+        excludedMethodText: '',
+        dialogExcludedMethodsVisible: false,
         treeProps: {
             children: 'children',
             label: 'label'
@@ -1023,7 +1091,26 @@ var app = new Vue({
         select_filter_method(method){
             this._data.methodFilterText = method;
             profiler.list_methods_by_filter(method);
-        }
+        },
+        add_excluded_method2(method_name){
+            this.$confirm('是否将方法['+method_name+']添加到排除列表?', '提示', {
+                confirmButtonText: '确定',
+                cancelButtonText: '取消',
+                type: 'warning'
+            }).then(() => {
+                profiler.add_excluded_method(method_name);
+                this.$notify({
+                    title: '成功',
+                    message: '已将方法['+method_name+']添加到排除列表，请重新执行分析操作。',
+                    type: 'success'
+                })
+            }).catch(() => {
+                // this.$notify.error({
+                //     title: '失败',
+                //     message: '添加方法['+method_name+']到排除列表失败！'
+                // })
+            });
+        },
     },
     filters: {
         cpuTimeFilter(value) {

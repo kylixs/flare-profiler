@@ -1019,7 +1019,7 @@ impl SampleCollector {
     fn search_call_tree(&self, result: &mut Vec<Box<MethodCall>>, node: &Box<tree::TreeNode>, thread_id: i64, thread_name: &str, method_ids: &[i64], min_duration: i64, max_duration: i64) {
         //TODO search
         if node.duration >= min_duration {
-            if method_ids.contains(&node.id) && (max_duration <=0 || node.duration < max_duration) {
+            if method_ids.binary_search(&node.id).is_ok() && (max_duration <=0 || node.duration < max_duration) {
                 result.push(self.create_method_call(node, thread_id, thread_name));
             } else {
                 for child in &node.children {

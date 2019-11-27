@@ -199,12 +199,32 @@
 
 								<el-button type="primary" size="mini" plain @click='profiler.add_all_filter_methods()' >Add all</el-button> &nbsp;
 								<el-button type="danger" size="mini" plain @click='profiler.clear_search_methods()' >Clear</el-button> &nbsp;
+								<el-button type="primary" size="mini" plain @click='dialogExcludedMethodsVisible = true' >Exclude-list</el-button> &nbsp;
 
 								<div v-show="profiler.uistate.show_filter_methods">
 									<ul class="method-list-content">
 										<li class="list-item" v-for="method_info in profiler.data.method_infos" @click='profiler.add_search_method(method_info)' >{{method_info.full_name}}</li>
 									</ul>
 								</div>
+
+								<el-dialog title="Excluded methods" :visible.sync="dialogExcludedMethodsVisible">
+									<el-input class="long_input" size="mini" placeholder="输入排除的方法名" v-model="excludedMethodText"
+											  @keyup.native.enter="profiler.add_excluded_method(excludedMethodText);excludedMethodText='';">
+									</el-input> &nbsp;
+									<el-button type="primary" size="mini" plain @click='profiler.add_excluded_method(excludedMethodText);excludedMethodText="";' >Add</el-button> &nbsp;&nbsp;
+									<el-button type="danger" size="mini" plain @click='profiler.clear_excluded_methods()' >Clear</el-button> &nbsp;
+
+									<div class="selected_methods_div">排除的方法集合:
+										<el-tag
+												class="method_tag"
+												v-for="method_name in profiler.uistate.excluded_methods"
+												closable
+												@close="profiler.remove_excluded_method(method_name)"
+												size="small">
+											{{method_name}}
+										</el-tag>
+									</div>
+								</el-dialog>
 
 							</div>
 
@@ -230,20 +250,29 @@
 							<div class="method_groups_div">
 								<p class="list-title"> 上面选定方法最慢的调用记录： (total
                                     {{profiler.uistate.method_call_groups.length}}) &nbsp;
-                                    <el-button type="primary" size="mini" plain @click='profiler.search_slow_methods()' >Search</el-button> &nbsp;
+                                    <el-button type="primary" size="mini" plain @click='profiler.search_slow_methods()' >Search</el-button> &nbsp;&nbsp;
+									<el-dropdown @command="profiler.sort_slow_method_calls">
+										<span class="el-dropdown-link">
+											Sort<i class="el-icon-arrow-down el-icon--right"></i>
+										</span>
+										<el-dropdown-menu slot="dropdown">
+											<el-dropdown-item command="duration">Sort by duration</el-dropdown-item>
+											<el-dropdown-item command="calls">Sort by calls</el-dropdown-item>
+										</el-dropdown-menu>
+									</el-dropdown> &nbsp;
 									<span class="search_method_message" :class="{error_message: profiler.uistate.search_method_error == true}" >{{profiler.uistate.search_method_message}}</span>
 								</p>
                                 <el-collapse>
-                                    <el-collapse-item v-for="call_group in  profiler.uistate.method_call_groups" :name="'call_group_'+call_group.group_id">
+                                    <el-collapse-item v-for="call_group in  profiler.uistate.method_call_groups" :name="'call_group_'+call_group.group_id" >
                                         <template slot="title">
-                                            Group #{{call_group.group_id}} - method_calls: {{call_group.method_calls.length}} - max: {{call_group.max_duration}}, avg: {{call_group.avg_duration}}, min: {{call_group.min_duration}} - {{call_group.first_method_name}} &nbsp;
+											Group #{{call_group.group_id}} - method_calls: {{call_group.method_calls.length}} - max: {{call_group.max_duration}}, avg: {{call_group.avg_duration}}, min: {{call_group.min_duration}} - {{call_group.first_method_name}}&nbsp;
                                             <el-popover placement="right" trigger="hover">
                                                 <ul class="call-stack-list-content">
                                                     <li v-for="call in call_group.call_stack" >{{call.full_name}}</li>
                                                 </ul>
                                                 <el-button size="mini" slot="reference" >View CallStack</el-button>
-                                            </el-popover>
-
+                                            </el-popover> &nbsp; &nbsp;
+											<el-button type="danger" size="mini" icon="el-icon-delete" plain @click.prevent.stop='add_excluded_method2(call_group.first_method_name)'></el-button> &nbsp;&nbsp;
                                         </template>
                                         <ul class="slow-calls-list-content">
                                             <li class="list-item" v-for="method_call in call_group.method_calls" @click='profiler.jump_to_method_call(method_call)'
@@ -251,6 +280,8 @@
                                         </ul>
                                     </el-collapse-item>
                                 </el-collapse>
+
+
 							</div>
 						</div>
 					</el-tab-pane>

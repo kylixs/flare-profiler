@@ -696,11 +696,14 @@ impl Profiler {
     fn handle_search_slow_method_calls_request(&mut self, sender: &mut Writer<std::net::TcpStream>, cmd: &str, options: &serde_json::Map<String, serde_json::Value>) -> io::Result<()> {
         let mut sw = Stopwatch::start_new();
         let session_id = get_option_as_str_required(options, "session_id")?;
-        let method_ids = get_option_as_int_array(options, "method_ids")?;
+        let mut method_ids = get_option_as_int_array(options, "method_ids")?;
         let min_duration = get_option_as_int(options, "min_duration", 100);
         let max_duration = get_option_as_int(options, "max_duration", -1);
         let max_size = get_option_as_int(options, "max_size", 2000) as usize;
         let thread_name_filter = get_option_as_str(options, "thread_name_filter", "");
+
+        //sort asc for binarysearch
+        method_ids.sort();
 
         //let method_calls : Vec<String> = vec![];
         let mut search_error = false;
