@@ -55,7 +55,23 @@ var default_uistate = function () {
         thread_name_filter: "",
         search_methods: [],
         excluded_methods: [],
-        min_method_duration: "1000",
+        min_method_duration: "200",
+        max_method_duration: "",
+        show_filter_methods: true,
+        method_call_groups: [],
+        current_hover_group: null,
+        //等待打开的方法调用，等待ts数据加载完毕后再打开
+        jumping_method_call: null,
+        search_method_message: "",
+        search_method_error: false,
+    };
+}
+var default_uistate_analysis = function () {
+    return {
+        thread_name_filter: "",
+        search_methods: [],
+        excluded_methods: [],
+        min_method_duration: "200",
         max_method_duration: "",
         show_filter_methods: true,
         method_call_groups: [],
@@ -106,6 +122,7 @@ var profiler = {
         excluded_methods: "flare-profiler.excluded-methods",
     },
     uistate: default_uistate(),
+    uistate_analysis: default_uistate_analysis(),
     data: {
         version: 'Flare Profiler v0.0.1-alpha',
         activeTab: 'profile',
@@ -498,7 +515,7 @@ var profiler = {
         let thread_name_filter = profiler.uistate.thread_name_filter || "";
         profiler.set_search_message("Searching method calls ...");
 
-        profiler.uistate.method_call_groups = [];
+        profiler.uistate_analysis.method_call_groups = [];
         var request = {
             "cmd": "search_slow_method_calls",
             "options": {
@@ -528,12 +545,14 @@ var profiler = {
 
         //merge array method_calls
         if (data.method_call_groups){
+            //let groups =  profiler.uistate_analysis.method_call_groups.slice(0);
+            let groups =  [];
             for (var group of data.method_call_groups) {
                 methodAnalysis.process_call_group(group);
-                profiler.uistate.method_call_groups.push(group);
+                groups.push(group);
             }
 
-            profiler.sort_slow_method_calls('duration');
+            profiler.sort_slow_method_calls('duration', groups);
         }
     },
     jump_to_method_call(method_call){
@@ -574,9 +593,17 @@ var profiler = {
             profiler.update_call_graph_thread_cpu_data(thread.id, start_time, end_time, ts_data, unit_time_ms, sess_start_time, start_percent, end_percent);
         }
     },
-    sort_slow_method_calls(command){
+    sort_slow_method_calls(command, groups){
+        //如果groups 不是数组则重新克隆一份（可能是vue组件）
+        if(!groups || !groups.length){
+            //groups = profiler.uistate_analysis.method_call_groups.slice(0);
+            groups = [];
+            for(var item of profiler.uistate_analysis.method_call_groups){
+                groups.push(item);
+            }
+        }
         if (command == 'duration'){
-            profiler.uistate.method_call_groups.sort(function (a, b) {
+            groups.sort(function (a, b) {
                 if ( a.max_duration < b.max_duration){
                     return 1;
                 } else if ( a.max_duration > b.max_duration) {
@@ -585,7 +612,7 @@ var profiler = {
                 return 0;
             });
         } else if (command == 'calls') {
-            profiler.uistate.method_call_groups.sort(function (a, b) {
+            groups.sort(function (a, b) {
                 if ( a.method_calls.length < b.method_calls.length){
                     return 1;
                 } else if ( a.method_calls.length > b.method_calls.length) {
@@ -594,7 +621,7 @@ var profiler = {
                 return 0;
             });
         }
-
+        profiler.uistate_analysis.method_call_groups = groups;
     },
     active_session:function (session_id, type) {
         this.clear_session();
@@ -614,6 +641,7 @@ var profiler = {
         this.data.sample_info = {};
         this.data.thread_cpu_time_map = {};
         this.uistate = default_uistate();
+        this.uistate_analysis = default_uistate_analysis();
 
         this.load_excluded_methods();
     },

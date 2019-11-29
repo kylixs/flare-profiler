@@ -190,6 +190,7 @@
 									<el-dropdown-menu slot="dropdown">
 										<el-dropdown-item command="HttpServlet.service" >Servlet</el-dropdown-item>
 										<el-dropdown-item command="doDispatch" >SpringMVC</el-dropdown-item>
+										<el-dropdown-item command="Struts" >Struts</el-dropdown-item>
 										<el-dropdown-item command="executeQuery" >MySQL</el-dropdown-item>
 										<el-dropdown-item command="RedisTemplate.execute" >Redis</el-dropdown-item>
 										<el-dropdown-item command="execute" >execute</el-dropdown-item>
@@ -247,7 +248,7 @@
 							</div>
 							<div >
 								<p class="list-title"> 上面选定方法最慢的调用记录： (total
-                                    {{profiler.uistate.method_call_groups.length}}) &nbsp;
+                                    {{profiler.uistate_analysis.method_call_groups.length}}) &nbsp;
                                     <el-button type="primary" size="mini" plain @click='profiler.search_slow_methods()' >Search</el-button> &nbsp;&nbsp;
 									<el-dropdown @command="profiler.sort_slow_method_calls">
 										<span class="el-dropdown-link">
@@ -261,7 +262,7 @@
 									<span class="search_method_message" :class="{error_message: profiler.uistate.search_method_error == true}" >{{profiler.uistate.search_method_message}}</span>
 								</p>
                                 <el-collapse class="method_groups_div">
-                                    <el-collapse-item v-for="call_group in  profiler.uistate.method_call_groups" :name="'call_group_'+call_group.group_id" >
+                                    <el-collapse-item v-for="call_group in  profiler.uistate_analysis.method_call_groups" :name="'call_group_'+call_group.group_id" >
                                         <template slot="title">
 											#{{call_group.group_id}} - calls: {{call_group.method_calls.length}} - max: {{call_group.max_duration}}, avg: {{call_group.avg_duration}}, min: {{call_group.min_duration}} &nbsp;
                                             <span class="group_first_method" :title="call_group.first_method_name">{{call_group.first_method_name}}</span> &nbsp;
