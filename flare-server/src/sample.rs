@@ -1021,7 +1021,7 @@ impl SampleCollector {
         //TODO search
         if node.duration >= min_duration {
             if method_ids.binary_search(&node.id).is_ok() && (max_duration <=0 || node.duration < max_duration) {
-                result.push(self.create_method_call(node, thread_id, thread_name));
+                result.push(self.create_method_call(node, thread_id, thread_name, min_duration));
             } else {
                 for child in &node.children {
                     self.search_call_tree(result, child, thread_id, thread_name, method_ids, min_duration, max_duration);
@@ -1030,12 +1030,12 @@ impl SampleCollector {
         }
     }
 
-    fn create_method_call(&self, node: &Box<tree::TreeNode>, thread_id: JavaLong, thread_name: &str) -> Box<MethodCall> {
+    fn create_method_call(&self, node: &Box<tree::TreeNode>, thread_id: JavaLong, thread_name: &str, min_duration: i64) -> Box<MethodCall> {
 
         let mut primary_stacks = vec![];
         let mut durations  = vec![];
-        self.search_primary_stacks(node, &mut primary_stacks, &mut durations, node.duration/2);
-
+        //提取方法栈： 时间大于 min(根节点时间1/3, min_duration)
+        self.search_primary_stacks(node, &mut primary_stacks, &mut durations, min(node.duration/3, min_duration));
         Box::new(MethodCall {
             method_id: node.id,
             full_name: node.label.clone(),
@@ -1056,9 +1056,19 @@ impl SampleCollector {
         if node.duration >= min_duration {
             primary_stacks.push(node.id);
             durations.push(node.duration);
+            //first slowest child
+            let mut slowest_child = None;
             for child in &node.children {
-                self.search_primary_stacks(child, primary_stacks, durations, min_duration);
+                if slowest_child.is_none() {
+                    slowest_child = Some(child);
+                } else if slowest_child.unwrap().duration < child.duration {
+                    slowest_child = Some(child);
+                }
             }
+            if slowest_child.is_some() {
+                self.search_primary_stacks(slowest_child.unwrap(), primary_stacks, durations, min_duration);
+            }
+
         }
     }
 
