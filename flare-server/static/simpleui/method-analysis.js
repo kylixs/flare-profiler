@@ -28,7 +28,7 @@ var methodAnalysis = {
     },{
         name: 'Json',
         style: 'severe',
-        includes: ['com.fasterxml.jackson']
+        includes: ['com.fasterxml.jackson','net.sf.json','fastjson']
     },{
         name: 'Zip',
         style: 'severe',
