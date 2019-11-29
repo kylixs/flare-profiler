@@ -2,13 +2,25 @@
 
 var methodAnalysis = {
     method_features: [{
-        name: 'Redis',
-        style: 'db',
-        includes: ['redis']
+        name: 'JAR',
+        style: 'severe',
+        includes: ['java.util.jar','java.util.zip']
     },{
-        name: 'SQL',
-        style: 'db',
-        includes: ['jdbc', 'mybatis', 'ibatis', 'jtds', 'dbcp']
+        name: 'Json',
+        style: 'severe',
+        includes: ['com.fasterxml.jackson','net.sf.json','fastjson']
+    },{
+        name: 'Log',
+        style: 'severe',
+        includes: ['logback']
+    },{
+        name: 'Wait',
+        style: 'severe',
+        includes: ['CountDownLatch.await()','java.util.concurrent.locks','Unsafe.park()']
+    },{
+        name: 'Except',
+        style: 'severe',
+        includes: ['java.lang.Exception','java.lang.Throwable','IllegalArgumentException','RuntimeException']
     },{
         name: 'Hessian',
         style: 'rpc',
@@ -24,23 +36,33 @@ var methodAnalysis = {
     },{
         name: 'Net',
         style: 'rpc',
-        includes: ['java.net']
+        includes: ['java.net','org.apache.tomcat.util.net']
     },{
-        name: 'Json',
-        style: 'severe',
-        includes: ['com.fasterxml.jackson','net.sf.json','fastjson']
+        name: 'IO',
+        style: 'rpc',
+        includes: ['.read()','.doRead()','readFully()','.write()','.doWrite()','.writeAndFlush()','.flush']
     },{
-        name: 'Zip',
-        style: 'severe',
-        includes: ['java.util.jar','java.util.zip']
+        name: 'Redis',
+        style: 'db',
+        includes: ['redis']
     },{
-        name: 'Log',
-        style: 'severe',
-        includes: ['logback']
+        name: 'SQL',
+        style: 'db',
+        includes: ['jdbc', 'mybatis', 'ibatis', 'jtds', 'dbcp']
     },{
-        name: 'Major',
-        style: 'main',
-        includes: ['com.sun.proxy.$','gordian', 'szjlc', 'jlc']
+        name: 'Cache',
+        style: 'db',
+        includes: ['LocalCache']
+    },{
+        name: 'Filter',
+        style: 'gray',
+        tag: false,
+        includes: ['doFilter()','internalDoFilter()']
+    },{
+        name: 'Struts',
+        style: 'gray',
+        tag: false,
+        includes: ['struts2.','xwork2.']
     },{
         name: 'RxJava',
         style: 'gray',
@@ -56,9 +78,19 @@ var methodAnalysis = {
         style: 'gray',
         tag: false,
         includes: ['org.springframework.aop', 'org.springframework.transaction', 'org.springframework.web', 'org.springframework.remoting']
+    },{
+        name: 'Major',
+        style: 'main',
+        includes: ['com.sun.proxy.$','_jsp','gordian', 'szjlc', 'jlc'],
+        excludes: ['doFilter()']
     }],
 
     process_call_group(group){
+        if (group.inited){
+            return;
+        }
+        group.inited = true;
+
         group.method_calls.sort(function (a, b) {
             if (a.duration < b.duration){
                 return 1;
@@ -129,11 +161,17 @@ var methodAnalysis = {
         for (let i=0; i < this.method_features.length;i++){
             let feature = this.method_features[i];
             let includes = feature.includes;
+            let found = false;
             for (let x=0; x<includes.length;x++){
                 if ( method_name.indexOf(includes[x])!=-1){
                     result.push(feature);
+                    found = true;
                     break;
                 }
+            }
+            //only first feature
+            if (found){
+                break;
             }
         }
         return result;
