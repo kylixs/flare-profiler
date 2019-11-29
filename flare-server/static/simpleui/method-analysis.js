@@ -20,15 +20,32 @@ var methodAnalysis = {
     },{
         name: 'HttpClient',
         style: 'rpc',
-        includes: ['HttpURLConnection','HttpClient','okhttp']
+        includes: ['HttpURLConnection','HttpClient','okhttp','feign','ribbon']
     },{
         name: 'Net',
         style: 'rpc',
         includes: ['java.net']
     },{
+        name: 'Json',
+        style: 'severe',
+        includes: ['com.fasterxml.jackson']
+    },{
+        name: 'Zip',
+        style: 'severe',
+        includes: ['java.util.jar','java.util.zip']
+    },{
+        name: 'Log',
+        style: 'severe',
+        includes: ['logback']
+    },{
         name: 'Major',
         style: 'main',
         includes: ['com.sun.proxy.$','gordian', 'szjlc', 'jlc']
+    },{
+        name: 'RxJava',
+        style: 'gray',
+        tag: false,
+        includes: ['rx.observables','rx.internal','rx.Observable',]
     },{
         name: 'Reflect',
         style: 'gray',
