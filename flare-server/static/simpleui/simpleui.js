@@ -52,36 +52,11 @@ var default_uistate = function () {
         is_loaded_dashboard: false,
         unit_time_ms: 0,
         cpu_charts: {},
-        thread_name_filter: "",
-        search_methods: [],
-        excluded_methods: [],
-        min_method_duration: "200",
-        max_method_duration: "",
-        show_filter_methods: true,
-        method_call_groups: [],
-        current_hover_group: null,
         //等待打开的方法调用，等待ts数据加载完毕后再打开
         jumping_method_call: null,
-        search_method_message: "",
-        search_method_error: false,
     };
 }
-var default_uistate_analysis = function () {
-    return {
-        thread_name_filter: "",
-        search_methods: [],
-        excluded_methods: [],
-        min_method_duration: "200",
-        max_method_duration: "",
-        show_filter_methods: true,
-        method_call_groups: [],
-        current_hover_group: null,
-        //等待打开的方法调用，等待ts数据加载完毕后再打开
-        jumping_method_call: null,
-        search_method_message: "",
-        search_method_error: false,
-    };
-}
+
 let chartIdPrefix = "thread_cpu_chart_";
 
 var profiler = {
@@ -117,12 +92,9 @@ var profiler = {
         threads: 'threads',
         call_graph: 'call_graph',
         call_tree: 'call_tree',
-    },
-    keys: {
-        excluded_methods: "flare-profiler.excluded-methods",
+        method_analysis: 'method_analysis',
     },
     uistate: default_uistate(),
-    uistate_analysis: default_uistate_analysis(),
     data: {
         version: 'Flare Profiler v0.0.1-alpha',
         activeTab: 'profile',
@@ -132,7 +104,6 @@ var profiler = {
         history_samples: [],
         sample_sessions: [],
         thread_cpu_time_map: {},
-        method_infos: [],
         session_id: "",
         type: "",
         call_tree_data: [{
@@ -184,8 +155,6 @@ var profiler = {
             profiler.onmessage(json);
         };
         this.socket = socket;
-
-        profiler.load_excluded_methods();
 
         //注册滚动事件
         // document.getElementById('cpu_time_content').addEventListener('scroll', function(e) {
@@ -400,229 +369,6 @@ var profiler = {
         };
         this.socket.send(JSON.stringify(request));
     },
-    list_methods_by_filter: function (method_name_filter) {
-        profiler.uistate.show_filter_methods = true;
-        if(profiler.list_method_timer != null){
-            clearTimeout(profiler.list_method_timer);
-            profiler.list_method_timer = null;
-        }
-        if (method_name_filter.trim() == ""){
-            return;
-        }
-        //filter delay 500ms
-        profiler.list_method_timer = setTimeout(function () {
-            var request = {
-                "cmd": "list_methods_by_filter",
-                "options": {
-                    "session_id": profiler.data.session_id,
-                    "method_name_filter": method_name_filter.trim()
-                }
-            };
-            profiler.socket.send(JSON.stringify(request));
-        }, 200);
-    },
-    add_all_filter_methods(){
-        for( var m of profiler.data.method_infos){
-            profiler.add_search_method(m);
-        }
-    },
-    add_search_method(method_info){
-        for( var m of profiler.uistate.search_methods) {
-            //filter_excluded_methods
-            // if (profiler.uistate.excluded_methods.indexOf(m.full_name)!=-1){
-            //     return;
-            // }
-            if (m.method_id == method_info.method_id){
-                return;
-            }
-        }
-        profiler.uistate.search_methods.push(method_info);
-    },
-    remove_search_method(method_info) {
-        let search_methods = profiler.uistate.search_methods;
-        search_methods.splice(search_methods.indexOf(method_info), 1);
-    },
-    clear_search_methods(){
-        profiler.uistate.search_methods = [];
-    },
-    clear_search_message(){
-        profiler.uistate.search_method_message = "";
-        profiler.uistate.search_method_error = false;
-    },
-    add_excluded_method(method_name){
-        method_name = method_name.trim();
-        if(method_name.length == 0){
-            return;
-        }
-        if (profiler.uistate.excluded_methods.indexOf(method_name) == -1 ){
-            profiler.uistate.excluded_methods.push(method_name);
-        }
-        profiler.save_excluded_methods();
-    },
-    remove_excluded_method(method_name){
-        profiler.uistate.excluded_methods.splice(profiler.uistate.excluded_methods.indexOf(method_name), 1);
-        profiler.save_excluded_methods();
-    },
-    clear_excluded_methods(){
-        profiler.uistate.excluded_methods = [];
-        profiler.save_excluded_methods();
-    },
-    save_excluded_methods(){
-        localStorage.setItem(profiler.keys.excluded_methods, JSON.stringify(profiler.uistate.excluded_methods));
-    },
-    load_excluded_methods(){
-        let str = localStorage.getItem(profiler.keys.excluded_methods);
-        if (str != null){
-            console.log("load excluded-methods: ", str);
-            profiler.uistate.excluded_methods = JSON.parse(str);
-        }
-    },
-    set_search_message(msg, error) {
-        profiler.uistate.search_method_message = msg;
-        profiler.uistate.search_method_error = error;
-    },
-    search_slow_methods(){
-        let method_ids = [];
-        for ( var m of profiler.uistate.search_methods){
-            //filter_excluded_methods
-            if (profiler.uistate.excluded_methods.indexOf(m.full_name)==-1){
-                method_ids.push(m.method_id);
-            }
-        }
-        if (method_ids.length == 0){
-            profiler.set_search_message("Please specify searching methods!", true);
-            profiler.uistate.show_filter_methods = true;
-            return;
-        }
-        profiler.uistate.show_filter_methods = false;
-
-        //parse duration
-        var min_method_duration = profiler.uistate.min_method_duration.trim();
-        if(min_method_duration == ""){
-            min_method_duration = 1000;
-        }else {
-            min_method_duration = parseInt(min_method_duration);
-        }
-        profiler.uistate.min_method_duration = ""+min_method_duration;
-
-        var max_method_duration = profiler.uistate.max_method_duration.trim();
-        if(max_method_duration == ""){
-            max_method_duration = -1;
-        }else {
-            max_method_duration = parseInt(max_method_duration);
-            profiler.uistate.max_method_duration = ""+max_method_duration;
-        }
-        let thread_name_filter = profiler.uistate.thread_name_filter || "";
-        profiler.set_search_message("Searching method calls ...");
-
-        profiler.uistate_analysis.method_call_groups = [];
-        var request = {
-            "cmd": "search_slow_method_calls",
-            "options": {
-                "session_id": profiler.data.session_id,
-                "method_ids": method_ids,
-                "min_duration": min_method_duration,
-                "max_duration": max_method_duration,
-                "max_size": 3000,
-                "thread_name_filter": thread_name_filter
-            }
-        };
-        profiler.socket.send(JSON.stringify(request));
-    },
-    on_slow_method_calls(data){
-        //update search message
-        profiler.uistate.search_method_error = data.search_error;
-        if(data.search_finished){
-            profiler.uistate.search_method_message = "Search finished."
-        }else if (data.search_progress){
-            profiler.uistate.search_method_message = "Search progress: "+data.search_progress+"% ";
-            // profiler.uistate.search_method_message += (data.search_message?(", "+data.search_message):"");
-        }else if(data.search_error){
-            profiler.uistate.search_method_message = data.search_message;
-        }else {
-            profiler.uistate.search_method_message = "";
-        }
-
-        //merge array method_calls
-        if (data.method_call_groups){
-            //let groups =  profiler.uistate_analysis.method_call_groups.slice(0);
-            let groups =  [];
-            for (var group of data.method_call_groups) {
-                methodAnalysis.process_call_group(group);
-                groups.push(group);
-            }
-
-            profiler.sort_slow_method_calls('duration', groups);
-        }
-    },
-    jump_to_method_call(method_call){
-        method_call = method_call || profiler.uistate.jumping_method_call;
-        let chartElemId = chartIdPrefix + method_call.thread_id;
-        let myChart = profiler.uistate.cpu_charts[chartElemId];
-        //load chart data as required
-        if (!myChart){
-            //TODO load thread cpu chart
-            profiler.uistate.jumping_method_call = method_call;
-            profiler.load_cpu_time([method_call.thread_id]);
-        } else {
-            profiler.uistate.jumping_method_call = null;
-
-            let thread = myChart.thread;
-            let ts_data = myChart.ts_data;
-            let unit_time_ms = thread.unit_time_ms;
-            let thread_start_time = thread.start_time;
-
-            var sess_start_time = profiler.data.sample_info.record_start_time;
-            var sess_end_time = profiler.data.sample_info.last_record_time;
-            let total_time = sess_end_time - sess_start_time;
-
-            //设置显示范围
-            let start_time = thread_start_time + method_call.start_time;
-            let end_time = start_time + method_call.duration;
-            start_time -= 500;
-            end_time += 500;
-            //let start_time = sess_start_time + rangeStart*unit_time_ms;
-            //let end_time = sess_start_time + rangeEnd*unit_time_ms;
-            let rangeStart = (start_time-sess_start_time)/unit_time_ms;
-            let rangeEnd = (end_time-sess_start_time)/unit_time_ms;
-            let rangeTotal = total_time/unit_time_ms;
-            let start_percent = 100*rangeStart/rangeTotal;
-            let end_percent = 100*rangeEnd/rangeTotal;
-
-            console.log("jump_to_method_call: thread:",thread.id, ", index:", rangeStart,"-", rangeEnd,", time:", start_time,"-", end_time );
-            profiler.update_call_graph_thread_cpu_data(thread.id, start_time, end_time, ts_data, unit_time_ms, sess_start_time, start_percent, end_percent);
-        }
-    },
-    sort_slow_method_calls(command, groups){
-        //如果groups 不是数组则重新克隆一份（可能是vue组件）
-        if(!groups || !groups.length){
-            //groups = profiler.uistate_analysis.method_call_groups.slice(0);
-            groups = [];
-            for(var item of profiler.uistate_analysis.method_call_groups){
-                groups.push(item);
-            }
-        }
-        if (command == 'duration'){
-            groups.sort(function (a, b) {
-                if ( a.max_duration < b.max_duration){
-                    return 1;
-                } else if ( a.max_duration > b.max_duration) {
-                    return -1;
-                }
-                return 0;
-            });
-        } else if (command == 'calls') {
-            groups.sort(function (a, b) {
-                if ( a.method_calls.length < b.method_calls.length){
-                    return 1;
-                } else if ( a.method_calls.length > b.method_calls.length) {
-                    return -1;
-                }
-                return 0;
-            });
-        }
-        profiler.uistate_analysis.method_call_groups = groups;
-    },
     active_session:function (session_id, type) {
         this.clear_session();
         profiler.data.session_id = session_id;
@@ -641,9 +387,9 @@ var profiler = {
         this.data.sample_info = {};
         this.data.thread_cpu_time_map = {};
         this.uistate = default_uistate();
-        this.uistate_analysis = default_uistate_analysis();
 
-        this.load_excluded_methods();
+        let methodAnalysis = get_method_analysis();
+        if(methodAnalysis) methodAnalysis.clear_session();
     },
     on_cpu_time_result(data){
         var sess_start_time = profiler.data.sample_info.record_start_time;
@@ -886,7 +632,44 @@ var profiler = {
             profiler.update_stack_stats();
         }
     },
+    jump_to_method_call(method_call){
+        method_call = method_call || profiler.uistate.jumping_method_call;
+        let chartElemId = chartIdPrefix + method_call.thread_id;
+        let myChart = profiler.uistate.cpu_charts[chartElemId];
+        //load chart data as required
+        if (!myChart){
+            //TODO load thread cpu chart
+            profiler.uistate.jumping_method_call = method_call;
+            profiler.load_cpu_time([method_call.thread_id]);
+        } else {
+            profiler.uistate.jumping_method_call = null;
 
+            let thread = myChart.thread;
+            let ts_data = myChart.ts_data;
+            let unit_time_ms = thread.unit_time_ms;
+            let thread_start_time = thread.start_time;
+
+            var sess_start_time = profiler.data.sample_info.record_start_time;
+            var sess_end_time = profiler.data.sample_info.last_record_time;
+            let total_time = sess_end_time - sess_start_time;
+
+            //设置显示范围
+            let start_time = thread_start_time + method_call.start_time;
+            let end_time = start_time + method_call.duration;
+            start_time -= 500;
+            end_time += 500;
+            //let start_time = sess_start_time + rangeStart*unit_time_ms;
+            //let end_time = sess_start_time + rangeEnd*unit_time_ms;
+            let rangeStart = (start_time-sess_start_time)/unit_time_ms;
+            let rangeEnd = (end_time-sess_start_time)/unit_time_ms;
+            let rangeTotal = total_time/unit_time_ms;
+            let start_percent = 100*rangeStart/rangeTotal;
+            let end_percent = 100*rangeEnd/rangeTotal;
+
+            console.log("jump_to_method_call: thread:",thread.id, ", index:", rangeStart,"-", rangeEnd,", time:", start_time,"-", end_time );
+            profiler.update_call_graph_thread_cpu_data(thread.id, start_time, end_time, ts_data, unit_time_ms, sess_start_time, start_percent, end_percent);
+        }
+    },
     onmessage(json){
         var success = (json.result == "success");
         profiler.show_message = !success;
@@ -925,7 +708,6 @@ var profiler = {
                 break;
             case "flame_graph":
                 profiler.set_zoom_time_range(json.data.start_time, json.data.end_time);
-                //profiler.data.flame_graph_svg="data:image/svg+xml;utf8,"+json.data.flame_graph_data.replace(/<\?xml.*?\>.*\<!DOCTYPE.*\<svg/, "<svg");
                 break;
             case "sequenced_call_tree":
                 let stack = json.data.sequenced_call_tree_data;
@@ -937,9 +719,10 @@ var profiler = {
                 }
                 break;
             case "list_methods_by_filter":
+                get_method_analysis().on_list_methods_result(json.data);
                 break;
             case "search_slow_method_calls":
-                profiler.on_slow_method_calls(json.data);
+                get_method_analysis().on_slow_method_calls(json.data);
                 break;
             default:
                 console.log("unknown message: ", json);
@@ -949,7 +732,7 @@ var profiler = {
 }
 
 document.onreadystatechange=function () {
-    document.getElementById("flame_graph_svg").onmousewheel = profiler.onFlameMouseWheel;
+    //document.getElementById("flame_graph_svg").onmousewheel = profiler.onFlameMouseWheel;
 }
 
 function process_d3_flamegraph_stack(stack) {
@@ -1034,20 +817,29 @@ function update_echarts_bar(myChart, echartsData, start, end) {
     });
 }
 
+
+function get_chrome_flame_chart(){
+    return document.getElementById("chrome_flame_chart").contentWindow;
+}
+
+function get_method_analysis(){
+    let frame = document.getElementById("method_analysis_frame");
+    if(frame){
+        return frame.contentWindow.methodAnalysis;
+    }
+    return null;
+}
+
 var app = new Vue({
     el: '#app',
     data: {
         message: '',
         treeFilterText: '',
-        methodFilterText: '',
-        excludedMethodText: '',
-        dialogExcludedMethodsVisible: false,
         treeProps: {
             children: 'children',
             label: 'label'
         },
         profiler: profiler,
-        methodAnalysis: methodAnalysis,
     },
     // components() {
     // 	"d3-flamegraph"
@@ -1056,9 +848,6 @@ var app = new Vue({
         treeFilterText(val) {
             this.$refs.tree.filter(val);
         },
-        // methodFilterText(val) {
-        //     profiler.list_methods_by_filter(val);
-        // }
     },
     methods: {
         filterNode(value, data) {
@@ -1077,29 +866,6 @@ var app = new Vue({
                 profiler.update_dashboard();
             }
         },
-        select_filter_method(method){
-            this._data.methodFilterText = method;
-            profiler.list_methods_by_filter(method);
-        },
-        add_excluded_method2(method_name){
-            this.$confirm('是否将方法['+method_name+']添加到排除列表?', '提示', {
-                confirmButtonText: '确定',
-                cancelButtonText: '取消',
-                type: 'warning'
-            }).then(() => {
-                profiler.add_excluded_method(method_name);
-                this.$notify({
-                    title: '成功',
-                    message: '已将方法['+method_name+']添加到排除列表，请重新执行分析操作。',
-                    type: 'success'
-                })
-            }).catch(() => {
-                // this.$notify.error({
-                //     title: '失败',
-                //     message: '添加方法['+method_name+']到排除列表失败！'
-                // })
-            });
-        },
     },
     filters: {
         cpuTimeFilter(value) {
@@ -1116,9 +882,4 @@ var app = new Vue({
         //create_echarts_bar('echartsId');
     },
 });
-
-function get_chrome_flame_chart(){
-    return document.getElementById("chrome_flame_chart").contentWindow;
-}
-
 profiler.init();

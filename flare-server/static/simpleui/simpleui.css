@@ -101,10 +101,12 @@ input.input-field {
 }
 .call-stack-list-content {
     cursor: default;
-    list-style:none;
     overflow: auto;
-    max-height: 85vh;
-    position: relative;
+    max-height: 80vh;
+    border-width: 0px;
+}
+.call-stack-list-content td{
+    padding: 0;
 }
 .call-stack-list-content li:hover {
     color: #1a73e8 !important;
@@ -185,7 +187,7 @@ input.input-field {
 }
 
 .call_stack_name {
-    margin-right: 60px;
+    margin-right: 20px;
 }
 .call_stack_tag{
     float: right;
@@ -194,6 +196,18 @@ input.input-field {
 }
 .call_stack_tag_space {
     width: 50px;
+}
+
+.call_stack_close {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    padding: 0;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 16px;
+    cursor: pointer;
 }
 
 .feat_tag{
@@ -296,6 +310,14 @@ input.input-field {
     width: 100%;
     /*height: 100%;*/
     height: 80vh;
+    min-height: 400px;
+    border: 0px;
+}
+
+#method_analysis_frame {
+    width: 100%;
+    /*height: 100%;*/
+    height: 90vh;
     min-height: 400px;
     border: 0px;
 }

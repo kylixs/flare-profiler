@@ -7,7 +7,7 @@
         <link rel="stylesheet" href="simpleui.css">
 		<script src="vue.js" ></script>
 		<script src="element-ui/index.js"></script>
-
+		<script src="echarts.min.js"></script>
 	</head>
 	<body>
 		<div id="app">
@@ -24,14 +24,6 @@
 								<input class="input-field" type="text" v-model="profiler.agent_addr">
 								<input type="button" value="Connect" onclick="profiler.connect_agent()" >
 							</p>
-						</div>
-						<!--			<div>-->
-						<!--				<p>Open Sample:-->
-						<!--				<input class="input-field" type="file" v-model="profiler.sample_dir">-->
-						<!--				<input type="button" value="Open" onclick="profiler.open_sample()" >-->
-						<!--				</p>-->
-						<!--			</div>-->
-						<div>
 							<input type="button" value="Sessions" onclick="profiler.list_sessions()" >
 							<input type="button" value="History" onclick="profiler.list_history()" >
 							<input type="button" value="Close current session" onclick="profiler.close_session()" >
@@ -50,7 +42,6 @@
 								</ul>
 							</div>
 						</div>
-
 					</el-tab-pane>
 
 					<el-tab-pane label="Dashboard" name="dashboard"  class="work-content">
@@ -101,7 +92,7 @@
 					</el-tab-pane>
 
 					<el-tab-pane label="Threads" name="threads" class="work-content">
-						<div id="cpu_time_region" onscroll="profiler.on_scroll_thread_cpu_charts()">
+						<div id="cpu_time_region" onscroll="profiler.on_scroll_thread_cpu_charts()" >
 							<h4 class="title">CPU Time</h4>
 							<div id="cpu_time_content">
 								<!--									<div class="echarts_bar">-->
@@ -121,29 +112,13 @@
 							<div class="thread_name" :title="profiler.selected_thread_name" >{{profiler.selected_thread_name}}</div>
 							<div class="thread_bar" v-bind:id="'thread_cpu_chart_call_graph'"></div>
 						</div>
-						<div id="flame_graph" class="flame-container" v-show="profiler.show_flame_graph" >
-							<h4 class="title">Flame Graph</h4>
-							<span class="toolbar">
-										<input type="button" value="<<" onclick="profiler.ajdust_flame_view(-0.3)" >
-										<input type="button" value="<" onclick="profiler.ajdust_flame_view(-0.1)" >
-										<input type="button" value=">" onclick="profiler.ajdust_flame_view(0.1)" >
-										<input type="button" value=">>" onclick="profiler.ajdust_flame_view(0.3)" >
-									</span>
-							<div id="flame_graph_svg" v-html="profiler.data.flame_graph_data" ></div>
-						</div>
-						<div id="d3_flame_graph" class="flame-container"  v-show="profiler.show_d3_flame_graph">
-							<h4 class="title" v-show="false">D3 Flame Graph</h4>
-							<div id="d3_flame_graph_svg" >
-								<!--  <d3-flamegraph> </d3-flamegraph> -->
-							</div>
-						</div>
-						<div id="chrome_flame_chart_container" class="flame-container"  v-show="profiler.show_chrome_flame_chart">
+						<div id="chrome_flame_chart_container" class="flame-container" >
 							<iframe id="chrome_flame_chart" src="devtools/flamechart.html"></iframe>
 						</div>
 					</el-tab-pane>
 
 					<el-tab-pane label="Call Tree" name="call_tree" class="work-content">
-						<div id="call_tree" v-show="profiler.show_call_tree">
+						<div id="call_tree" v-show="profiler.show_call_tree" >
 							<h4 class="title">Call Stack</h4>
 							<el-input
 									placeholder="输入关键字进行过滤"
@@ -174,174 +149,16 @@
 						</div>
 					</el-tab-pane>
 
-					<el-tab-pane label="Method Analysis" name="top_slow_method" class="work-content">
-						<div id="top_slow_div">
-<!--							<h4 class="title">Method Analysis</h4>-->
-							<div>
-								选择方法:
-								<el-input class="long_input" size="mini" placeholder="输入方法名进行过滤"
-										  v-model="methodFilterText"  @keyup.native="profiler.list_methods_by_filter(methodFilterText)">
-								</el-input>
-								(total {{profiler.data.total_method_size}}) &nbsp;
-								<el-dropdown @command="select_filter_method">
-									<span class="el-dropdown-link">
-										Methods<i class="el-icon-arrow-down el-icon--right"></i>
-									</span>
-									<el-dropdown-menu slot="dropdown">
-										<el-dropdown-item command="HttpServlet.service" >Servlet</el-dropdown-item>
-										<el-dropdown-item command="doDispatch" >SpringMVC</el-dropdown-item>
-										<el-dropdown-item command="Struts" >Struts</el-dropdown-item>
-										<el-dropdown-item command="executeQuery" >MySQL</el-dropdown-item>
-										<el-dropdown-item command="RedisTemplate.execute" >Redis</el-dropdown-item>
-										<el-dropdown-item command="execute" >execute</el-dropdown-item>
-										<el-dropdown-item command="commit" >commit</el-dropdown-item>
-									</el-dropdown-menu>
-								</el-dropdown> &nbsp;
-
-								<el-button type="primary" size="mini" plain @click='profiler.add_all_filter_methods()' >Add all</el-button> &nbsp;
-								<el-button type="danger" size="mini" plain @click='profiler.clear_search_methods()' >Clear</el-button> &nbsp;
-								<el-button type="primary" size="mini" plain @click='dialogExcludedMethodsVisible = true' >Exclude-list</el-button> &nbsp;
-
-								<div v-show="profiler.uistate.show_filter_methods">
-									<ul class="method-list-content">
-										<li class="list-item" v-for="method_info in profiler.data.method_infos" @click='profiler.add_search_method(method_info)' >{{method_info.full_name}}</li>
-									</ul>
-								</div>
-
-								<el-dialog title="Excluded methods" :visible.sync="dialogExcludedMethodsVisible">
-									<el-input class="long_input" size="mini" placeholder="输入排除的方法名" v-model="excludedMethodText"
-											  @keyup.native.enter="profiler.add_excluded_method(excludedMethodText);excludedMethodText='';">
-									</el-input> &nbsp;
-									<el-button type="primary" size="mini" plain @click='profiler.add_excluded_method(excludedMethodText);excludedMethodText="";' >Add</el-button> &nbsp;&nbsp;
-									<el-button type="danger" size="mini" plain @click='profiler.clear_excluded_methods()' >Clear</el-button> &nbsp;
-
-									<div class="selected_methods_div">排除的方法集合:
-										<el-tag
-												class="method_tag"
-												v-for="method_name in profiler.uistate.excluded_methods"
-												closable
-												@close="profiler.remove_excluded_method(method_name)"
-												size="small">
-											{{method_name}}
-										</el-tag>
-									</div>
-								</el-dialog>
-
-							</div>
-
-							<div class="selected_methods_div">查找的方法集合:
-								<el-tag
-										class="method_tag"
-										v-for="method_info in profiler.uistate.search_methods"
-										closable
-										@close="profiler.remove_search_method(method_info)"
-										size="small">
-									{{method_info.full_name}}
-								</el-tag>
-							</div>
-
-							<div class="row_div">
-								方法执行时间(ms)：
-								<el-input class="short_input" size="mini" placeholder="最小执行时间" v-model="profiler.uistate.min_method_duration"> </el-input> -
-								<el-input class="short_input" size="mini" placeholder="最大执行时间" v-model="profiler.uistate.max_method_duration"> </el-input> &nbsp;&nbsp;
-                                过滤线程：<el-input class="long_input" size="mini" placeholder="输入线程名称进行过滤" v-model="profiler.uistate.thread_name_filter"> </el-input>
-							</div>
-							<div >
-								<p class="list-title"> 上面选定方法最慢的调用记录： (total
-                                    {{profiler.uistate_analysis.method_call_groups.length}}) &nbsp;
-                                    <el-button type="primary" size="mini" plain @click='profiler.search_slow_methods()' >Search</el-button> &nbsp;&nbsp;
-									<el-dropdown @command="profiler.sort_slow_method_calls">
-										<span class="el-dropdown-link">
-											Sort<i class="el-icon-arrow-down el-icon--right"></i>
-										</span>
-										<el-dropdown-menu slot="dropdown">
-											<el-dropdown-item command="duration">Sort by duration</el-dropdown-item>
-											<el-dropdown-item command="calls">Sort by calls</el-dropdown-item>
-										</el-dropdown-menu>
-									</el-dropdown> &nbsp;
-									<span class="search_method_message" :class="{error_message: profiler.uistate.search_method_error == true}" >{{profiler.uistate.search_method_message}}</span>
-								</p>
-                                <el-collapse class="method_groups_div">
-                                    <el-collapse-item v-for="call_group in  profiler.uistate_analysis.method_call_groups" :name="'call_group_'+call_group.group_id" >
-                                        <template slot="title">
-											#{{call_group.group_id}} - calls: {{call_group.method_calls.length}} - max: {{call_group.max_duration}}, avg: {{call_group.avg_duration}}, min: {{call_group.min_duration}} &nbsp;
-                                            <span class="group_first_method" :title="call_group.first_method_name">{{call_group.first_method_name}}</span> &nbsp;
-                                            <span class="feat_tag" :class="'feat_'+feat.style" v-for="feat in call_group.features">
-                                                <el-tag size="mini" v-if="feat.tag!==false">{{feat.name}}</el-tag>
-                                            </span>
-                                            <el-popover placement="right" trigger="hover">
-                                                <!-- call stack -->
-                                                <!-- :title="'features: '+methodAnalysis.format_features(call.features)"-->
-                                                <ul class="call-stack-list-content">
-                                                    <li v-for="(call,index) in call_group.call_stack" >
-                                                        <span>[{{call.duration}}ms, {{Math.round(100*call.duration/call_group.duration)}}%]</span>
-                                                        <span class="call_stack_name call_stack" :class="'feat_'+call.feature_style">{{call.full_name}}</span>&nbsp;
-                                                        <span class="call_stack_tag_space">&nbsp;&nbsp;</span>
-                                                        <span class="call_stack call_stack_tag" :class="'feat_'+call.feature_style" v-if="call.features.length > 0">
-                                                            <el-tag class="feat_tag" size="mini" >{{call.features[0].name}}</el-tag>
-                                                        </span>&nbsp;
-                                                    </li>
-                                                </ul>
-                                                <el-button size="mini" slot="reference" icon="el-icon-chat-line-square"></el-button>
-                                            </el-popover> &nbsp; &nbsp;
-											<el-button type="danger" size="mini" icon="el-icon-delete" plain @click.prevent.stop='add_excluded_method2(call_group.first_method_name)'></el-button> &nbsp;&nbsp;
-                                        </template>
-                                        <ul class="slow-calls-list-content">
-                                            <li class="list-item" v-for="method_call in call_group.method_calls" @click='profiler.jump_to_method_call(method_call)'
-                                            >{{method_call.full_name}} - (duration:{{method_call.duration}}) - [#{{method_call.thread_id}}] {{method_call.thread_name}} </li>
-                                        </ul>
-                                    </el-collapse-item>
-                                </el-collapse>
-
-
-							</div>
+					<el-tab-pane label="Method Analysis" name="method_analysis" class="work-content">
+						<div id="top_slow_div" >
+							<iframe id="method_analysis_frame" src="method-analysis.html"></iframe>
 						</div>
 					</el-tab-pane>
 				</el-tabs>
 			</template>
 		</div>
 
-
-        <script type="text/x-template" id="d3-flamegraph-template">
-            <div>
-<!--                <link rel="stylesheet" href="d3-flame-graph/bootstrap.min.css">-->
-<!--                <link rel="stylesheet" type="text/css" href="d3-flame-graph/d3-flamegraph.css">-->
-
-                <div class="container1">
-                    <div class="header clearfix">
-                        <nav>
-                            <div class="pull-right">
-                                <form class="form-inline" id="form" onsubmit="search()">
-                                    <a class="btn" href="javascript: resetZoom();">Reset zoom</a>
-                                    <a class="btn" href="javascript: clear();">Clear</a>
-                                    <div class="form-group">
-                                        <input type="text" class="form-control" id="term">
-                                    </div>
-                                    <a class="btn btn-primary" href="javascript: search();">Search</a>
-                                </form>
-                            </div>
-                        </nav>
-                        <h3 class="text-muted">d3-flame-graph</h3>
-                    </div>
-                    <div id="chart">
-                    </div>
-                    <hr>
-                    <div id="details">
-                    </div>
-                </div>
-            </div>
-        </script>
-
-        <script src="echarts.min.js"></script>
-		<!-- D3.js -->
-<!--		<script src="d3-flame-graph/d3.v4.min.js" charset="utf-8"></script>-->
-		<!-- d3-tip -->
-<!--		<script type="text/javascript" src="d3-flame-graph/d3-tip.min.js" ></script>-->
-		<!-- d3-flamegraph -->
-<!--		<script type="text/javascript" src="d3-flame-graph/d3-flamegraph.min.js"></script>-->
-<!--		<script type="text/javascript" src="d3-flamegraph.js"></script>-->
-        <script src="method-analysis.js" ></script>
-        <script src="simpleui.js" ></script>
+		<script src="simpleui.js" ></script>
 
 	</body>
 </html>

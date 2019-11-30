@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Flare Profiler - Method Analysis</title>
+    <link rel="stylesheet" href="element-ui/theme-chalk/index.css">
+    <link rel="stylesheet" href="simpleui.css">
+    <script src="vue.js" ></script>
+    <script src="element-ui/index.js"></script>
+</head>
+<body @keypress.esc="methodAnalysis.hide_call_stack_of_group()" >
+<div id="method_analysis" @click="methodAnalysis.hide_call_stack_of_group()">
+    <el-popover placement="right" trigger="manual" v-model="methodAnalysis.uistate.call_stack_visible " >
+        <!-- call stack -->
+        <div class="call-stack-list-content" v-if="methodAnalysis.uistate.current_call_group != null"
+             @click.stop="" >
+            <table>
+                <tbody>
+                <tr v-for="(call,index) in methodAnalysis.uistate.current_call_group.call_stack" >
+                    <td><span>[{{call.duration}}ms, {{Math.round(100*call.duration/methodAnalysis.uistate.current_call_group.duration)}}%]</span></td>
+                    <td><span class="call_stack_name call_stack" :class="'feat_'+call.feature_style">{{call.full_name}}</span></td>
+                    <td>
+                            <span class="call_stack " :class="'feat_'+call.feature_style" v-if="call.features.length > 0">
+                                <el-tag class="feat_tag" size="mini" >{{call.features[0].name}}</el-tag>
+                            </span>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </el-popover>
+
+    <div @click="methodAnalysis.hide_call_stack_of_group()" >
+        选择方法:
+        <el-input class="long_input" size="mini" placeholder="输入方法名进行过滤"
+                  v-model="methodFilterText"  @keyup.native="methodAnalysis.list_methods_by_filter(methodFilterText)">
+        </el-input>
+        (total {{methodAnalysis.data.total_method_size}}) &nbsp;
+        <el-dropdown @command="select_filter_method">
+									<span class="el-dropdown-link">
+										Methods<i class="el-icon-arrow-down el-icon--right"></i>
+									</span>
+            <el-dropdown-menu slot="dropdown">
+                <el-dropdown-item command="HttpServlet.service" >Servlet</el-dropdown-item>
+                <el-dropdown-item command="doDispatch" >SpringMVC</el-dropdown-item>
+                <el-dropdown-item command="Struts" >Struts</el-dropdown-item>
+                <el-dropdown-item command="executeQuery" >MySQL</el-dropdown-item>
+                <el-dropdown-item command="RedisTemplate.execute" >Redis</el-dropdown-item>
+                <el-dropdown-item command="execute" >execute</el-dropdown-item>
+                <el-dropdown-item command="commit" >commit</el-dropdown-item>
+            </el-dropdown-menu>
+        </el-dropdown> &nbsp;
+
+        <el-button type="primary" size="mini" plain @click='methodAnalysis.add_all_filter_methods()' >Add all</el-button> &nbsp;
+        <el-button type="danger" size="mini" plain @click='methodAnalysis.clear_search_methods()' >Clear</el-button> &nbsp;
+        <el-button type="primary" size="mini" plain @click='dialogExcludedMethodsVisible = true' >Exclude-list</el-button> &nbsp;
+
+        <div v-show="methodAnalysis.uistate.show_filter_methods">
+            <ul class="method-list-content">
+                <li class="list-item" v-for="method_info in methodAnalysis.data.method_infos" @click='methodAnalysis.add_search_method(method_info)' >{{method_info.full_name}}</li>
+            </ul>
+        </div>
+
+        <el-dialog title="Excluded methods" :visible.sync="dialogExcludedMethodsVisible" :modal="true" >
+            <el-input class="long_input" size="mini" placeholder="输入排除的方法名" v-model="excludedMethodText"
+                      @keyup.native.enter="methodAnalysis.add_excluded_method(excludedMethodText);excludedMethodText='';">
+            </el-input> &nbsp;
+            <el-button type="primary" size="mini" plain @click='methodAnalysis.add_excluded_method(excludedMethodText);excludedMethodText="";' >Add</el-button> &nbsp;&nbsp;
+            <el-button type="danger" size="mini" plain @click='methodAnalysis.clear_excluded_methods()' >Clear</el-button> &nbsp;
+
+            <div class="selected_methods_div">排除的方法集合:
+                <el-tag
+                        class="method_tag"
+                        v-for="method_name in methodAnalysis.uistate.excluded_methods"
+                        closable
+                        @close="methodAnalysis.remove_excluded_method(method_name)"
+                        size="small">
+                    {{method_name}}
+                </el-tag>
+            </div>
+        </el-dialog>
+
+    </div>
+
+    <div class="selected_methods_div" @click="methodAnalysis.hide_call_stack_of_group()" >查找的方法集合:
+        <el-tag
+                class="method_tag"
+                v-for="method_info in methodAnalysis.uistate.search_methods"
+                closable
+                @close="methodAnalysis.remove_search_method(method_info)"
+                size="small">
+            {{method_info.full_name}}
+        </el-tag>
+    </div>
+
+    <div class="row_div" @click="methodAnalysis.hide_call_stack_of_group()" >
+        方法执行时间(ms)：
+        <el-input class="short_input" size="mini" placeholder="最小执行时间" v-model="methodAnalysis.uistate.min_method_duration"> </el-input> -
+        <el-input class="short_input" size="mini" placeholder="最大执行时间" v-model="methodAnalysis.uistate.max_method_duration"> </el-input> &nbsp;&nbsp;
+        过滤线程：<el-input class="long_input" size="mini" placeholder="输入线程名称进行过滤" v-model="methodAnalysis.uistate.thread_name_filter"> </el-input>
+    </div>
+    <div  @click="methodAnalysis.hide_call_stack_of_group()" >
+        <p class="list-title"> 上面选定方法最慢的调用记录： (total
+            {{methodAnalysis.uistate.method_call_groups.length}}) &nbsp;
+            <el-button type="primary" size="mini" plain @click='methodAnalysis.search_slow_methods()' >Search</el-button> &nbsp;&nbsp;
+            <el-dropdown @command="methodAnalysis.sort_slow_method_calls">
+										<span class="el-dropdown-link">
+											Sort<i class="el-icon-arrow-down el-icon--right"></i>
+										</span>
+                <el-dropdown-menu slot="dropdown">
+                    <el-dropdown-item command="duration">Sort by duration</el-dropdown-item>
+                    <el-dropdown-item command="calls">Sort by calls</el-dropdown-item>
+                </el-dropdown-menu>
+            </el-dropdown> &nbsp;
+            <span class="search_method_message" :class="{error_message: methodAnalysis.uistate.search_method_error == true}" >{{methodAnalysis.uistate.search_method_message}}</span>
+        </p>
+
+        <div class="method_groups_div">
+            <el-collapse >
+                <el-collapse-item v-for="call_group in  methodAnalysis.uistate.method_call_groups" :name="'call_group_'+call_group.group_id" >
+                    <template slot="title">
+                        #{{call_group.group_id}} - calls: {{call_group.method_calls.length}} - max: {{call_group.max_duration}}, avg: {{call_group.avg_duration}}, min: {{call_group.min_duration}} &nbsp;
+                        <span class="group_first_method" :title="call_group.first_method_name">{{call_group.first_method_name}}</span> &nbsp;
+                        <span class="feat_tag" :class="'feat_'+feat.style" v-for="feat in call_group.features">
+                                                <el-tag size="mini" v-if="feat.tag!==false">{{feat.name}}</el-tag>
+                                            </span>
+                        <el-button size="mini" icon="el-icon-chat-line-square" @click.prevent.stop="methodAnalysis.show_call_stack_of_group(call_group)"></el-button>
+                        &nbsp; &nbsp;
+                        <el-button type="danger" size="mini" icon="el-icon-delete" plain @click.prevent.stop='add_excluded_method2(call_group.first_method_name)'></el-button> &nbsp;&nbsp;
+                    </template>
+                    <ul class="slow-calls-list-content">
+                        <li class="list-item" v-for="method_call in call_group.method_calls" @click='methodAnalysis.jump_to_method_call(method_call)'
+                        >{{method_call.full_name}} - (duration:{{method_call.duration}}) - [#{{method_call.thread_id}}] {{method_call.thread_name}} </li>
+                    </ul>
+                </el-collapse-item>
+            </el-collapse>
+
+        </div>
+
+    </div>
+</div>
+
+<script src="method-analysis.js"></script>
+
+</body>
+</html>
