@@ -96,7 +96,7 @@ var profiler = {
     },
     uistate: default_uistate(),
     data: {
-        version: 'Flare Profiler v0.0.1-alpha',
+        version: 'Flare Profiler v0.2.0',
         activeTab: 'profile',
         requests: {},
         sample_info: {},

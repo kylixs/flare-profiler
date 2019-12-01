@@ -117,9 +117,12 @@ input.input-field {
 .call-stack-list-content .el-tag:hover {
     color: #1a73e8 !important;
 }
+.call-stack-list-content:focus {
+    outline:0 none;
+}
 
 .method_groups_div{
-    max-height: 85vh;
+    max-height: 80vh;
     overflow: auto;
 }
 .search_method_message {

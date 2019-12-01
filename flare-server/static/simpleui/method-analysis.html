@@ -12,8 +12,8 @@
 <div id="method_analysis" @click="methodAnalysis.hide_call_stack_of_group()">
     <el-popover placement="right" trigger="manual" v-model="methodAnalysis.uistate.call_stack_visible " >
         <!-- call stack -->
-        <div class="call-stack-list-content" v-if="methodAnalysis.uistate.current_call_group != null"
-             @click.stop="" >
+        <div id="call_stack_div" class="call-stack-list-content" v-if="methodAnalysis.uistate.current_call_group != null"
+             @click.stop="" tabindex="0" @keydown.esc="methodAnalysis.hide_call_stack_of_group()" >
             <table>
                 <tbody>
                 <tr v-for="(call,index) in methodAnalysis.uistate.current_call_group.call_stack" >

@@ -441,6 +441,9 @@ var methodAnalysis = {
     show_call_stack_of_group(call_group){
         methodAnalysis.uistate.current_call_group = call_group;
         methodAnalysis.uistate.call_stack_visible = true;
+        setTimeout(function () {
+            document.getElementById("call_stack_div").focus();
+        }, 500);
     },
     hide_call_stack_of_group(){
         methodAnalysis.uistate.call_stack_visible = false;
