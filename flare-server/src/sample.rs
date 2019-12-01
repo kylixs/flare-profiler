@@ -156,6 +156,7 @@ pub struct SampleCollector {
     method_entries: Vec<MethodInfo>,
     method_entry_cache_time: i64,
     method_info_update_time: i64,
+    call_tree_cahce: HashMap<JavaLong, Box<tree::TreeNode>>,
 //    tree_arena: TreeArena
 }
 
@@ -207,7 +208,8 @@ impl SampleCollector {
 //            tree_arena: TreeArena::new()
             method_entries: vec![],
             method_entry_cache_time: 0,
-            method_info_update_time: 0
+            method_info_update_time: 0,
+            call_tree_cahce: Default::default()
         }));
         //self ref for threads
         collector.lock().unwrap().this_ref = Some(collector.clone());
@@ -771,7 +773,7 @@ impl SampleCollector {
                 //last sample time is out of range, drop it
             }
         }
-        println!("thread: {}, load stacktrace cost:{}, count:{}, step: {} - {}", thread_id, sw.lap(), thread_data_vec.len(), start_step, end_step);
+        println!("thread: {}, load stacktrace cost:{}, count:{}", thread_id, sw.lap(), thread_data_vec.len());
 
         thread_data_vec.first_mut().map(|thread_data|{
             *start_time = thread_data.sample_time;
@@ -781,7 +783,9 @@ impl SampleCollector {
         });
 
         //merge build
-        self.build_sequenced_tree(&thread_data_vec, *start_time, *end_time)
+        let result = self.build_sequenced_tree(&thread_data_vec, *start_time, *end_time);
+        println!("thread: {}, build call tree cost:{}, count:{}", thread_id, sw.lap(), thread_data_vec.len());
+        result
     }
 
     //火焰图的顺序树
@@ -800,18 +804,20 @@ impl SampleCollector {
                 start_time = 0;
             }
             for method in thread_data.stacktrace.iter().rev() {
-                let tmp;
-                let method_name = if let Some(method_info) = self.get_method_info(*method) {
-                    &method_info.full_name
-                }else {
-                    tmp = method.to_string();
-                    &tmp
-                };
                 //merge_last_child fn return bool instead of node reference for avoiding second borrow mutable node
-                if node.merge_last_child(method_name, thread_data.self_duration, thread_data.self_cpu_time, 1) {
+                if node.merge_last_child(*method, thread_data.self_duration, thread_data.self_cpu_time, 1) {
                     //merge success, next is just last child
                     node = node.last_child().unwrap();
                 } else {
+                    //不需要每次都获取方法名，减少搜索方法时构建调用树的时间
+//                    let tmp;
+//                    let method_name = if let Some(method_info) = self.get_method_info(*method) {
+//                        &method_info.full_name
+//                    }else {
+//                        tmp = method.to_string();
+//                        &tmp
+//                    };
+                    let method_name = "";
                     let child_depth = node.depth+1;
                     node = node.append_child(tree::TreeNode{
                         parent: None,
@@ -1010,8 +1016,17 @@ impl SampleCollector {
         if let Some(thread) = self.threads.get(&thread_id) {
             thread_name = thread.name.clone();
         }
-        let call_tree = self.get_sequenced_call_tree(thread_id, &mut start_time, &mut end_time)?;
 
+        //cache
+//        let mut call_tree = self.call_tree_cahce.get(&thread_id);
+//        if call_tree.is_none() {
+//            let tree = self.get_sequenced_call_tree(thread_id, &mut start_time, &mut end_time)?;
+//            self.call_tree_cahce.insert(thread_id, tree);
+//            call_tree = self.call_tree_cahce.get(&thread_id);
+//        }
+//        self.search_call_tree(&mut method_calls,  call_tree.unwrap(), thread_id, &thread_name, method_ids, min_duration, max_duration);
+
+        let mut call_tree = self.get_sequenced_call_tree(thread_id, &mut start_time, &mut end_time)?;
         self.search_call_tree(&mut method_calls,  &call_tree, thread_id, &thread_name, method_ids, min_duration, max_duration);
 
         Ok(method_calls)

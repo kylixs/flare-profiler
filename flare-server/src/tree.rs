@@ -47,11 +47,11 @@ impl TreeNode {
         self.children.last_mut()
     }
 
-    pub fn merge_last_child(&mut self, method_name: &str, self_duration: i64, self_cpu_time: i64, samples: i64) -> bool {
+    pub fn merge_last_child(&mut self, method_id: i64, self_duration: i64, self_cpu_time: i64, samples: i64) -> bool {
         let mut last_node = self.last_child();
         if last_node.is_some() {
             let last_node = last_node.unwrap();
-            if last_node.label == method_name {
+            if last_node.id == method_id {
                 last_node.duration += self_duration;
                 last_node.cpu += self_cpu_time;
                 last_node.calls += samples;
