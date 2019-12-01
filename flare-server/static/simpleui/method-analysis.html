@@ -56,9 +56,21 @@
         <el-button type="primary" size="mini" plain @click='dialogExcludedMethodsVisible = true' >Exclude-list</el-button> &nbsp;
 
         <div v-show="methodAnalysis.uistate.show_filter_methods">
-            <ul class="method-list-content">
-                <li class="list-item" v-for="method_info in methodAnalysis.data.method_infos" @click='methodAnalysis.add_search_method(method_info)' >{{method_info.full_name}}</li>
-            </ul>
+            <div>
+                <ul class="method-list-content">
+                    <li class="list-item" v-for="method_info in methodAnalysis.data.method_infos" @click='methodAnalysis.add_search_method(method_info)' >{{method_info.full_name}}</li>
+                </ul>
+            </div>
+            <div class="selected_methods_div" @click="methodAnalysis.hide_call_stack_of_group()" >查找的方法集合:
+                <el-tag
+                        class="method_tag"
+                        v-for="method_info in methodAnalysis.uistate.search_methods"
+                        closable
+                        @close="methodAnalysis.remove_search_method(method_info)"
+                        size="small">
+                    {{method_info.full_name}}
+                </el-tag>
+            </div>
         </div>
 
         <el-dialog title="Excluded methods" :visible.sync="dialogExcludedMethodsVisible" :modal="true" >
@@ -79,21 +91,9 @@
                 </el-tag>
             </div>
         </el-dialog>
-
     </div>
 
-    <div class="selected_methods_div" @click="methodAnalysis.hide_call_stack_of_group()" >查找的方法集合:
-        <el-tag
-                class="method_tag"
-                v-for="method_info in methodAnalysis.uistate.search_methods"
-                closable
-                @close="methodAnalysis.remove_search_method(method_info)"
-                size="small">
-            {{method_info.full_name}}
-        </el-tag>
-    </div>
-
-    <div class="row_div" @click="methodAnalysis.hide_call_stack_of_group()" >
+    <div class="row_div" >
         方法执行时间(ms)：
         <el-input class="short_input" size="mini" placeholder="最小执行时间" v-model="methodAnalysis.uistate.min_method_duration"> </el-input> -
         <el-input class="short_input" size="mini" placeholder="最大执行时间" v-model="methodAnalysis.uistate.max_method_duration"> </el-input> &nbsp;&nbsp;

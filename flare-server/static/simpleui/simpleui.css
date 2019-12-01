@@ -119,7 +119,7 @@ input.input-field {
 }
 
 .method_groups_div{
-    max-height: 60vh;
+    max-height: 85vh;
     overflow: auto;
 }
 .search_method_message {
