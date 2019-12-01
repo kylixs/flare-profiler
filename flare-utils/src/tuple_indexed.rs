@@ -456,17 +456,15 @@ impl TupleIndexedFile {
         Ok((buf, new_offset as u32))
     }
 
-    fn read_range_bulk_data(&mut self, start_offset: u32, end_offset: u32) -> Result<Vec<Vec<u8>>, Error> {
+    fn read_range_bulk_data(extra_file: &mut File, start_offset: u32, end_offset: u32) -> Result<Vec<Vec<u8>>, Error> {
         let mut result = Vec::with_capacity(1024);
-        let mut extra_file = self.get_extra_file()?;
         let mut read_pos = start_offset;
         extra_file.seek(SeekFrom::Start(start_offset as u64));
-        //buf 24K
-        let mut reader = BufReader::with_capacity(24576, extra_file);
+        //buf 32K
+        let mut reader = BufReader::with_capacity(32*1024, extra_file);
         while read_pos <= end_offset {
             let bytes_to_read = reader.read_u16::<FileEndian>()? as usize;
-            //let mut buf = vec![0u8; bytes_to_read];
-            let mut buf = Vec::with_capacity(bytes_to_read);
+            let mut buf = vec![0u8; bytes_to_read];
             reader.read_exact(&mut buf)?;
             result.push(buf);
             read_pos += 2;
@@ -492,17 +490,22 @@ impl TupleIndexedFile {
         }
 
         if found {
-            let mut offset = start_offset;
-
             let mut extra_file = self.get_extra_file()?;
-            loop {
-                let (buf, next_offset) = TupleIndexedFile::read_bulk_data(&mut extra_file, offset)?;
+            let buf_vec = TupleIndexedFile::read_range_bulk_data(&mut extra_file, start_offset, end_offset)?;
+            for buf in buf_vec {
                 handler(buf);
-                offset = next_offset;
-                if offset > end_offset {
-                    break;
-                }
             }
+
+//            let mut offset = start_offset;
+//            loop {
+//                let (buf, next_offset) = TupleIndexedFile::read_bulk_data(&mut extra_file, offset)?;
+//                handler(buf);
+//                offset = next_offset;
+//                if offset > end_offset {
+//                    break;
+//                }
+//            }
+
             Ok(())
         }else {
             Err(io::Error::new(ErrorKind::NotFound, "index not found"))
