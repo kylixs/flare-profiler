@@ -297,7 +297,8 @@ var methodAnalysis = {
                 groups.push(group);
             }
 
-            methodAnalysis.sort_slow_method_calls('duration', groups);
+            //default sort by calls
+            methodAnalysis.sort_slow_method_calls('calls', groups);
         }
     },
 
@@ -310,11 +311,20 @@ var methodAnalysis = {
                 groups.push(item);
             }
         }
-        if (command == 'duration'){
+        if (command == 'max_duration'){
             groups.sort(function (a, b) {
                 if ( a.max_duration < b.max_duration){
                     return 1;
                 } else if ( a.max_duration > b.max_duration) {
+                    return -1;
+                }
+                return 0;
+            });
+        } else if (command == 'avg_duration') {
+            groups.sort(function (a, b) {
+                if ( a.avg_duration < b.avg_duration){
+                    return 1;
+                } else if ( a.avg_duration > b.avg_duration) {
                     return -1;
                 }
                 return 0;
@@ -328,6 +338,90 @@ var methodAnalysis = {
                 }
                 return 0;
             });
+        } else if(command == 'method_name'){
+            groups.sort(function (a, b) {
+                if (a.first_method_name < b.first_method_name) {
+                    return -1;
+                } else if (a.first_method_name > b.first_method_name) {
+                    return 1;
+                }
+                return 0;
+            });
+        } else if(command == 'similarity'){
+            //TODO 改进分组相似度计算方法
+
+            //category by similarity
+            let similarity_category_stack_ids = [];
+            let similarity_category_list = [];
+
+            for(var group of groups){
+                if (similarity_group_stack_ids.length == 0){
+                    //create_group_category(group, similarity_category_list, similarity_category_stack_ids);
+                    similarity_category_list.push([group]);
+                    similarity_category_stack_ids.push(group.call_stack_ids);
+                } else {
+                    let max_category_idx=0;
+                    let max_similarity = 0;
+                    for(var i=0;i<similarity_category_stack_ids.length;i++){
+                        let stack_ids = similarity_category_stack_ids[i];
+                        let count = array_match_count(group.call_stack_ids, stack_ids );
+                        let similarity = count*2 / (group.call_stack_ids.length + stack_ids.length);
+                        if (similarity > max_similarity){
+                            max_similarity = similarity;
+                            max_category_idx = i;
+                        }
+                    }
+                    if (max_similarity > 0.6 ){
+                        similarity_category_list[max_category_idx].push(group);
+                    }else {
+                        //create new category
+                        similarity_category_list.push([group]);
+                        similarity_category_stack_ids.push(group.call_stack_ids);
+                    }
+                }
+            }
+
+            similarity_category_list.sort(function (a, b) {
+               return a.length - b.length;
+            });
+            groups = [];
+            for (var category of similarity_category_list){
+                //sort groups by name
+                category.sort(function (a,b) {
+                    if (a.first_method_name < b.first_method_name) {
+                        return -1;
+                    } else if (a.first_method_name > b.first_method_name) {
+                        return 1;
+                    }
+                    return 0;
+                });
+                Array.prototype.push.apply(groups, category);
+            }
+
+            //sort by similarity
+            // let std_group_stack_ids = groups[0].call_stack_ids;
+            // groups.sort(function (a, b) {
+            //     //features 多的排在前面
+            //     let feat_count = array_match_count(a.features, b.features);
+            //     if (feat_count != a.features.length || feat_count != b.features.length){
+            //         if( a.features.length < b.features.length ){
+            //             return 1;
+            //         }else if(a.features.length > b.features.length ){
+            //             return -1;
+            //         }
+            //         if( a.first_method_name < b.first_method_name ){
+            //             return -1;
+            //         }else if( a.first_method_name > b.first_method_name){
+            //             return 1;
+            //         }
+            //     }
+            //
+            //     //比较相同的方法数量
+            //     let method_count = array_match_count(a.call_stack_ids, b.call_stack_ids);
+            //     let similarity_a = method_count / a.call_stack_ids.length;
+            //     let similarity_b = method_count / b.call_stack_ids.length;
+            //     return ( similarity_a - similarity_b);
+            // });
         }
         methodAnalysis.uistate.method_call_groups = groups;
     },
@@ -356,9 +450,12 @@ var methodAnalysis = {
         //copy first method call duration
         let first_method_call = group.method_calls[0];
         group.duration = first_method_call.duration;
+        let call_stack_ids = [];
         for(let i=0;i<group.call_stack.length;i++){
             group.call_stack[i].duration = first_method_call.durations[i];
+            call_stack_ids.push(group.call_stack[i].method_id);
         }
+        group.call_stack_ids = call_stack_ids;
 
         //计算最大/最小/平均 调用时间
         let max=null,min=null,avg,total=0;
@@ -498,3 +595,14 @@ var app = new Vue({
         methodAnalysis.load_excluded_methods();
     },
 });
+
+
+function array_match_count(a,b) {
+    let count = 0;
+    for (var i=0;i<a.length;i++){
+        if (b.indexOf(a[i])!=-1){
+            count += 1;
+        }
+    }
+    return count;
+}

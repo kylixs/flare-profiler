@@ -108,8 +108,11 @@
 											Sort<i class="el-icon-arrow-down el-icon--right"></i>
 										</span>
                 <el-dropdown-menu slot="dropdown">
-                    <el-dropdown-item command="duration">Sort by duration</el-dropdown-item>
                     <el-dropdown-item command="calls">Sort by calls</el-dropdown-item>
+                    <el-dropdown-item command="max_duration">Sort by max duration</el-dropdown-item>
+                    <el-dropdown-item command="avg_duration">Sort by avg duration</el-dropdown-item>
+                    <el-dropdown-item command="similarity">Sort by similarity</el-dropdown-item>
+                    <el-dropdown-item command="method_name">Sort by method name</el-dropdown-item>
                 </el-dropdown-menu>
             </el-dropdown> &nbsp;
             <span class="search_method_message" :class="{error_message: methodAnalysis.uistate.search_method_error == true}" >{{methodAnalysis.uistate.search_method_message}}</span>
