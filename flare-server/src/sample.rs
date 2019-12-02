@@ -730,7 +730,7 @@ impl SampleCollector {
     }
 
     //获取顺序排列（时间顺序）的方法调用树
-    pub fn get_sequenced_call_tree(&mut self, thread_id: i64, start_time: &mut i64, end_time: &mut i64) -> io::Result<Box<tree::TreeNode>> {
+    pub fn get_sequenced_call_tree(&mut self, thread_id: i64, start_time: &mut i64, end_time: &mut i64, fill_method_name: bool) -> io::Result<Box<tree::TreeNode>> {
         let mut start_step = 0;
         let mut end_step = 0;
         let mut sw = Stopwatch::start_new();
@@ -783,7 +783,7 @@ impl SampleCollector {
         });
 
         //merge build
-        let result = self.build_sequenced_tree(&thread_data_vec, *start_time, *end_time);
+        let result = self.build_sequenced_tree(&thread_data_vec, *start_time, *end_time, fill_method_name);
         println!("thread: {}, build call tree cost:{}, count:{}", thread_id, sw.lap(), thread_data_vec.len());
         result
     }
@@ -791,7 +791,7 @@ impl SampleCollector {
     //火焰图的顺序树
     //每一层与最后一个节点相同时进行合并，不同时append新节点
     //处理前后半个采样间隔的问题
-    pub fn build_sequenced_tree(&mut self, thread_data_vec: &Vec<ThreadData>, range_start_time: i64, range_end_time: i64) -> io::Result<Box<tree::TreeNode>> {
+    pub fn build_sequenced_tree(&mut self, thread_data_vec: &Vec<ThreadData>, range_start_time: i64, range_end_time: i64, fill_method_name: bool) -> io::Result<Box<tree::TreeNode>> {
         let mut root = Box::new(tree::TreeNode::new(0, "root"));
 
         for thread_data in thread_data_vec {
@@ -810,14 +810,18 @@ impl SampleCollector {
                     node = node.last_child().unwrap();
                 } else {
                     //不需要每次都获取方法名，减少搜索方法时构建调用树的时间
-//                    let tmp;
-//                    let method_name = if let Some(method_info) = self.get_method_info(*method) {
-//                        &method_info.full_name
-//                    }else {
-//                        tmp = method.to_string();
-//                        &tmp
-//                    };
-                    let method_name = "";
+                    let tmp;
+                    let method_name :&str;
+                    if fill_method_name {
+                        method_name = if let Some(method_info) = self.get_method_info(*method) {
+                            &method_info.full_name
+                        }else {
+                            tmp = method.to_string();
+                            &tmp
+                        };
+                    } else {
+                        method_name = "";
+                    }
                     let child_depth = node.depth+1;
                     node = node.append_child(tree::TreeNode{
                         parent: None,
@@ -1026,7 +1030,7 @@ impl SampleCollector {
 //        }
 //        self.search_call_tree(&mut method_calls,  call_tree.unwrap(), thread_id, &thread_name, method_ids, min_duration, max_duration);
 
-        let mut call_tree = self.get_sequenced_call_tree(thread_id, &mut start_time, &mut end_time)?;
+        let mut call_tree = self.get_sequenced_call_tree(thread_id, &mut start_time, &mut end_time, false)?;
         self.search_call_tree(&mut method_calls,  &call_tree, thread_id, &thread_name, method_ids, min_duration, max_duration);
 
         Ok(method_calls)
