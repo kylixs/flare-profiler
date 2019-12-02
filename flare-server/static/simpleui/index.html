@@ -15,7 +15,9 @@
 				<!--				<p>操作指令：{{profiler.data.cmd}}</p>-->
 				<p>错误信息：{{profiler.data.message}}</p>
 			</div>
-			<div class="version_text">{{profiler.data.version}}</div>
+			<div class="header-config">
+				<el-button>设置</el-button>
+			</div>
 			<template>
 				<el-tabs class="main-content" v-model="profiler.data.activeTab" type="card" @tab-click="handleTabClick">
 					<el-tab-pane label="Profiles" name="profile" class="work-content" >
@@ -156,6 +158,8 @@
 					</el-tab-pane>
 				</el-tabs>
 			</template>
+
+			<footer class="footer-version">{{profiler.data.version}}</footer>
 		</div>
 
 		<script src="simpleui.js" ></script>
