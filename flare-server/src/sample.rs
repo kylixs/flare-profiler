@@ -1054,7 +1054,10 @@ impl SampleCollector {
         let mut primary_stacks = vec![];
         let mut durations  = vec![];
         //提取方法栈： 时间大于 min(根节点时间1/3, min_duration)
-        self.search_primary_stacks(node, &mut primary_stacks, &mut durations, min(node.duration/3, min_duration));
+        let mut stack_min_duration = min(node.duration/3, min_duration);
+        stack_min_duration = min(stack_min_duration, 50);
+
+        self.search_primary_stacks(node, &mut primary_stacks, &mut durations, stack_min_duration);
         Box::new(MethodCall {
             method_id: node.id,
             full_name: node.label.clone(),
