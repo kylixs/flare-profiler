@@ -873,6 +873,11 @@ var app = new Vue({
             label: 'label'
         },
         profiler: profiler,
+
+        dialogConfigVisable: false, // 全局设置弹框
+        configMenuList: configs.configMenuList, // 需要设置的配置项
+        configTextarea: '', // 右边显示的配置项内容
+        curSelectConfig: '', // 当前选中的配置项对象
     },
     // components() {
     // 	"d3-flamegraph"
@@ -898,6 +903,66 @@ var app = new Vue({
             } else if(tab.name == profiler.tabs.dashboard){
                 profiler.update_dashboard();
             }
+        },
+        /* 打开配置弹窗 */
+        openConfigDialog() {
+            this.dialogConfigVisable = true;
+            if (!this.curSelectConfig) {
+                let localStrageValue = localStorage.getItem("flare-profiler.method_features");
+                if (!localStrageValue) {
+                    this.configTextarea = formatJson(configs.method_features);
+                } else {
+                    this.configTextarea = formatJson(localStrageValue);
+                }
+                this.curSelectConfig = configs.configMenuList[0]
+            } else {
+                this.configTextarea = formatJson(configs[this.curSelectConfig.configCode]);
+            }
+        },
+        /* 点击菜单项 */
+        clickConfigMenu(item) {
+            this.curSelectConfig = item;
+            let localStorageValue = localStorage.getItem(configs.keys[item.configCode]);
+            if (localStorageValue) {
+                this.configTextarea = formatJson(localStorageValue);
+            } else {
+                this.configTextarea = formatJson(configs[item.configCode]);
+            }
+        },
+        /* 重置配置 */
+        resetConfig() {
+            // 配置编号
+            let configCode = this.curSelectConfig.configCode;
+            // 默认配置值
+            let configValue = JSON.stringify(configs[configCode + '_source']);
+            configs[configCode] = configValue;
+            // 配置数据保存在本地缓存中
+            localStorage.setItem(configs.keys[configCode], configValue);
+            // 关闭弹窗
+            this.closeConfigDialog();
+            this.$notify({type:'success',title:'提示',message:'重置成功'})
+        },
+        /* 保存配置 */
+        saveConfig() {
+            try {
+                this.configTextarea = JSON.stringify(JSON.parse(this.configTextarea));
+            } catch (e) {
+                this.$notify({type:'error',title:'提示',message:'您传递的json数据格式有误，请核对'});
+                return false;
+            }
+            // 配置编号
+            let configCode = this.curSelectConfig.configCode;
+            // 配置值
+            configs[configCode] = this.configTextarea;
+            // 配置值保存在本地缓存中
+            localStorage.setItem(configs.keys[configCode], this.configTextarea);
+            // 关闭弹窗
+            this.closeConfigDialog();
+            this.$notify({type:'success',title:'提示',message:'保存成功'})
+        },
+        /* 关闭配置弹窗 */
+        closeConfigDialog() {
+            this.dialogConfigVisable = false;
         },
     },
     filters: {
