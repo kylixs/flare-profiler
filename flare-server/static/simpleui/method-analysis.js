@@ -280,13 +280,13 @@ var methodAnalysis = {
         Object.assign(methodAnalysis.data, data);
         //update search message
         methodAnalysis.uistate.search_method_error = data.search_error;
-        if(data.search_finished){
+        if(data.search_error){
+            methodAnalysis.uistate.search_method_message = data.search_message;
+        }else if(data.search_finished){
             methodAnalysis.uistate.search_method_message = "Search finished."
         }else if (data.search_progress){
             methodAnalysis.uistate.search_method_message = "Search progress: "+data.search_progress+"% ";
             // methodAnalysis.uistate.search_method_message += (data.search_message?(", "+data.search_message):"");
-        }else if(data.search_error){
-            methodAnalysis.uistate.search_method_message = data.search_message;
         }else {
             methodAnalysis.uistate.search_method_message = "";
         }
