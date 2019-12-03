@@ -51,7 +51,6 @@ var default_uistate = function () {
         last_loading_thread_cpu_time: 0,
         is_loaded_dashboard: false,
         unit_time_ms: 0,
-        cpu_charts: {},
         //等待打开的方法调用，等待ts数据加载完毕后再打开
         jumping_method_call: null,
     };
@@ -60,6 +59,7 @@ var default_uistate = function () {
 let chartIdPrefix = "thread_cpu_chart_";
 //avoid vue Observer cycle references memory leak
 let call_graph_cpu_chart = null;
+let thread_cpu_charts = {};
 
 var profiler = {
     connected: false,
@@ -254,7 +254,7 @@ var profiler = {
             if (profiler.data.type == 'file'){
                 let new_thread_ids = [];
                 for(var i=0;i<thread_ids.length;i++){
-                    if(!profiler.uistate.cpu_charts[chartIdPrefix+thread_ids[i]]){
+                    if(!thread_cpu_charts[chartIdPrefix+thread_ids[i]]){
                         new_thread_ids.push(thread_ids[i]);
                     }
                 }
@@ -379,10 +379,12 @@ var profiler = {
         this.update_dashboard();
     },
     clear_session: function () {
-        for (let [key, value] of Object.entries(this.uistate.cpu_charts)) {
-            //console.log(`${key}: ${value}`);
-            value.off('datazoom');
-            value.dispose();
+        for (let [key, chart] of Object.entries(thread_cpu_charts)) {
+            chart.off('datazoom');
+            chart.ts_data = null;
+            chart.thread = null;
+            force_release_echart_data(chart);
+            chart.dispose();
         }
         this.data.session_id = "";
         this.data.threads = [];
@@ -395,6 +397,8 @@ var profiler = {
             thread_id: null,
             chart: null,
         };
+        thread_cpu_charts = {};
+        call_graph_cpu_chart = null;
 
         let methodAnalysis = get_method_analysis();
         if(methodAnalysis) methodAnalysis.clear_session();
@@ -409,14 +413,14 @@ var profiler = {
             let ts_data = fill_ts_data(thread.ts_data, thread.start_time, thread.end_time, sess_start_time, sess_end_time, unit_time_ms);
 
             let chartElemId = chartIdPrefix+thread.id;
-            let myChart = profiler.uistate.cpu_charts[chartElemId];
+            let myChart = thread_cpu_charts[chartElemId];
             if (myChart){
                 myChart.off('datazoom');
                 //myChart.dispose();
                 update_echarts_bar(myChart, ts_data)
             }else {
                 myChart = create_echarts_bar(chartElemId, ts_data);
-                profiler.uistate.cpu_charts[chartElemId] = myChart;
+                thread_cpu_charts[chartElemId] = myChart;
             }
             myChart.ts_data = ts_data;
             myChart.thread = thread;
@@ -656,7 +660,7 @@ var profiler = {
     jump_to_method_call(method_call){
         method_call = method_call || profiler.uistate.jumping_method_call;
         let chartElemId = chartIdPrefix + method_call.thread_id;
-        let myChart = profiler.uistate.cpu_charts[chartElemId];
+        let myChart = thread_cpu_charts[chartElemId];
         //load chart data as required
         if (!myChart){
             //TODO load thread cpu chart
@@ -828,6 +832,7 @@ function create_echarts_bar(elemId, echartsData, start, end) {
 }
 
 function update_echarts_bar(myChart, echartsData, start, end) {
+    force_release_echart_data(myChart);
     myChart.setOption({
         xAxis: {
             data: echartsData,
@@ -836,6 +841,13 @@ function update_echarts_bar(myChart, echartsData, start, end) {
             data:echartsData
         }]
     });
+}
+
+function force_release_echart_data(myChart) {
+    //force release echarts data
+    myChart._model.option.xAxis[0].data = [];
+    myChart._model.option.series[0].data = [];
+
 }
 
 
