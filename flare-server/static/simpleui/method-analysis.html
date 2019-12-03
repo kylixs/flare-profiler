@@ -53,7 +53,7 @@
 
         <el-button type="primary" size="mini" plain @click='methodAnalysis.add_all_filter_methods()' >Add all</el-button> &nbsp;
         <el-button type="danger" size="mini" plain @click='methodAnalysis.clear_search_methods()' >Clear</el-button> &nbsp;
-        <el-button type="primary" size="mini" plain @click='dialogExcludedMethodsVisible = true' >Exclude-list</el-button> &nbsp;
+        <el-button type="primary" size="mini" plain @click='open_excluded_method_dialog' >Exclude-list</el-button> &nbsp;
 
         <div v-show="methodAnalysis.uistate.show_filter_methods">
             <div>

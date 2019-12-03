@@ -908,12 +908,8 @@ var app = new Vue({
         openConfigDialog() {
             this.dialogConfigVisable = true;
             if (!this.curSelectConfig) {
-                let localStrageValue = localStorage.getItem("flare-profiler.method_features");
-                if (!localStrageValue) {
-                    this.configTextarea = formatJson(configs.method_features);
-                } else {
-                    this.configTextarea = formatJson(localStrageValue);
-                }
+                let localStrageValue = configs.getLocalStoreValue(configs.keys.method_features);
+                this.configTextarea = formatJson(localStrageValue);
                 this.curSelectConfig = configs.configMenuList[0]
             } else {
                 this.configTextarea = formatJson(configs[this.curSelectConfig.configCode]);
@@ -922,12 +918,8 @@ var app = new Vue({
         /* 点击菜单项 */
         clickConfigMenu(item) {
             this.curSelectConfig = item;
-            let localStorageValue = localStorage.getItem(configs.keys[item.configCode]);
-            if (localStorageValue) {
-                this.configTextarea = formatJson(localStorageValue);
-            } else {
-                this.configTextarea = formatJson(configs[item.configCode]);
-            }
+            let localStorageValue = configs.getLocalStoreValue(item.configCode)//localStorage.getItem(configs.keys.flare_profiler + configs.keys[item.configCode]);
+            this.configTextarea = formatJson(localStorageValue);
         },
         /* 重置配置 */
         resetConfig() {
@@ -935,9 +927,7 @@ var app = new Vue({
             let configCode = this.curSelectConfig.configCode;
             // 默认配置值
             let configValue = JSON.stringify(configs[configCode + '_source']);
-            configs[configCode] = configValue;
-            // 配置数据保存在本地缓存中
-            localStorage.setItem(configs.keys[configCode], configValue);
+            configs.setLocalStoreValue(configCode, configValue);
             // 关闭弹窗
             this.closeConfigDialog();
             this.$notify({type:'success',title:'提示',message:'重置成功'})
@@ -952,10 +942,7 @@ var app = new Vue({
             }
             // 配置编号
             let configCode = this.curSelectConfig.configCode;
-            // 配置值
-            configs[configCode] = this.configTextarea;
-            // 配置值保存在本地缓存中
-            localStorage.setItem(configs.keys[configCode], this.configTextarea);
+            configs.setLocalStoreValue(configCode, this.configTextarea);
             // 关闭弹窗
             this.closeConfigDialog();
             this.$notify({type:'success',title:'提示',message:'保存成功'})
