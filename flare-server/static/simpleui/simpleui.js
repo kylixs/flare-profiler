@@ -58,6 +58,8 @@ var default_uistate = function () {
 }
 
 let chartIdPrefix = "thread_cpu_chart_";
+//avoid vue Observer cycle references memory leak
+let call_graph_cpu_chart = null;
 
 var profiler = {
     connected: false,
@@ -387,6 +389,12 @@ var profiler = {
         this.data.sample_info = {};
         this.data.thread_cpu_time_map = {};
         this.uistate = default_uistate();
+        this.flame_graph_state =  {
+            start_time: 0,
+            end_time: 0,
+            thread_id: null,
+            chart: null,
+        };
 
         let methodAnalysis = get_method_analysis();
         if(methodAnalysis) methodAnalysis.clear_session();
@@ -439,8 +447,21 @@ var profiler = {
         //active 'Call Graph' tab
         this.activeTab(this.tabs.call_graph);
 
+        let myChart = call_graph_cpu_chart;
+        // if(myChart){
+        //     myChart.off('datazoom');
+        //     myChart.dispose();
+        //     myChart = null;
+        //     call_graph_cpu_chart = null;
+        //     profiler.flame_graph_state.chart = null;
+        // }
         //update current thread cpu graph
-        let myChart = create_echarts_bar("thread_cpu_chart_call_graph", ts_data, start, end);
+        if (!myChart){
+            myChart = create_echarts_bar("thread_cpu_chart_call_graph", ts_data, start, end);
+            call_graph_cpu_chart = myChart;
+        }else{
+            update_echarts_bar(myChart, ts_data, start, end);
+        }
         myChart.off('datazoom');
         myChart.on('datazoom', function (evt) {
             var axis = myChart.getModel().option.xAxis[0];
@@ -458,7 +479,7 @@ var profiler = {
             end_time = this.flame_graph_state.end_time;
         }
         if (!myChart) {
-            myChart = profiler.flame_graph_state.chart;
+            myChart = call_graph_cpu_chart;
         }
         if (!thread_id || !start_time || !end_time){
             return;
@@ -467,7 +488,7 @@ var profiler = {
         profiler.flame_graph_state.thread_id = thread_id;
         profiler.flame_graph_state.start_time = start_time;
         profiler.flame_graph_state.end_time = end_time;
-        profiler.flame_graph_state.chart = myChart;
+        call_graph_cpu_chart = myChart;
 
         if(profiler.show_call_tree){
             profiler.update_call_stack_tree(thread_id, start_time, end_time);
