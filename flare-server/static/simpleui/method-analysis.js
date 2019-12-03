@@ -23,7 +23,7 @@ var default_uistate = function () {
     };
 }
 var methodAnalysis = {
-    configs: {
+    /*configs: {
         method_features: [{
             name: 'JAR',
             style: 'severe',
@@ -107,7 +107,7 @@ var methodAnalysis = {
             includes: ['com.sun.proxy.$','_jsp','gordian', 'szjlc', 'jlc'],
             excludes: ['doFilter()']
         }],
-    },
+    },*/
 
     data: {
         method_infos: [],
@@ -502,17 +502,38 @@ var methodAnalysis = {
                 }
             }
         }
+
+        /* 去除重复数据 */
+        for (let i = 0; i < group_features.length; i++) {
+            for (let j = i + 1; j < group_features.length; j++) {
+                if (i !== j && group_features[i].name == group_features[j].name) {
+                    group_features.splice(j, 1);
+                    j--;
+                }
+            }
+        }
+
         group.features = group_features;
     },
 
     get_features_of_method(method_name) {
+        let methodFeatures = [];
+
+        // 如果本地存在数据，则使用本地存储的配置数据
+        let localStorageValue = localStorage.getItem("flare-profiler.method_features");
+        if (localStorageValue) {
+            methodFeatures = JSON.parse(localStorageValue);
+        } else {
+            methodFeatures = configs.method_features;
+        }
+
         let result = [];
-        for (let i=0; i < this.configs.method_features.length;i++){
-            let feature = this.configs.method_features[i];
+        for (let i=0; i < methodFeatures.length;i++){
+            let feature = methodFeatures[i];
             let includes = feature.includes;
             let found = false;
             for (let x=0; x<includes.length;x++){
-                if ( method_name.indexOf(includes[x])!=-1){
+                if (method_name.indexOf(includes[x])!=-1){
                     result.push(feature);
                     found = true;
                     break;

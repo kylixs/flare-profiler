@@ -15,7 +15,33 @@
 				<!--				<p>操作指令：{{profiler.data.cmd}}</p>-->
 				<p>错误信息：{{profiler.data.message}}</p>
 			</div>
-			<div class="version_text">{{profiler.data.version}}</div>
+			<div class="header-config">
+				<el-button @click="openConfigDialog">设置</el-button>
+			</div>
+
+			<!-- 全局设置弹窗 -->
+			<el-dialog title="全局配置" :visible.sync="dialogConfigVisable" @close="closeConfigDialog">
+				<div style="display: flex">
+					<el-menu default-active="1" style="width: 25%">
+						<el-menu-item :index="String(item.configId)" v-for="(item,index) in configMenuList" @click="clickConfigMenu(item)">
+							<span slot="title">{{item.configName}}</span>
+						</el-menu-item>
+					</el-menu>
+					<div class="header-config-content">
+						<el-input
+								type="textarea"
+								:autosize="{ minRows: 8, maxRows: 16}"
+								placeholder="请填写内容"
+								v-model="configTextarea">
+						</el-input>
+					</div>
+				</div>
+				<div style="text-align: center; margin-top: 10px;">
+					<el-button @click="saveConfig" size="small" type="primary">保存</el-button>
+					<el-button @click="resetConfig" size="small">重置</el-button>
+				</div>
+			</el-dialog>
+
 			<template>
 				<el-tabs class="main-content" v-model="profiler.data.activeTab" type="card" @tab-click="handleTabClick">
 					<el-tab-pane label="Profiles" name="profile" class="work-content" >
@@ -156,8 +182,12 @@
 					</el-tab-pane>
 				</el-tabs>
 			</template>
+
+			<footer class="footer-version">{{profiler.data.version}}</footer>
 		</div>
 
+		<script src="jsonFormat.js" ></script>
+		<script src="configs.js" ></script>
 		<script src="simpleui.js" ></script>
 
 	</body>

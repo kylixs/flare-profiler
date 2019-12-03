@@ -125,8 +125,8 @@
                         #{{call_group.group_id}} - calls: {{call_group.method_calls.length}} - max: {{call_group.max_duration}}, avg: {{call_group.avg_duration}}, min: {{call_group.min_duration}} &nbsp;
                         <span class="group_first_method" :title="call_group.first_method_name">{{call_group.first_method_name}}</span> &nbsp;
                         <span class="feat_tag" :class="'feat_'+feat.style" v-for="feat in call_group.features">
-                                                <el-tag size="mini" v-if="feat.tag!==false">{{feat.name}}</el-tag>
-                                            </span>
+                            <el-tag size="mini" v-if="feat.tag!==false">{{feat.name}}</el-tag>
+                        </span>
                         <el-button size="mini" icon="el-icon-chat-line-square" @click.prevent.stop="methodAnalysis.show_call_stack_of_group(call_group)"></el-button>
                         &nbsp; &nbsp;
                         <el-button type="danger" size="mini" icon="el-icon-delete" plain @click.prevent.stop='add_excluded_method2(call_group.first_method_name)'></el-button> &nbsp;&nbsp;
@@ -143,6 +143,8 @@
     </div>
 </div>
 
+<script src="jsonFormat.js" ></script>
+<script src="configs.js"></script>
 <script src="method-analysis.js"></script>
 
 </body>
