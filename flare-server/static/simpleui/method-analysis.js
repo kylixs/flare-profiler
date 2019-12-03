@@ -122,6 +122,11 @@ var methodAnalysis = {
         window.parent.profiler.socket.send(data);
     },
     clear_session(){
+        methodAnalysis.data = {
+            method_infos: [],
+            total_method_size: 0,
+        };
+        methodAnalysis.uistate = default_uistate();
         methodAnalysis.load_excluded_methods();
     },
     list_methods_by_filter: function (method_name_filter) {
