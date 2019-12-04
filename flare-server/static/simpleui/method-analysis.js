@@ -23,98 +23,9 @@ var default_uistate = function () {
     };
 }
 var methodAnalysis = {
-    /*configs: {
-        method_features: [{
-            name: 'JAR',
-            style: 'severe',
-            includes: ['java.util.jar','java.util.zip']
-        },{
-            name: 'Json',
-            style: 'severe',
-            includes: ['com.fasterxml.jackson','net.sf.json','fastjson']
-        },{
-            name: 'Log',
-            style: 'severe',
-            includes: ['logback']
-        },{
-            name: 'Wait',
-            style: 'severe',
-            includes: ['CountDownLatch.await()','java.util.concurrent.locks','Unsafe.park()']
-        },{
-            name: 'Except',
-            style: 'severe',
-            includes: ['java.lang.Exception','java.lang.Throwable','IllegalArgumentException','RuntimeException']
-        },{
-            name: 'Hessian',
-            style: 'rpc',
-            includes: ['hessian']
-        },{
-            name: 'Thrift',
-            style: 'rpc',
-            includes: ['thrift']
-        },{
-            name: 'HttpClient',
-            style: 'rpc',
-            includes: ['HttpURLConnection','HttpClient','okhttp','feign','ribbon']
-        },{
-            name: 'Net',
-            style: 'rpc',
-            includes: ['java.net','org.apache.tomcat.util.net']
-        },{
-            name: 'IO',
-            style: 'rpc',
-            includes: ['.read()','.doRead()','readFully()','.write()','.doWrite()','.writeAndFlush()','.flush']
-        },{
-            name: 'Redis',
-            style: 'db',
-            includes: ['redis']
-        },{
-            name: 'SQL',
-            style: 'db',
-            includes: ['jdbc', 'mybatis', 'ibatis', 'jtds', 'dbcp']
-        },{
-            name: 'Cache',
-            style: 'db',
-            includes: ['LocalCache']
-        },{
-            name: 'Filter',
-            style: 'gray',
-            tag: false,
-            includes: ['doFilter()','internalDoFilter()']
-        },{
-            name: 'Struts',
-            style: 'gray',
-            tag: false,
-            includes: ['struts2.','xwork2.']
-        },{
-            name: 'RxJava',
-            style: 'gray',
-            tag: false,
-            includes: ['rx.observables','rx.internal','rx.Observable',]
-        },{
-            name: 'Reflect',
-            style: 'gray',
-            tag: false,
-            includes: ['java.lang.reflect', 'sun.reflect', 'cglib']
-        },{
-            name: 'Spring',
-            style: 'gray',
-            tag: false,
-            includes: ['org.springframework.aop', 'org.springframework.transaction', 'org.springframework.web', 'org.springframework.remoting']
-        },{
-            name: 'Major',
-            style: 'main',
-            includes: ['com.sun.proxy.$','_jsp','gordian', 'szjlc', 'jlc'],
-            excludes: ['doFilter()']
-        }],
-    },*/
-
     data: {
         method_infos: [],
         total_method_size: 0,
-    },
-    keys: {
-        excluded_methods: "flare-profiler.excluded-methods",
     },
     uistate: default_uistate(),
 
@@ -214,14 +125,10 @@ var methodAnalysis = {
         methodAnalysis.save_excluded_methods();
     },
     save_excluded_methods(){
-        localStorage.setItem(methodAnalysis.keys.excluded_methods, JSON.stringify(methodAnalysis.uistate.excluded_methods));
+        configs.setLocalStoreValue(configs.keys.excluded_methods, JSON.stringify(methodAnalysis.uistate.excluded_methods));
     },
     load_excluded_methods(){
-        let str = localStorage.getItem(methodAnalysis.keys.excluded_methods);
-        if (str != null){
-            console.log("load excluded-methods: ", str);
-            methodAnalysis.uistate.excluded_methods = JSON.parse(str);
-        }
+        methodAnalysis.uistate.excluded_methods = configs.getLocalStoreValue(configs.keys.excluded_methods);
     },
     set_search_message(msg, error) {
         methodAnalysis.uistate.search_method_message = msg;
@@ -517,15 +424,8 @@ var methodAnalysis = {
     },
 
     get_features_of_method(method_name) {
-        let methodFeatures = [];
 
-        // 如果本地存在数据，则使用本地存储的配置数据
-        let localStorageValue = localStorage.getItem("flare-profiler.method_features");
-        if (localStorageValue) {
-            methodFeatures = JSON.parse(localStorageValue);
-        } else {
-            methodFeatures = configs.method_features;
-        }
+        let methodFeatures = configs.getLocalStoreValue(configs.keys.method_features);
 
         let result = [];
         for (let i=0; i < methodFeatures.length;i++){
@@ -611,6 +511,10 @@ var app = new Vue({
                 //     message: '添加方法['+method_name+']到排除列表失败！'
                 // })
             });
+        },
+        open_excluded_method_dialog() {
+            this.dialogExcludedMethodsVisible = true;
+            methodAnalysis.load_excluded_methods();
         },
     },
     filters: {
