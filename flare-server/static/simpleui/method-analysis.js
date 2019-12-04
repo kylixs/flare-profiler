@@ -360,7 +360,7 @@ var methodAnalysis = {
             let similarity_category_list = [];
 
             for(var group of groups){
-                if (similarity_group_stack_ids.length == 0){
+                if (similarity_category_stack_ids.length == 0){
                     //create_group_category(group, similarity_category_list, similarity_category_stack_ids);
                     similarity_category_list.push([group]);
                     similarity_category_stack_ids.push(group.call_stack_ids);
