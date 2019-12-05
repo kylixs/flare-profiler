@@ -55,7 +55,6 @@ For /F "tokens=1* delims=:" %%A IN (%_myvar%) DO (
     set _myvar="%%B"
     if NOT "%_myvar%"=="" goto FORLOOP
 )
-echo agent_port: %agent_port%
 
 
 REM Setup JAVA_HOME
@@ -101,6 +100,7 @@ if %errorlevel% equ 0  set pid=%arg1%
 
 echo pid: %pid%
 echo port: %port%
+echo agent_port: %agent_port%
 
 if not ["%pid%"] == [""] (
     goto :prepare_srv
