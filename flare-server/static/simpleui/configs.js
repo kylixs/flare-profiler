@@ -35,9 +35,13 @@ let method_features = [{
     style: 'rpc',
     includes: ['java.net','org.apache.tomcat.util.net']
 },{
+    name: 'File',
+    style: 'rpc',
+    includes: ['FileOutputStream','FileInputStream']
+},{
     name: 'IO',
     style: 'rpc',
-    includes: ['.read()','.doRead()','readFully()','.write()','.doWrite()','.writeAndFlush()','.flush']
+    includes: ['.read()','.doRead()','readFully()','.write()','.doWrite()','.writeAndFlush()','.flush','PrintStream']
 },{
     name: 'Redis',
     style: 'db',
@@ -82,7 +86,7 @@ let method_features = [{
     excludes: ['doFilter()']
 }];
 
-let excluded_methods = ['doFilter()'];
+let excluded_methods = ['doFilter()','doFilterInternal()'];
 
 /* 如下所示，当前配置key、 配置菜单中configCode、本地存储key 此三项需要保持一致，默认配置key = 当前配置key + '_source'*/
 var configs = {
@@ -91,8 +95,8 @@ var configs = {
     excluded_methods: excluded_methods,
     excluded_methods_source: excluded_methods,
     configMenuList: [
-            { configId: 1, configName: 'method_features', configCode:'method_features' }, // 设置中左侧菜单栏，根据configCode匹配配置项以及设置本地存储
-            { configId: 2, configName: 'excluded_methods', configCode:'excluded_methods' }, // 设置中左侧菜单栏，根据configCode匹配配置项以及设置本地存储
+            { configId: 1, configName: 'Method Features', configCode:'method_features' }, // 设置中左侧菜单栏，根据configCode匹配配置项以及设置本地存储
+            { configId: 2, configName: 'Excluded Methods', configCode:'excluded_methods' }, // 设置中左侧菜单栏，根据configCode匹配配置项以及设置本地存储
         ],
     /* 本地存储key */
     keys: {
