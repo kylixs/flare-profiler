@@ -71,6 +71,9 @@ var methodAnalysis = {
     add_all_filter_methods(){
         let search_methods = methodAnalysis.uistate.search_methods.slice();
         for( var method_info of methodAnalysis.data.method_infos){
+            if (methodAnalysis.is_excluded_method(method_info.full_name)){
+                continue;
+            }
             if (!methodAnalysis.contains_search_method(method_info, search_methods)){
                 search_methods.push(method_info);
             }
@@ -78,6 +81,9 @@ var methodAnalysis = {
         methodAnalysis.uistate.search_methods = search_methods;
     },
     add_search_method(method_info){
+        if (methodAnalysis.is_excluded_method(method_info.full_name)){
+            return;
+        }
         if (!methodAnalysis.contains_search_method(method_info)){
             methodAnalysis.uistate.search_methods.push(method_info);
         }
@@ -138,7 +144,7 @@ var methodAnalysis = {
         let method_ids = [];
         for ( var m of methodAnalysis.uistate.search_methods){
             //filter_excluded_methods
-            if (methodAnalysis.uistate.excluded_methods.indexOf(m.full_name)==-1){
+            if (!methodAnalysis.is_excluded_method(m.full_name)){
                 method_ids.push(m.method_id);
             }
         }
@@ -181,6 +187,16 @@ var methodAnalysis = {
             }
         };
         methodAnalysis.send(JSON.stringify(request));
+    },
+    is_excluded_method(method_name){
+        let methods = methodAnalysis.uistate.excluded_methods;
+        for(var i=0;i<methods.length;i++){
+            if(method_name.indexOf(methods[i])!=-1){
+                console.log("excluded method: "+method_name+" by filter: "+methods[i]);
+                return true;
+            }
+        }
+        return false;
     },
     on_slow_method_calls(data){
         //将response属性赋值到共享对象
