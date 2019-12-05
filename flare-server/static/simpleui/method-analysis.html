@@ -127,9 +127,9 @@
                         <span class="feat_tag" :class="'feat_'+feat.style" v-for="feat in call_group.features">
                             <el-tag size="mini" v-if="feat.tag!==false">{{feat.name}}</el-tag>
                         </span>
-                        <el-button size="mini" icon="el-icon-chat-line-square" @click.prevent.stop="methodAnalysis.show_call_stack_of_group(call_group)"></el-button>
+                        <el-button size="mini" icon="el-icon-chat-line-square" title="View call stack"  @click.prevent.stop="methodAnalysis.show_call_stack_of_group(call_group)"></el-button>
                         &nbsp; &nbsp;
-                        <el-button type="danger" size="mini" icon="el-icon-delete" plain @click.prevent.stop='add_excluded_method2(call_group.first_method_name)'></el-button> &nbsp;&nbsp;
+                        <el-button type="danger" size="mini" icon="el-icon-delete" plain title="Remove this method" @click.prevent.stop='remove_search_method2(call_group.first_method_name)'></el-button> &nbsp;&nbsp;
                     </template>
                     <ul class="slow-calls-list-content">
                         <li class="list-item" v-for="method_call in call_group.method_calls" @click='methodAnalysis.jump_to_method_call(method_call)'

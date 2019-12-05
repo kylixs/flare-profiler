@@ -105,6 +105,19 @@ var methodAnalysis = {
         let search_methods = methodAnalysis.uistate.search_methods;
         search_methods.splice(search_methods.indexOf(method_info), 1);
     },
+    remove_search_method_by_name(method_name){
+        let search_methods = methodAnalysis.uistate.search_methods;
+        let remove_idx = -1;
+        for(var i=0;i<search_methods.length;i++){
+            if(search_methods[i].full_name == method_name){
+                remove_idx = i;
+                break;
+            }
+        }
+        if(remove_idx > -1){
+            search_methods.splice(remove_idx, 1);
+        }
+    },
     clear_search_methods(){
         methodAnalysis.uistate.search_methods = [];
     },
@@ -509,16 +522,16 @@ var app = new Vue({
             this._data.methodFilterText = method;
             methodAnalysis.list_methods_by_filter(method);
         },
-        add_excluded_method2(method_name){
-            this.$confirm('是否将方法['+method_name+']添加到排除列表?', '提示', {
+        remove_search_method2(method_name){
+            this.$confirm('从已选择的方法列表中删除此方法['+method_name+']?', '提示', {
                 confirmButtonText: '确定',
                 cancelButtonText: '取消',
                 type: 'warning'
             }).then(() => {
-                methodAnalysis.add_excluded_method(method_name);
+                methodAnalysis.remove_search_method_by_name(method_name);
                 this.$notify({
                     title: '成功',
-                    message: '已将方法['+method_name+']添加到排除列表，请重新执行分析操作。',
+                    message: '方法['+method_name+']已删除，请重新执行分析操作。',
                     type: 'success'
                 })
             }).catch(() => {
