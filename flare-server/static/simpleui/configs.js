@@ -86,7 +86,7 @@ let method_features = [{
     excludes: ['doFilter()']
 }];
 
-let excluded_methods = ['doFilter()','doFilterInternal()'];
+let excluded_methods = ['doFilter()','doFilterInternal()','BySpringCGLIB'];
 
 /* 如下所示，当前配置key、 配置菜单中configCode、本地存储key 此三项需要保持一致，默认配置key = 当前配置key + '_source'*/
 var configs = {
