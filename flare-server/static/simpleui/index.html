@@ -20,27 +20,30 @@
 			</div>
 
 			<!-- 全局设置弹窗 -->
-			<el-dialog title="全局配置" :visible.sync="dialogConfigVisable" @close="closeConfigDialog">
-				<div style="display: flex">
-					<el-menu default-active="1" style="width: 25%">
-						<el-menu-item :index="String(item.configId)" v-for="(item,index) in configMenuList" @click="clickConfigMenu(item)">
-							<span slot="title">{{item.configName}}</span>
-						</el-menu-item>
-					</el-menu>
-					<div class="header-config-content">
-						<el-input
-								type="textarea"
-								:autosize="{ minRows: 8, maxRows: 16}"
-								placeholder="请填写内容"
-								v-model="configTextarea">
-						</el-input>
+			<div class="header-config-dialog">
+				<el-dialog title="全局配置" :visible.sync="dialogConfigVisable" @close="closeConfigDialog">
+					<div style="display: flex;">
+						<el-menu default-active="1" style="width: 15%">
+							<el-menu-item :index="String(item.configId)" v-for="(item,index) in configMenuList" @click="clickConfigMenu(item)"
+										  class="menu-item" style="padding: 0 6px;">
+								<span slot="title">{{item.configName}}</span>
+							</el-menu-item>
+						</el-menu>
+						<div class="header-config-content">
+							<el-input
+									type="textarea"
+									:autosize="{ minRows: 10, maxRows: 25}"
+									placeholder="请填写内容"
+									v-model="configTextarea">
+							</el-input>
+						</div>
 					</div>
-				</div>
-				<div style="text-align: center; margin-top: 10px;">
-					<el-button @click="saveConfig" size="small" type="primary">保存</el-button>
-					<el-button @click="resetConfig" size="small">重置</el-button>
-				</div>
-			</el-dialog>
+					<div class="config-button">
+						<el-button @click="saveConfig" size="small" type="primary">保存</el-button>
+						<el-button @click="resetConfig" size="small">重置</el-button>
+					</div>
+				</el-dialog>
+			</div>
 
 			<template>
 				<el-tabs class="main-content" v-model="profiler.data.activeTab" type="card" @tab-click="handleTabClick">

@@ -341,9 +341,24 @@ input.input-field {
     padding-left: 25px;
 }
 
+.header-config-dialog{}
+.header-config-dialog .menu-item{
+    height: 40px;line-height: 40px;
+}
+.header-config-dialog .el-dialog__header {
+    padding: 10px 20px 5px;
+}
+.header-config-dialog .el-dialog__body {
+    padding: 10px 15px;
+}
+.header-config-dialog .config-button{
+    text-align: center; margin-top: 10px;
+}
+
 .footer-version{
     display: flex;
     justify-content: center;
+    font-size: 13px;
 }
 
 #app .el-dropdown-link {

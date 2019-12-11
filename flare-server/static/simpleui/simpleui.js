@@ -928,6 +928,7 @@ var app = new Vue({
             // 默认配置值
             let configValue = JSON.stringify(configs[configCode + '_source']);
             configs.setLocalStoreValue(configCode, configValue);
+            this.loadExcludedMethods();
             // 关闭弹窗
             this.closeConfigDialog();
             this.$notify({type:'success',title:'提示',message:'重置成功'})
@@ -943,6 +944,7 @@ var app = new Vue({
             // 配置编号
             let configCode = this.curSelectConfig.configCode;
             configs.setLocalStoreValue(configCode, this.configTextarea);
+            this.loadExcludedMethods();
             // 关闭弹窗
             this.closeConfigDialog();
             this.$notify({type:'success',title:'提示',message:'保存成功'})
@@ -951,6 +953,14 @@ var app = new Vue({
         closeConfigDialog() {
             this.dialogConfigVisable = false;
         },
+        /* 重新加载需排除方法 */
+        loadExcludedMethods() {
+            let methodAnalysis = get_method_analysis();
+
+            if (methodAnalysis) {
+                methodAnalysis.load_excluded_methods()
+            }
+        }
     },
     filters: {
         cpuTimeFilter(value) {
