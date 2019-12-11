@@ -545,6 +545,14 @@ var app = new Vue({
             this.dialogExcludedMethodsVisible = true;
             methodAnalysis.load_excluded_methods();
         },
+        /* 折叠、展开 过滤方法div */
+        filter_method_show_close() {
+            if (methodAnalysis.uistate.show_filter_methods) {
+                methodAnalysis.uistate.show_filter_methods = false;
+            } else {
+                methodAnalysis.uistate.show_filter_methods = true;
+            }
+        },
     },
     filters: {
     },
@@ -553,6 +561,8 @@ var app = new Vue({
     mounted(){
         methodAnalysis.load_excluded_methods();
     },
+    component:{
+    }
 });
 
 

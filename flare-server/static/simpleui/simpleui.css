@@ -83,12 +83,14 @@ input.input-field {
     padding-bottom: 6px;
 }
 .method-list-content {
-    height: 120px;
+    min-height: 120px;
+    max-height: 150px;
     overflow: auto;
     list-style:none;
-    margin:4px;
+    margin:4px 0px 4px 4px;
     padding:4px;
     border: #c7ddef 1px solid;
+    font-size: 12px;
 }
 .slow-calls-list-content {
     /*height: 250px;*/
@@ -231,8 +233,17 @@ input.input-field {
     margin: 4px;
 }
 .selected_methods_div {
-    max-height: 100px;
+    min-height: 120px;
+    max-height: 150px;
     overflow: auto;
+    list-style:none;
+    margin:4px 4px 4px 0px;
+    padding:4px;
+    border: #c7ddef 1px solid;
+    /*max-height: 100px;*/
+    /*overflow: auto;*/
+    width: 49%;
+    border-left: none;
 }
 .short_input {
     width: 180px;
@@ -359,6 +370,18 @@ input.input-field {
     display: flex;
     justify-content: center;
     font-size: 13px;
+}
+
+.display-flex{
+    display: flex;
+}
+
+.filter_methods_header{
+    height: 20px;
+    margin: 5px 5px 5px 0px;
+    display: flex;
+    cursor: pointer;
+    line-height: 20px;
 }
 
 #app .el-dropdown-link {

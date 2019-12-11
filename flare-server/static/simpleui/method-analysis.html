@@ -34,12 +34,9 @@
         选择方法:
         <el-input class="long_input" size="mini" placeholder="输入方法名进行过滤"
                   v-model="methodFilterText"  @keyup.native="methodAnalysis.list_methods_by_filter(methodFilterText)">
-        </el-input>
-        (total {{methodAnalysis.data.total_method_size}}) &nbsp;
+        </el-input>&nbsp;&nbsp;
         <el-dropdown @command="select_filter_method">
-									<span class="el-dropdown-link">
-										Methods<i class="el-icon-arrow-down el-icon--right"></i>
-									</span>
+            <el-button size="mini" type="primary" plain>Methods<i class="el-icon-arrow-down el-icon&#45;&#45;right"></i></el-button>&nbsp;&nbsp;
             <el-dropdown-menu slot="dropdown">
                 <el-dropdown-item command="HttpServlet.service" >Servlet</el-dropdown-item>
                 <el-dropdown-item command="doDispatch" >SpringMVC</el-dropdown-item>
@@ -49,27 +46,42 @@
                 <el-dropdown-item command="execute" >execute</el-dropdown-item>
                 <el-dropdown-item command="commit" >commit</el-dropdown-item>
             </el-dropdown-menu>
-        </el-dropdown> &nbsp;
+        </el-dropdown>
 
-        <el-button type="primary" size="mini" plain @click='methodAnalysis.add_all_filter_methods()' >Add all</el-button> &nbsp;
-        <el-button type="danger" size="mini" plain @click='methodAnalysis.clear_search_methods()' >Clear</el-button> &nbsp;
-        <el-button type="primary" size="mini" plain @click='open_excluded_method_dialog' >Exclude-list</el-button> &nbsp;
+        <el-button type="primary" size="mini" plain @click='methodAnalysis.add_all_filter_methods()' >Add all</el-button>
+        <el-button type="danger" size="mini" plain @click='methodAnalysis.clear_search_methods()' >Clear</el-button>
+        <el-button type="primary" size="mini" plain @click='open_excluded_method_dialog' >Exclude-list</el-button>
 
-        <div v-show="methodAnalysis.uistate.show_filter_methods">
-            <div>
-                <ul class="method-list-content">
-                    <li class="list-item" v-for="method_info in methodAnalysis.data.method_infos" @click='methodAnalysis.add_search_method(method_info)' >{{method_info.full_name}}</li>
-                </ul>
+        <!-- 数据了多的情况下，折叠、展开会有点慢，还需优化 -->
+        <div>
+            <div class="filter_methods_header" @click="filter_method_show_close" title="点击折叠或展开">
+                <span style="width: 100%">
+                    <span style="padding-right: 43.5%">总方法集合(count {{methodAnalysis.data.total_method_size}})</span>
+                    <span>
+                        查找方法集合
+                        <span v-if="methodAnalysis.uistate.search_methods">
+                            (count {{methodAnalysis.uistate.search_methods.length}})
+                        </span>
+                        <span v-else>(count 0)</span>
+                    </span>
+                </span>
             </div>
-            <div class="selected_methods_div" @click="methodAnalysis.hide_call_stack_of_group()" >查找的方法集合:
-                <el-tag
-                        class="method_tag"
-                        v-for="method_info in methodAnalysis.uistate.search_methods"
-                        closable
-                        @close="methodAnalysis.remove_search_method(method_info)"
-                        size="small">
-                    {{method_info.full_name}}
-                </el-tag>
+            <div class="display-flex" v-show="methodAnalysis.uistate.show_filter_methods">
+                <div style="width: 51%;">
+                    <ul class="method-list-content">
+                        <li class="list-item" v-for="method_info in methodAnalysis.data.method_infos" @click='methodAnalysis.add_search_method(method_info)' >{{method_info.full_name}}</li>
+                    </ul>
+                </div>
+                <div class="selected_methods_div" @click="methodAnalysis.hide_call_stack_of_group()" >
+                    <el-tag
+                            class="method_tag"
+                            v-for="method_info in methodAnalysis.uistate.search_methods"
+                            closable
+                            @close="methodAnalysis.remove_search_method(method_info)"
+                            size="small">
+                        {{method_info.full_name}}
+                    </el-tag>
+                </div>
             </div>
         </div>
 
@@ -102,11 +114,11 @@
     <div  @click="methodAnalysis.hide_call_stack_of_group()" >
         <p class="list-title"> 上面选定方法最慢的调用记录： (total
             {{methodAnalysis.uistate.method_call_groups.length}}) &nbsp;
-            <el-button type="primary" size="mini" plain @click='methodAnalysis.search_slow_methods()' >Search</el-button> &nbsp;&nbsp;
+            <el-button type="primary" size="mini" plain @click='methodAnalysis.search_slow_methods()' >Search</el-button>&nbsp;&nbsp;
             <el-dropdown @command="methodAnalysis.sort_slow_method_calls">
-										<span class="el-dropdown-link">
-											Sort<i class="el-icon-arrow-down el-icon--right"></i>
-										</span>
+                <el-button type="primary" size="mini" plain>
+                    Sort<i class="el-icon-arrow-down el-icon--right"></i>
+                </el-button>
                 <el-dropdown-menu slot="dropdown">
                     <el-dropdown-item command="calls">Sort by calls</el-dropdown-item>
                     <el-dropdown-item command="max_duration">Sort by max duration</el-dropdown-item>
