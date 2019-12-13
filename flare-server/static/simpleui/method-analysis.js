@@ -611,8 +611,8 @@ var app = new Vue({
             let viewTop = bounding.top;
             //  - bounding.height * 3
             viewTop = viewTop - parentBounding.top;
-            if (viewTop > 500) {
-                viewTop = viewTop - bounding.height * 6
+            if (viewTop > 400) {
+                viewTop = viewTop - 139
             }
 
             console.log('删除pop，左边相对位置：', viewLeft, '上边相对位置：', viewTop)
