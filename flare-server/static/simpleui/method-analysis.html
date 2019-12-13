@@ -9,24 +9,39 @@
     <script src="element-ui/index.js"></script>
 </head>
 <body @keypress.esc="methodAnalysis.hide_call_stack_of_group()" >
-<div id="method_analysis" @click="methodAnalysis.hide_call_stack_of_group()">
-    <el-popover placement="right" trigger="manual" v-model="methodAnalysis.uistate.call_stack_visible " >
-        <!-- call stack -->
-        <div id="call_stack_div" class="call-stack-list-content" v-if="methodAnalysis.uistate.current_call_group != null"
+<div id="method_analysis" @click="methodAnalysis.hide_call_stack_of_group()"><!--manual-->
+    <el-popover class="call_stack_popver" id="call_stack_div" placement="right" trigger="manual" v-model="methodAnalysis.uistate.call_stack_visible " >
+        <div id="call_stack_div_content" class="call-stack-list-content" v-if="methodAnalysis.uistate.current_call_group != null"
              @click.stop="" tabindex="0" @keydown.esc="methodAnalysis.hide_call_stack_of_group()" >
-            <table>
-                <tbody>
-                <tr v-for="(call,index) in methodAnalysis.uistate.current_call_group.call_stack" >
-                    <td><span>[{{call.duration}}ms, {{Math.round(100*call.duration/methodAnalysis.uistate.current_call_group.duration)}}%]</span></td>
-                    <td><span class="call_stack_name call_stack" :class="'feat_'+call.feature_style">{{call.full_name}}</span></td>
-                    <td>
-                            <span class="call_stack " :class="'feat_'+call.feature_style" v-if="call.features.length > 0">
-                                <el-tag class="feat_tag" size="mini" >{{call.features[0].name}}</el-tag>
-                            </span>
-                    </td>
-                </tr>
-                </tbody>
-            </table>
+
+            <div class="delete-popver" id="delete_popver_div"><!-- v-show="showPop"-->
+                <p>{{showPopText}}</p>
+                <div style="text-align: right; margin: 0">
+                    <el-button size="mini" type="primary" plain @click="pCancel()">取消</el-button>
+                    <el-button type="danger" size="mini" plain @click="remove_search_method3(methodAnalysis.uistate.current_call_group.first_method_name)">确定</el-button>
+                </div>
+            </div>
+            <el-table :data="methodAnalysis.uistate.current_call_group.call_stack">
+                <el-table-column width="140">
+                    <template slot-scope="scope">
+                        <span>[{{scope.row.duration}}ms, {{Math.round(100*scope.row.duration/methodAnalysis.uistate.current_call_group.duration)}}%]</span>
+                    </template>
+                </el-table-column>
+                <el-table-column width="700" max-width="1000" column-key="date">
+                    <template slot-scope="scope">
+                        <span slot="reference" :id="'methodName'+scope.$index" @click="pOpen(scope.row, scope.$index, methodAnalysis.uistate.current_call_group.first_method_name)"
+                              class="call_stack_name call_stack cursor"
+                              :class="'feat_'+scope.row.feature_style">{{scope.row.full_name}}</span>
+                    </template>
+                </el-table-column>
+                <el-table-column width="100">
+                    <template slot-scope="scope">
+                        <span class="call_stack " :class="'feat_'+scope.row.feature_style" v-if="scope.row.features.length > 0">
+                            <el-tag class="feat_tag" size="mini" >{{scope.row.features[0].name}}</el-tag>
+                        </span>
+                    </template>
+                </el-table-column>
+            </el-table>
         </div>
     </el-popover>
 
@@ -130,16 +145,17 @@
             <span class="search_method_message" :class="{error_message: methodAnalysis.uistate.search_method_error == true}" >{{methodAnalysis.uistate.search_method_message}}</span>
         </p>
 
-        <div class="method_groups_div">
+        <div class="method_groups_div" id="method_groups_div">
             <el-collapse >
-                <el-collapse-item v-for="call_group in  methodAnalysis.uistate.method_call_groups" :name="'call_group_'+call_group.group_id" >
+                <el-collapse-item v-for="(call_group,index) in  methodAnalysis.uistate.method_call_groups" :name="'call_group_'+call_group.group_id" >
                     <template slot="title">
                         #{{call_group.group_id}} - calls: {{call_group.method_calls.length}} - max: {{call_group.max_duration}}, avg: {{call_group.avg_duration}}, min: {{call_group.min_duration}} &nbsp;
                         <span class="group_first_method" :title="call_group.first_method_name">{{call_group.first_method_name}}</span> &nbsp;
                         <span class="feat_tag" :class="'feat_'+feat.style" v-for="feat in call_group.features">
                             <el-tag size="mini" v-if="feat.tag!==false">{{feat.name}}</el-tag>
                         </span>
-                        <el-button size="mini" icon="el-icon-chat-line-square" title="View call stack"  @click.prevent.stop="methodAnalysis.show_call_stack_of_group(call_group)"></el-button>
+                        <el-button size="mini" icon="el-icon-chat-line-square" title="View call stack" :id="'viewCallStack'+index"
+                                   @click.prevent.stop="methodAnalysis.show_call_stack_of_group(call_group,index)"></el-button>
                         &nbsp; &nbsp;
                         <el-button type="danger" size="mini" icon="el-icon-delete" plain title="Remove this method" @click.prevent.stop='remove_search_method2(call_group.first_method_name)'></el-button> &nbsp;&nbsp;
                     </template>
@@ -149,7 +165,6 @@
                     </ul>
                 </el-collapse-item>
             </el-collapse>
-
         </div>
 
     </div>
