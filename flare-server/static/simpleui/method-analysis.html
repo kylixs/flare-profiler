@@ -107,7 +107,7 @@
             <el-button type="primary" size="mini" plain @click='methodAnalysis.add_excluded_method(excludedMethodText);excludedMethodText="";' >Add</el-button> &nbsp;&nbsp;
             <el-button type="danger" size="mini" plain @click='methodAnalysis.clear_excluded_methods()' >Clear</el-button> &nbsp;
 
-            <div class="selected_methods_div">排除的方法集合:
+            <div class="selected_methods_div" style="width: 100%">排除的方法集合:
                 <el-tag
                         class="method_tag"
                         v-for="method_name in methodAnalysis.uistate.excluded_methods"

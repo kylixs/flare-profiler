@@ -91,6 +91,7 @@ input.input-field {
     padding:4px;
     border: #c7ddef 1px solid;
     font-size: 12px;
+    border-right: none;
 }
 .slow-calls-list-content {
     /*height: 250px;*/
@@ -243,7 +244,7 @@ input.input-field {
     /*max-height: 100px;*/
     /*overflow: auto;*/
     width: 49%;
-    border-left: none;
+    /*border-left: none;*/
 }
 .short_input {
     width: 180px;

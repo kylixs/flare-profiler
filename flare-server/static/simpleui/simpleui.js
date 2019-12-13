@@ -912,7 +912,8 @@ var app = new Vue({
                 this.configTextarea = formatJson(localStrageValue);
                 this.curSelectConfig = configs.configMenuList[0]
             } else {
-                this.configTextarea = formatJson(configs[this.curSelectConfig.configCode]);
+                let localStrageValue = configs.getLocalStoreValue(this.curSelectConfig.configCode);
+                this.configTextarea = formatJson(localStrageValue);
             }
         },
         /* 点击菜单项 */
