@@ -384,6 +384,34 @@ input.input-field {
     line-height: 20px;
 }
 
+/* view call stack 默认位置 */
+.call_stack_popver{
+    position: absolute;
+    left: 45%;
+    top: 5%;
+}
+
+.delete-popver{
+    background: #FFF;
+    max-width: 200px;
+    min-width: 150px;
+    border: 1px solid #EBEEF5;
+    padding: 12px;
+    z-index: 2000;
+    color: #606266;
+    line-height: 1.4;
+    text-align: justify;
+    font-size: 14px;
+    box-shadow: 0 2px 12px 0 rgba(0,0,0,.1);
+    word-break: break-all;
+    display: none;
+}
+
+.cursor{cursor: pointer}
+
+/* 隐藏table header */
+#call_stack_div .el-table thead{display: none}
+
 #app .el-dropdown-link {
     cursor: pointer;
     color: #409eff;

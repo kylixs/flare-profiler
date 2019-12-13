@@ -490,15 +490,47 @@ var methodAnalysis = {
         get_profiler().jump_to_method_call(method_call);
     },
 
-    show_call_stack_of_group(call_group){
+    show_call_stack_of_group(call_group, index){
         methodAnalysis.uistate.current_call_group = call_group;
         methodAnalysis.uistate.call_stack_visible = true;
+
         setTimeout(function () {
             document.getElementById("call_stack_div").focus();
+
+            let call_stack_div_content = document.querySelector('#call_stack_div_content');
+            let parentClientHeight = call_stack_div_content.offsetParent.clientHeight;
+
+            let viewCallStack = document.querySelector('#viewCallStack' + index);
+
+            let bounding = viewCallStack.getBoundingClientRect();
+            let viewLeft = bounding.left;
+            let viewTop = bounding.top;
+
+
+            // 距离左边多50px，弹框显示在按钮右侧
+            viewLeft = viewLeft + 50;
+            if (!parentClientHeight || parentClientHeight > 350) {
+                viewTop = viewTop - viewTop / 2;
+            } else if (call_stack_div_content.offsetParent.clientHeight) {
+                viewTop = viewTop - (call_stack_div_content.offsetParent.clientHeight / 2);
+            }
+
+            console.log('左边相对定位，', viewLeft, ' 上边相对定位，', viewTop, 'clientHeight', call_stack_div_content.offsetParent.clientHeight);
+
+            let call_stack_div = document.querySelector('#call_stack_div');
+            call_stack_div.style.cssText = "display: block;position: absolute;left: "+viewLeft+"px;top: "+viewTop+"px;";
+
+
+            methodAnalysis.hideDeletePopverDiv();
+
         }, 500);
     },
     hide_call_stack_of_group(){
         methodAnalysis.uistate.call_stack_visible = false;
+    },
+    hideDeletePopverDiv() {
+        let delete_popver_div = document.querySelector("#delete_popver_div");
+        delete_popver_div.style.cssText = "display: none!important;";
     },
 };
 
@@ -511,6 +543,7 @@ var app = new Vue({
         dialogExcludedMethodsVisible: false,
         methodAnalysis: methodAnalysis,
         profiler: get_profiler(),
+        showPopText: '',
     },
     watch: {
         // methodFilterText(val) {
@@ -541,6 +574,15 @@ var app = new Vue({
                 // })
             });
         },
+        remove_search_method3(method_name) {
+            methodAnalysis.remove_search_method_by_name(method_name);
+            this.$notify({
+                title: '成功',
+                message: '方法['+method_name+']已删除，请重新执行分析操作。',
+                type: 'success'
+            })
+            methodAnalysis.hideDeletePopverDiv();
+        },
         open_excluded_method_dialog() {
             this.dialogExcludedMethodsVisible = true;
             methodAnalysis.load_excluded_methods();
@@ -552,6 +594,34 @@ var app = new Vue({
             } else {
                 methodAnalysis.uistate.show_filter_methods = true;
             }
+        },
+        /* 取消 */
+        pCancel() {
+            this.showPopText = '';
+            methodAnalysis.hideDeletePopverDiv();
+        },
+        /* 打开 */
+        pOpen(item, index, method_name){
+            var methodName = document.querySelector("#methodName" + index);
+            let call_stack_div = document.querySelector('#call_stack_div');
+
+            let parentBounding = call_stack_div.getBoundingClientRect();
+            let bounding = methodName.getBoundingClientRect();
+            let viewLeft = bounding.left / 2 - bounding.width / 2;
+            let viewTop = bounding.top;
+            //  - bounding.height * 3
+            viewTop = viewTop - parentBounding.top;
+            if (viewTop > 500) {
+                viewTop = viewTop - bounding.height * 6
+            }
+
+            console.log('删除pop，左边相对位置：', viewLeft, '上边相对位置：', viewTop)
+
+            let delete_popver_div = document.querySelector("#delete_popver_div");
+
+            delete_popver_div.style.cssText = "display: block!important;position: absolute;left: "+viewLeft+"px;top: "+viewTop+"px;";
+
+            this.showPopText = '从已选择的方法列表中删除此方法['+method_name+']?';
         },
     },
     filters: {
