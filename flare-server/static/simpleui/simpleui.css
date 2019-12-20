@@ -1,3 +1,6 @@
+html, body{
+    overflow-y: hidden;
+}
 p {
     margin: 0 0 6px !important;
 }
@@ -105,8 +108,11 @@ input.input-field {
 .call-stack-list-content {
     cursor: default;
     overflow: auto;
+    /*max-width: 1000px;*/
     max-height: 80vh;
     border-width: 0px;
+    word-break: keep-all;
+    white-space: nowrap;
 }
 .call-stack-list-content td{
     padding: 0;
@@ -127,6 +133,10 @@ input.input-field {
 .method_groups_div{
     max-height: 80vh;
     overflow: auto;
+}
+.method_groups_div .el-table .cell {
+    padding-left: 5px;
+    padding-right: 5px;
 }
 .search_method_message {
     margin:4px;
@@ -193,7 +203,14 @@ input.input-field {
 }
 
 .call_stack_name {
-    margin-right: 20px;
+    margin-right: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 80vh;
+    /* Beginning of string */
+    /*direction: rtl;*/
+    text-align: left;
 }
 .call_stack_tag{
     float: right;
@@ -218,6 +235,12 @@ input.input-field {
 
 .feat_tag{
     margin-right: 4px;
+}
+.feat_col {
+    width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 .error_message {
     background-color: #fef0f0;

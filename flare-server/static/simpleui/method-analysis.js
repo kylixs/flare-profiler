@@ -495,27 +495,34 @@ var methodAnalysis = {
         methodAnalysis.uistate.call_stack_visible = true;
 
         setTimeout(function () {
-            document.getElementById("call_stack_div").focus();
-
             let call_stack_div_content = document.querySelector('#call_stack_div_content');
             let parentClientHeight = call_stack_div_content.offsetParent.clientHeight;
+            let parentClientWidth = call_stack_div_content.offsetParent.clientWidth;
 
-            let viewCallStack = document.querySelector('#viewCallStack' + index);
+            let viewCallStack = document.querySelector('#viewCallStack_' + index);
 
             let bounding = viewCallStack.getBoundingClientRect();
             let viewLeft = bounding.left;
             let viewTop = bounding.top;
 
-
-            // 距离左边多50px，弹框显示在按钮右侧
-            viewLeft = viewLeft + 50;
             if (!parentClientHeight || parentClientHeight > 350) {
                 viewTop = viewTop - viewTop / 2;
             } else if (call_stack_div_content.offsetParent.clientHeight) {
                 viewTop = viewTop - (call_stack_div_content.offsetParent.clientHeight / 2);
             }
+            let bodyHeight = document.body.scrollHeight;
+            if(viewTop + parentClientHeight > bodyHeight){
+                viewTop = bodyHeight - parentClientHeight;
+            }
+            // 距离左边多50px，弹框显示在按钮右侧
+            viewLeft = viewLeft + 50;
+            //如果右边空间不够，则放到左边显示
+            let contentWidth =  document.querySelector("#method_groups_div").clientWidth;
+            if (viewLeft + parentClientWidth > contentWidth ){
+                viewLeft = bounding.left - parentClientWidth - 10;
+            }
 
-            console.log('左边相对定位，', viewLeft, ' 上边相对定位，', viewTop, 'clientHeight', call_stack_div_content.offsetParent.clientHeight);
+            console.log('左边相对定位，', viewLeft, ' 上边相对定位，', viewTop, 'clientHeight', parentClientHeight, 'clientWidth', parentClientWidth);
 
             let call_stack_div = document.querySelector('#call_stack_div');
             call_stack_div.style.cssText = "display: block;position: absolute;left: "+viewLeft+"px;top: "+viewTop+"px;";
@@ -523,7 +530,11 @@ var methodAnalysis = {
 
             methodAnalysis.hideDeletePopverDiv();
 
-        }, 500);
+        }, 10);
+
+        setTimeout(function () {
+            document.getElementById("call_stack_div_content").focus();
+        }, 200);
     },
     hide_call_stack_of_group(){
         methodAnalysis.uistate.call_stack_visible = false;
@@ -615,7 +626,7 @@ var app = new Vue({
                 viewTop = viewTop - 139
             }
 
-            console.log('删除pop，左边相对位置：', viewLeft, '上边相对位置：', viewTop)
+            //console.log('删除pop，左边相对位置：', viewLeft, '上边相对位置：', viewTop)
 
             let delete_popver_div = document.querySelector("#delete_popver_div");
 
