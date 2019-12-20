@@ -85,6 +85,9 @@ input.input-field {
     cursor: pointer;
     padding-bottom: 6px;
 }
+.el-table__expanded-cell[class*=cell]{
+    padding: 0 10px 5px 40px;
+}
 .method-list-content {
     min-height: 120px;
     max-height: 150px;
@@ -97,8 +100,9 @@ input.input-field {
     border-right: none;
 }
 .slow-calls-list-content {
-    /*height: 250px;*/
+    max-height: 250px;
     /*height: 50vh;*/
+    width: 100%;
     overflow: auto;
     list-style:none;
     margin:4px;
@@ -108,7 +112,7 @@ input.input-field {
 .call-stack-list-content {
     cursor: default;
     overflow: auto;
-    /*max-width: 1000px;*/
+    /*max-width: 880px;*/
     max-height: 80vh;
     border-width: 0px;
     word-break: keep-all;
@@ -207,7 +211,8 @@ input.input-field {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 80vh;
+    /*max-width: 80vh;*/
+    max-width: 680px;
     /* Beginning of string */
     /*direction: rtl;*/
     text-align: left;

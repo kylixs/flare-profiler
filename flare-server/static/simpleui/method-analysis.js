@@ -510,14 +510,15 @@ var methodAnalysis = {
             } else if (call_stack_div_content.offsetParent.clientHeight) {
                 viewTop = viewTop - (call_stack_div_content.offsetParent.clientHeight / 2);
             }
-            let bodyHeight = document.body.scrollHeight;
+            let bodyHeight = document.body.clientHeight;
             if(viewTop + parentClientHeight > bodyHeight){
                 viewTop = bodyHeight - parentClientHeight;
             }
             // 距离左边多50px，弹框显示在按钮右侧
             viewLeft = viewLeft + 50;
             //如果右边空间不够，则放到左边显示
-            let contentWidth =  document.querySelector("#method_groups_div").clientWidth;
+            //let contentWidth =  document.querySelector("#method_groups_div").clientWidth;
+            let contentWidth =  document.body.clientWidth;
             if (viewLeft + parentClientWidth > contentWidth ){
                 viewLeft = bounding.left - parentClientWidth - 10;
             }

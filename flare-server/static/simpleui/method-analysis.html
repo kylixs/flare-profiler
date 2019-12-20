@@ -164,6 +164,14 @@
 
             <template>
                 <el-table :data="methodAnalysis.uistate.method_call_groups">
+                    <el-table-column type="expand" width="20">
+                        <template slot-scope="scope">
+                            <ul class="slow-calls-list-content">
+                                <li class="list-item" v-for="method_call in scope.row.method_calls" @click='methodAnalysis.jump_to_method_call(method_call)'
+                                >{{method_call.full_name}} - (duration:{{method_call.duration}}) - [#{{method_call.thread_id}}] {{method_call.thread_name}} </li>
+                            </ul>
+                        </template>
+                    </el-table-column>
                     <el-table-column
                             label="Method"
                             width="510"
