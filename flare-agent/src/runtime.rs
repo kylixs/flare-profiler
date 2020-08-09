@@ -2,6 +2,8 @@ use super::bytecode::Classfile;
 use super::class::{ClassId, ClassSignature};
 use super::method::{MethodId, MethodSignature};
 use super::thread::Thread;
+use super::thread::ThreadId;
+use super::native::{JavaMethod, JavaLong};
 
 pub trait RuntimeEvent {
 }
@@ -18,9 +20,10 @@ pub struct ObjectFreeEvent {
 
 pub struct MethodInvocationEvent {
     pub method_id: MethodId,
-    pub method_sig: MethodSignature,
-    pub class_sig: ClassSignature,
-    pub thread: Thread
+    pub thread_id: ThreadId,
+    // pub method_sig: MethodSignature,
+    // pub class_sig: ClassSignature,
+    // pub thread: Thread,
 }
 
 impl RuntimeEvent for ObjectAllocationEvent {}

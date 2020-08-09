@@ -13,6 +13,7 @@ use std::ptr;
 use super::util::stringify;
 use super::bytecode::*;
 use std::io::{ Cursor };
+use thread::ThreadId;
 
 pub static mut CALLBACK_TABLE: EventCallbacks = EventCallbacks {
     vm_init: None,
@@ -208,24 +209,30 @@ unsafe extern "C" fn local_cb_vm_object_alloc(jvmti_env: *mut jvmtiEnv, jni_env:
 unsafe extern "C" fn local_cb_method_entry(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: JavaThread, method: JavaMethod) -> () {
     match CALLBACK_TABLE.method_entry {
         Some(function) => {
-            let env = get_env_api(jvmti_env, jni_env);
-            match env.get_thread_info(&thread) {
-                Ok(current_thread) => {
-                    let method_id = MethodId { native_id : method };
-                    let class_id = env.get_method_declaring_class(&method_id).ok().unwrap();
-                    let class_sig = env.get_class_signature(&class_id).ok().unwrap();
-                    let method_sig = env.get_method_name(&method_id).ok().unwrap();
 
-                    function(MethodInvocationEvent { method_id: method_id, method_sig: method_sig, class_sig: class_sig, thread: current_thread })
+            let method_id = MethodId { native_id : method };
+            let thread_id = ThreadId { native_id : thread };
+            function(MethodInvocationEvent { method_id: method_id, thread_id: thread_id })
 
-                },
-                Err(err) => {
-                    match err {
-                        NativeError::WrongPhase => { /* we're in the wrong phase, just ignore this */ },
-                        _ => println!("Couldn't get thread info: {}", translate_error(&err))
-                    }
-                }
-            }
+            // let env = get_env_api(jvmti_env, jni_env);
+            // match env.get_thread_info(&thread) {
+            //     Ok(current_thread) => {
+            //         let method_id = MethodId { native_id : method };
+            //         let class_id = env.get_method_declaring_class(&method_id).ok().unwrap();
+            //         let class_sig = env.get_class_signature(&class_id).ok().unwrap();
+            //         let method_sig = env.get_method_name(&method_id).ok().unwrap();
+            //
+            //         function(MethodInvocationEvent { method_id: method_id, method_sig: method_sig, class_sig: class_sig, thread: current_thread })
+            //
+            //     },
+            //     Err(err) => {
+            //         match err {
+            //             NativeError::WrongPhase => { /* we're in the wrong phase, just ignore this */ },
+            //             _ => println!("Couldn't get thread info: {}", translate_error(&err))
+            //         }
+            //     }
+            // }
+
         },
         None => println!("No dynamic callback method was found for method entry")
     }
@@ -235,24 +242,29 @@ unsafe extern "C" fn local_cb_method_entry(jvmti_env: *mut jvmtiEnv, jni_env: *m
 unsafe extern "C" fn local_cb_method_exit(jvmti_env: *mut jvmtiEnv, jni_env: *mut JNIEnv, thread: jthread, method: jmethodID, was_popped_by_exception: jboolean, return_value: jvalue) -> () {
     match CALLBACK_TABLE.method_exit {
         Some(function) => {
-            let env = get_env_api(jvmti_env, jni_env);
-            match env.get_thread_info(&thread) {
-                Ok(current_thread) => {
-                    let method_id = MethodId { native_id : method };
-                    let class_id = env.get_method_declaring_class(&method_id).ok().unwrap();
-                    let class_sig = env.get_class_signature(&class_id).ok().unwrap();
-                    let method_sig = env.get_method_name(&method_id).ok().unwrap();
 
-                    function(MethodInvocationEvent { method_id: method_id, method_sig: method_sig, class_sig: class_sig, thread: current_thread })
+            let method_id = MethodId { native_id : method };
+            let thread_id = ThreadId { native_id : thread };
+            function(MethodInvocationEvent { method_id: method_id, thread_id: thread_id })
 
-                },
-                Err(err) => {
-                    match err {
-                        NativeError::WrongPhase => { /* we're in the wrong phase, just ignore this */ },
-                        _ => println!("Couldn't get thread info: {}", translate_error(&err))
-                    }
-                }
-            }
+            // let env = get_env_api(jvmti_env, jni_env);
+            // match env.get_thread_info(&thread) {
+            //     Ok(current_thread) => {
+            //         let method_id = MethodId { native_id : method };
+            //         let class_id = env.get_method_declaring_class(&method_id).ok().unwrap();
+            //         let class_sig = env.get_class_signature(&class_id).ok().unwrap();
+            //         let method_sig = env.get_method_name(&method_id).ok().unwrap();
+            //
+            //         function(MethodInvocationEvent { method_id: method_id, method_sig: method_sig, class_sig: class_sig, thread: current_thread })
+            //
+            //     },
+            //     Err(err) => {
+            //         match err {
+            //             NativeError::WrongPhase => { /* we're in the wrong phase, just ignore this */ },
+            //             _ => println!("Couldn't get thread info: {}", translate_error(&err))
+            //         }
+            //     }
+            // }
         }
         None => println!("No dynamic callback method was found for method exit")
     }
@@ -593,7 +605,7 @@ unsafe extern "C" fn local_cb_vm_init(jvmti_env: *mut jvmtiEnv, jni_env: *mut JN
 
     match CALLBACK_TABLE.vm_init {
         Some(function) => {
-            function();
+            function(Box::new(get_env_api(jvmti_env, jni_env)));
         },
         None => println!("No dynamic callback method was found for VM init events")
     }

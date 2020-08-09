@@ -1,10 +1,11 @@
 use super::native::jvmti_native::*;
 use super::runtime::*;
 use super::thread::Thread;
+use environment::Environment;
 
 pub type FnMethodEntry = fn(event: MethodInvocationEvent) -> ();
 pub type FnMethodExit = fn(event: MethodInvocationEvent) -> ();
-pub type FnVMInit = fn() -> ();
+pub type FnVMInit = fn(environment: Box<Environment>) -> ();
 pub type FnVMDeath = fn() -> ();
 pub type FnVMStart = fn() -> ();
 pub type FnVMObjectAlloc = fn(event: ObjectAllocationEvent) -> ();

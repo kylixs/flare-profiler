@@ -116,34 +116,34 @@ fn on_method_entry(event: MethodInvocationEvent) {
     if !is_trace_running() {
         return;
     }
-    let shall_record = match static_context().config.read() {
-        Ok(cfg) => (*cfg).entry_points.iter().any(|item| *item == format!("{}.{}", event.class_sig.name, event.method_sig.name) ), //event.class_name.as_str() == item),
-        _ => false
-    };
+    // let shall_record = match static_context().config.read() {
+    //     Ok(cfg) => (*cfg).entry_points.iter().any(|item| *item == format!("{}.{}", event.class_sig.name, event.method_sig.name) ), //event.class_name.as_str() == item),
+    //     _ => false
+    // };
 
-    if !shall_record {
-        //TREE_ARENA.lock().unwrap().begin_call(&event.thread, &event.class_sig.name, &event.method_sig.name);
-        debug!("[{}] [{}] method_entry [{}.{}]", nowTime(), event.thread.name, event.class_sig.name, event.method_sig.name);
-    }
+    // if !shall_record {
+    //     //TREE_ARENA.lock().unwrap().begin_call(&event.thread, &event.class_sig.name, &event.method_sig.name);
+    //     debug!("[{}] [{}] method_entry [{}.{}]", nowTime(), event.thread.name, event.class_sig.name, event.method_sig.name);
+    // }
 
-//    static_context().method_enter(&event.thread.id);
+   // static_context().method_enter(&event.thread.id);
 }
 
 fn on_method_exit(event: MethodInvocationEvent) {
     if !is_trace_running() {
         return;
     }
-    match static_context().method_exit(&event.thread.id) {
-        //Some(_) => (),
-        Some(duration) => {
-            //TREE_ARENA.lock().unwrap().end_call(&event.thread, &event.class_sig.name, &event.method_sig.name, &duration);
-            debug!("[{}] [{}] method_exit [{}.{}] after {}", nowTime(), event.thread.name, event.class_sig.name, event.method_sig.name, duration)
-        },
-        None => {
-            //TREE_ARENA.lock().unwrap().end_call(&event.thread, &event.class_sig.name, &event.method_sig.name, &Duration::microseconds(0));
-            debug!("[{}] [{}] method_no_start [{}.{}]", nowTime(), event.thread.name, event.class_sig.name, event.method_sig.name)
-        }
-    }
+    // match static_context().method_exit(&event.thread.id) {
+    //     //Some(_) => (),
+    //     Some(duration) => {
+    //         //TREE_ARENA.lock().unwrap().end_call(&event.thread, &event.class_sig.name, &event.method_sig.name, &duration);
+    //         debug!("[{}] [{}] method_exit [{}.{}] after {}", nowTime(), event.thread.name, event.class_sig.name, event.method_sig.name, duration)
+    //     },
+    //     None => {
+    //         //TREE_ARENA.lock().unwrap().end_call(&event.thread, &event.class_sig.name, &event.method_sig.name, &Duration::microseconds(0));
+    //         debug!("[{}] [{}] method_no_start [{}.{}]", nowTime(), event.thread.name, event.class_sig.name, event.method_sig.name)
+    //     }
+    // }
 }
 
 fn on_thread_start(thread: Thread) {
@@ -279,6 +279,15 @@ fn on_object_free() {
     println!("[{}] Object free", nowTime());
 }
 
+fn on_vm_init(environment: Box<Environment>) {
+    println!("vm init");
+
+
+}
+
+fn on_vm_start() {
+    println!("vm start");
+}
 
 ///
 /// `Agent_OnLoad` is the actual entry point of the agent code and it is called by the
@@ -307,7 +316,7 @@ pub extern fn Agent_OnLoad(vm: JavaVMPtr, options: MutString, reserved: VoidPtr)
 
     let mut agent = Agent::new(vm);
     init_agent(&mut agent);
-    start_trace(interval, &bind_host, bind_port);
+    //start_trace(interval, &bind_host, bind_port);
 
     return 0;
 }
@@ -375,12 +384,16 @@ pub extern fn Agent_OnAttach(vm: JavaVMPtr, options: MutString, reserved: VoidPt
                     start_trace(interval, &bind_host, bind_port);
                     let vm = vm_ptr as JavaVMPtr;
                     println!("create agent ..");
-                    let mut agent = Agent::new_attach(vm, "Flare-Profiler");
+                    // let mut agent = Agent::new_attach(vm, "Flare-Profiler");
+                    let mut agent = Agent::new(vm);
                     println!("init_agent ..");
                     init_agent(&mut agent);
-                    let jvmenv = &agent.jvm_env;
 
-                    let mut samples=0i64;
+                    let jniEnv = agent.attach("Flare-Profiler");
+
+                    let jvmenv = Box::new( Environment::new(agent.jvmti, jniEnv));
+
+                    let mut samples= 0i64;
                     let mut thread_info_map: HashMap<JavaLong, ThreadInfo> = HashMap::new();
                     let mut last_get_cpu_time = 0i64;
                     //let get_cpu_time_per_samples = max(1, 50/interval);
@@ -395,7 +408,7 @@ pub extern fn Agent_OnAttach(vm: JavaVMPtr, options: MutString, reserved: VoidPt
 //                        match get_stack_traces(jvmenv, &mut thread_info_map, update_cpu_time) {
                             Ok(stack_traces) => {
                                 let t1 = time::now();
-                                SAMPLER.lock().unwrap().add_stack_traces(jvmenv, &stack_traces);
+                                SAMPLER.lock().unwrap().add_stack_traces(&jvmenv, &stack_traces);
                                 let t2 = time::now();
                             },
                             Err(e) => {
@@ -528,15 +541,18 @@ fn init_agent(agent: &mut Agent) {
     agent.capabilities.can_generate_all_class_hook_events = true;
     agent.capabilities.can_get_bytecodes = true;
 
+
+    agent.on_vm_init(Some(on_vm_init));
+    agent.on_vm_start(Some(on_vm_start));
 //    agent.on_garbage_collection_start(Some(on_garbage_collection_start));
 //    agent.on_garbage_collection_finish(Some(on_garbage_collection_finish));
     //agent.on_vm_object_alloc(Some(on_object_alloc));
     //agent.on_vm_object_free(Some(on_object_free));
     //agent.on_class_file_load(Some(on_class_file_load));
-//    agent.on_method_entry(Some(on_method_entry));
-//    agent.on_method_exit(Some(on_method_exit));
-//    agent.on_thread_start(Some(on_thread_start));
-//    agent.on_thread_end(Some(on_thread_end));
+   agent.on_method_entry(Some(on_method_entry));
+   agent.on_method_exit(Some(on_method_exit));
+   agent.on_thread_start(Some(on_thread_start));
+   agent.on_thread_end(Some(on_thread_end));
 //    agent.on_monitor_wait(Some(on_monitor_wait));
 //    agent.on_monitor_waited(Some(on_monitor_waited));
 //    agent.on_monitor_contended_enter(Some(on_monitor_contended_enter));
