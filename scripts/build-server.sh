@@ -10,8 +10,8 @@ fi
 export RUSTFLAGS="-Awarnings -C target-feature=+crt-static"
 
 if [[ "$OSTYPE" == "cygwin" || "$OSTYPE" == "msys" ]]; then
-  CARGO_OPTS="--target x86_64-pc-windows-msvc"
-  TARGET_PATH="x86_64-pc-windows-msvc/release"
+  CARGO_OPTS="--target $build_target"
+  TARGET_PATH="$build_target/release"
 else
   CARGO_OPTS=""
   TARGET_PATH="release"

@@ -5,6 +5,24 @@ export RUSTFLAGS=-Awarnings
 
 PROJECT_PATH="$(cd "$(dirname $0)"; pwd -P )"
 
+if [[ "$OSTYPE" == "cygwin" || "$OSTYPE" == "msys" ]]; then
+#  export build_target="i686-pc-windows-msvc"
+
+  check_toolchain=$(rustup toolchain list | grep stable-x86_64-pc-windows-msvc)
+  if [[ -z "$check_toolchain" ]]; then
+    echo "Installing toolchain: stable-x86_64-pc-windows-msvc ..."
+    rustup toolchain install stable-x86_64-pc-windows-msvc
+  fi
+
+  check_target=$(rustup target list | grep installed | grep x86_64-pc-windows-msvc)
+  if [[ -z "$check_target" ]]; then
+    echo "Installing target: x86_64-pc-windows-msvc ..."
+    rustup target add x86_64-pc-windows-msvc
+  fi
+  export build_target="x86_64-pc-windows-msvc"
+fi
+echo "build_target: $build_target"
+
 #build flare-server
 $PROJECT_PATH/scripts/build-server.sh $@
 if [[ $? != 0 ]];then
