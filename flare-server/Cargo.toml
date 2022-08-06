@@ -31,7 +31,7 @@ log = "0.4"
 env_logger = "0.6.2"
 #resp = "1.0.2"
 resp = { path = "../thirty-libs/resp" }
-websocket = "0.23.0"
+websocket = "0.26.5"
 timer = "0.2.0"
 #stopwatch = "0.0.7"
 #inferno = "0.9.0"
