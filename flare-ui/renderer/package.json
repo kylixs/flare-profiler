@@ -26,7 +26,7 @@
     "@vue/cli-service": "^3.8.0",
     "vue-cli-plugin-element": "^1.0.1",
     "vue-template-compiler": "^2.6.10",
-    "d3": "~4.7.0"
+    "d3": "~7.6.1"
   },
   "postcss": {
     "plugins": {
